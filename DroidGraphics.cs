@@ -100,6 +100,7 @@ namespace CrossGraphics.Droid
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
+			_paints.Stroke.StrokeWidth = w;
 			_c.DrawPath (GetPolyPath (poly), _paints.Fill);
 		}
 
@@ -110,6 +111,7 @@ namespace CrossGraphics.Droid
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
+			_paints.Stroke.StrokeWidth = w;
 			_c.DrawRoundRect (new RectF (x, y, x + width, y + height), radius, radius, _paints.Stroke);
 		}
 
@@ -120,6 +122,7 @@ namespace CrossGraphics.Droid
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
+			_paints.Stroke.StrokeWidth = w;
 			_c.DrawRect (new RectF (x, y, x + width, y + height), _paints.Stroke);
 		}
 
@@ -130,10 +133,12 @@ namespace CrossGraphics.Droid
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
+			_paints.Stroke.StrokeWidth = w;
 			_c.DrawOval (new RectF (x, y, x + width, y + width), _paints.Stroke);
 		}
 
 		bool _inLines = false;
+		float _lineWidth = 1;
 		float[] _linePoints = new float[2 * 100];
 		int _numLineElements = 0;
 
@@ -148,6 +153,7 @@ namespace CrossGraphics.Droid
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
 			if (_inLines) {
+				_lineWidth = w;
 				if (_numLineElements == 0) {
 					_linePoints[0] = sx;
 					_linePoints[1] = sy;
@@ -163,6 +169,7 @@ namespace CrossGraphics.Droid
 				}
 			}
 			else {
+				_paints.Stroke.StrokeWidth = w;
 				_c.DrawLine (sx, sy, ex, ey, _paints.Stroke);
 			}
 		}
@@ -170,6 +177,7 @@ namespace CrossGraphics.Droid
 		public void EndLines ()
 		{
 			if (_inLines) {
+				_paints.Stroke.StrokeWidth = _lineWidth;
 				_c.DrawLines (_linePoints, 0, _numLineElements, _paints.Stroke);
 				_inLines = false;
 			}

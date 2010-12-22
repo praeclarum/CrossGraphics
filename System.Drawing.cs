@@ -49,6 +49,11 @@ namespace System.Drawing
             Width += size.Width * 2;
             Height += size.Height * 2;
         }
+		
+		public override string ToString ()
+		{
+			return string.Format ("[RectangleF: Left={0} Top={1} Width={2} Height={3}]", Left, Top, Width, Height);
+		}
     }
 
     public struct Rectangle
@@ -84,10 +89,12 @@ namespace System.Drawing
 
         public static Rectangle Union (Rectangle a, Rectangle b)
         {
-            return new Rectangle (Math.Min (a.Left, b.Left),
-                     Math.Min (a.Top, b.Top),
-                     Math.Max (a.Right, b.Right),
-                     Math.Max (a.Bottom, b.Bottom));
+			var left = Math.Min (a.Left, b.Left);
+			var top = Math.Min (a.Top, b.Top);
+            return new Rectangle (left,
+                     top,
+                     Math.Max (a.Right, b.Right) - left,
+                     Math.Max (a.Bottom, b.Bottom) - top);
         }
 
         public bool IntersectsWith (Rectangle rect)
@@ -108,6 +115,11 @@ namespace System.Drawing
             Width += size.Width * 2;
             Height += size.Height * 2;
         }
+		
+		public override string ToString ()
+		{
+			return string.Format ("[Rectangle: Left={0} Top={1} Width={2} Height={3}]", Left, Top, Width, Height);
+		}
     }
 
     public struct PointF
