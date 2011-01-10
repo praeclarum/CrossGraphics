@@ -25,6 +25,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Media;
 
 namespace CrossGraphics.SilverlightGraphics
 {
@@ -266,6 +267,7 @@ namespace CrossGraphics.SilverlightGraphics
 			else if (typeId == "RoundedRect") return shape is Rectangle;
 			else if (typeId == "Rect") return shape is Rectangle;
 			else if (typeId == "Image") return shape is Image;
+            else if (typeId == "Polygon") return shape is System.Windows.Shapes.Polygon;
 			else throw new NotSupportedException ("Don't know: " + typeId);
 		}
 
@@ -293,6 +295,10 @@ namespace CrossGraphics.SilverlightGraphics
 			else if (typeId == "Image") {
 				s = new Image ();
 			}
+            else if (typeId == "Polygon")
+            {
+                s = new System.Windows.Shapes.Polygon();
+            }
 			else {
 				throw new NotSupportedException ("Don't know how to construct: " + typeId);
 			}
@@ -345,13 +351,43 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public void FillPolygon (Polygon poly)
 		{
-			throw new NotImplementedException ();
+            var e = GetNextElement("Polygon") as System.Windows.Shapes.Polygon;
+
+            if (e.Points.Count != poly.Points.Count)
+            {
+                var ps = new PointCollection();
+                ps.Clear();
+                var n = poly.Points.Count;
+                for (var i = 0 ; i < n; i++) {
+                    ps.Add(new Point(poly.Points[i].X, poly.Points[i].Y));
+                }
+                e.Points = ps;
+            }
+
+            e.Fill = _currentColor.GetBrush();
+            e.Stroke = null;
 		}
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
-			throw new NotImplementedException ();
-		}
+            var e = GetNextElement("Polygon") as System.Windows.Shapes.Polygon;
+
+            if (e.Points.Count != poly.Points.Count)
+            {
+                var ps = new PointCollection();
+                ps.Clear();
+                var n = poly.Points.Count;
+                for (var i = 0; i < n; i++)
+                {
+                    ps.Add(new Point(poly.Points[i].X, poly.Points[i].Y));
+                }
+                e.Points = ps;
+            }
+
+            e.Stroke = _currentColor.GetBrush();
+            e.StrokeThickness = w;
+            e.Fill = null;
+        }
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
@@ -360,6 +396,8 @@ namespace CrossGraphics.SilverlightGraphics
 			e.Height = height;
 			e.Fill = _currentColor.GetBrush ();
 			e.Stroke = null;
+            e.RadiusX = radius;
+            e.RadiusY = radius;
 			Canvas.SetLeft (e, x);
 			Canvas.SetTop (e, y);
 		}
@@ -372,6 +410,8 @@ namespace CrossGraphics.SilverlightGraphics
 			e.StrokeThickness = w;
 			e.Stroke = _currentColor.GetBrush ();
 			e.Fill = null;
+            e.RadiusX = radius;
+            e.RadiusY = radius;
 			Canvas.SetLeft (e, x);
 			Canvas.SetTop (e, y);
 		}
