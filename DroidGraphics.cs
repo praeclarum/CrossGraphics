@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010 Frank A. Krueger
+// Copyright (c) 2010-2012 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+using System;
 using Android.Graphics;
 
 
@@ -29,7 +30,9 @@ namespace CrossGraphics.Droid
 		Canvas _c;
 		ColPaints _paints;
 		Font _font;
-		FontMetrics _fm;
+		DroidFontMetrics _fm;
+
+        public Canvas Canvas { get { return _c; } }
 
 		class ColPaints
 		{
@@ -41,7 +44,7 @@ namespace CrossGraphics.Droid
 		{
 			_c = canvas;
 			_font = null;
-			_fm = new FontMetrics ();
+			_fm = new DroidFontMetrics ();
 			SetColor (Colors.Black);
 		}
 
@@ -101,7 +104,7 @@ namespace CrossGraphics.Droid
 		public void DrawPolygon (Polygon poly, float w)
 		{
 			_paints.Stroke.StrokeWidth = w;
-			_c.DrawPath (GetPolyPath (poly), _paints.Fill);
+			_c.DrawPath (GetPolyPath (poly), _paints.Stroke);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
@@ -137,12 +140,21 @@ namespace CrossGraphics.Droid
 			_c.DrawOval (new RectF (x, y, x + width, y + width), _paints.Stroke);
 		}
 
+        const float RadiansToDegrees = (float)(180 / Math.PI);
+		
+		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
+		{
+            var sa = startAngle * RadiansToDegrees - 180.0f;
+            var ea = endAngle * RadiansToDegrees - 180.0f;
+            _c.DrawArc (new RectF (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Stroke);
+		}
+
 		bool _inLines = false;
 		float _lineWidth = 1;
 		float[] _linePoints = new float[2 * 100];
 		int _numLineElements = 0;
 
-		public void BeginLines ()
+		public void BeginLines (bool rounded)
 		{
 			if (!_inLines) {
 				_inLines = true;
@@ -195,10 +207,16 @@ namespace CrossGraphics.Droid
 					_paints.Fill);
 			}
 		}
+		
+		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+		{
+			DrawString (s, x, y);
+		}
 
 		public void DrawString (string s, float x, float y)
 		{
-			_c.DrawText (s, x, y, _paints.Fill);
+            var fm = GetFontMetrics ();
+			_c.DrawText (s, x, y + fm.Height, _paints.Fill);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -209,11 +227,39 @@ namespace CrossGraphics.Droid
 		public IImage ImageFromFile (string path)
 		{
 			var bmp = BitmapFactory.DecodeFile (path);
+			if (bmp == null) return null;
+			
 			var dimg = new DroidImage () {
 				Bitmap = bmp
 			};
 			return dimg;
 		}
+		
+		public void SaveState()
+		{
+			throw new NotImplementedException ();
+		}
+		
+		public void SetClippingRect (float x, float y, float width, float height)
+		{
+			throw new NotImplementedException ();
+		}
+		
+		public void Translate(float dx, float dy)
+		{
+			throw new NotImplementedException ();
+		}
+		
+		public void Scale(float sx, float sy)
+		{
+			throw new NotImplementedException ();
+		}
+		
+		public void RestoreState()
+		{
+			throw new NotImplementedException ();
+		}
+
 	}
 
 	public class DroidImage : IImage
@@ -221,7 +267,7 @@ namespace CrossGraphics.Droid
 		public Bitmap Bitmap;
 	}
 
-	public class FontMetrics : IFontMetrics
+	public class DroidFontMetrics : IFontMetrics
 	{
 		public int StringWidth (string s)
 		{

@@ -25,14 +25,18 @@ namespace System.Drawing
 {
     public struct RectangleF
     {
-        public float Left, Top, Width, Height;
+        public float X, Y, Width, Height;
 
-        public float Bottom { get { return Top + Height; } }
+        public float Left { get { return X; } }
+        public float Top { get { return Y; } }
+
+        public float Right { get { return X + Width; } }
+        public float Bottom { get { return Y + Height; } }
 
         public RectangleF (float left, float top, float width, float height)
         {
-            Left = left;
-            Top = top;
+            X = left;
+            Y = top;
             Width = width;
             Height = height;
         }
@@ -44,25 +48,36 @@ namespace System.Drawing
 
         public void Inflate (SizeF size)
         {
-            Left -= size.Width;
-            Top -= size.Height;
+            X -= size.Width;
+            Y -= size.Height;
             Width += size.Width * 2;
             Height += size.Height * 2;
         }
-		
-		public override string ToString ()
-		{
-			return string.Format ("[RectangleF: Left={0} Top={1} Width={2} Height={3}]", Left, Top, Width, Height);
-		}
+
+        public bool IntersectsWith(RectangleF rect)
+        {
+            return !((Left >= rect.Right) || (Right <= rect.Left) ||
+                (Top >= rect.Bottom) || (Bottom <= rect.Top));
+        }
+
+        public bool Contains(PointF loc)
+        {
+            return (X <= loc.X && loc.X < (X + Width) && Y <= loc.Y && loc.Y < (Y + Height));
+        }
+
+        public override string ToString()
+        {
+            return string.Format("[RectangleF: Left={0} Top={1} Width={2} Height={3}]", Left, Top, Width, Height);
+        }
     }
 
     public struct Rectangle
     {
-        public int Left, Top, Width, Height;
+        public int X, Y, Width, Height;
 
-        public int X { get { return Left; } }
+        public int Left { get { return X; } }
 
-        public int Y { get { return Top; } }
+        public int Top { get { return Y; } }
 
         public int Bottom { get { return Top + Height; } }
 
@@ -70,21 +85,21 @@ namespace System.Drawing
 
         public Rectangle (int left, int top, int width, int height)
         {
-            Left = left;
-            Top = top;
+            X = left;
+            Y = top;
             Width = width;
             Height = height;
         }
 
         public void Offset (int dx, int dy)
         {
-            Left += dx;
-            Top += dy;
+            X += dx;
+            Y += dy;
         }
 
         public bool Contains (int x, int y)
         {
-            return (x >= Left && x < Left + Width) && (y >= Top && y < Top + Height);
+            return (x >= X && x < X + Width) && (y >= Y && y < Y + Height);
         }
 
         public static Rectangle Union (Rectangle a, Rectangle b)
@@ -110,8 +125,8 @@ namespace System.Drawing
 
         public void Inflate (Size size)
         {
-            Left -= size.Width;
-            Top -= size.Height;
+            X -= size.Width;
+            Y -= size.Height;
             Width += size.Width * 2;
             Height += size.Height * 2;
         }
@@ -130,6 +145,11 @@ namespace System.Drawing
         {
             X = x;
             Y = y;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("({0}, {1})", X, Y);
         }
     }
 

@@ -49,27 +49,81 @@ namespace CrossGraphics
 
 		void DrawOval(float x, float y, float width, float height, float w);
 
-		void BeginLines();
+		void BeginLines(bool rounded);
 
 		void DrawLine(float sx, float sy, float ex, float ey, float w);
 
 		void EndLines();
+		
+		void DrawArc(float cx, float cy, float radius, float startAngle, float endAngle, float w);
 
 		void DrawImage(IImage img, float x, float y, float width, float height);
 
+		void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align);
+
 		void DrawString(string s, float x, float y);
+		
+		void SaveState();
+		
+		void SetClippingRect (float x, float y, float width, float height);
+		
+		void Translate(float dx, float dy);
+		
+		void Scale(float sx, float sy);
+		
+		void RestoreState();
 
 		IFontMetrics GetFontMetrics();
 
 		IImage ImageFromFile(string path);
 	}
 
+	public enum LineBreakMode {
+		None,
+		Clip,
+		WordWrap,
+	}
+
+	public enum TextAlignment {
+		Left,
+		Center,
+		Right,
+		Justified
+	}
+
 	public static class GraphicsEx
 	{
+        public static void DrawString (this IGraphics g, string s, PointF p)
+        {
+            g.DrawString(s, p.X, p.Y);
+        }
+
+		public static void DrawString(this IGraphics g, string s, PointF p, Font f)
+		{
+			g.SetFont (f);
+			g.DrawString (s, p.X, p.Y);
+		}
+
+		public static void DrawString(this IGraphics g, string s, RectangleF p, Font f, LineBreakMode lineBreak, TextAlignment align)
+		{
+			g.SetFont (f);
+			g.DrawString (s, p.Left, p.Top, p.Width, p.Height, lineBreak, align);
+		}
+
 		public static void DrawLine(this IGraphics g, PointF s, PointF e, float w)
 		{
 			g.DrawLine (s.X, s.Y, e.X, e.Y, w);
 		}
+
+		public static void DrawRoundedRect(this IGraphics g, RectangleF r, float radius, float w)
+		{
+			g.DrawRoundedRect (r.Left, r.Top, r.Width, r.Height, radius, w);
+		}
+
+        public static void DrawRoundedRect(this IGraphics g, Rectangle r, float radius, float w)
+        {
+            g.DrawRoundedRect(r.Left, r.Top, r.Width, r.Height, radius, w);
+        }
 
 		public static void FillRoundedRect(this IGraphics g, RectangleF r, float radius)
 		{
@@ -84,6 +138,31 @@ namespace CrossGraphics
 		public static void FillRect(this IGraphics g, RectangleF r)
 		{
 			g.FillRect (r.Left, r.Top, r.Width, r.Height);
+		}
+
+        public static void FillRect(this IGraphics g, Rectangle r)
+        {
+            g.FillRect(r.Left, r.Top, r.Width, r.Height);
+        }
+
+		public static void DrawRect(this IGraphics g, RectangleF r, float w)
+		{
+			g.DrawRect (r.Left, r.Top, r.Width, r.Height, w);
+		}
+
+        public static void DrawRect(this IGraphics g, Rectangle r, float w)
+        {
+            g.DrawRect(r.Left, r.Top, r.Width, r.Height, w);
+        }
+
+		public static void FillOval(this IGraphics g, RectangleF r)
+		{
+			g.FillOval (r.Left, r.Top, r.Width, r.Height);
+		}
+
+		public static void DrawOval(this IGraphics g, RectangleF r, float w)
+		{
+			g.DrawOval (r.Left, r.Top, r.Width, r.Height, w);
 		}
 	}
 
@@ -101,18 +180,82 @@ namespace CrossGraphics
 	public class Font
 	{
 		public string FontFamily { get; private set; }
-
+		
 		public FontOptions Options { get; private set; }
 
 		public int Size { get; private set; }
 
 		public object Tag { get; set; }
+		
+		public bool IsBold { get { return (Options & FontOptions.Bold) != 0; } }
 
 		public Font (string fontFamily, FontOptions options, int size)
 		{
 			FontFamily = fontFamily;
 			Options = options;
 			Size = size;
+		}
+		
+		static Font[] _boldSystemFonts = new Font[0];
+		static Font[] _systemFonts = new Font[0];
+		static Font[] _userFixedPitchFonts = new Font[0];
+		static Font[] _boldUserFixedPitchFonts = new Font[0];
+
+		public static Font BoldSystemFontOfSize (int size) {
+			if (size >= _boldSystemFonts.Length) {
+				return new Font ("SystemFont", FontOptions.Bold, size);
+			}
+			else {
+				var f = _boldSystemFonts[size];
+				if (f == null) {
+					f = new Font ("SystemFont", FontOptions.Bold, size);
+					_boldSystemFonts[size] = f;
+				}
+				return f;
+			}
+		}
+		public static Font SystemFontOfSize (int size) {
+			if (size >= _systemFonts.Length) {
+				return new Font ("SystemFont", FontOptions.None, size);
+			}
+			else {
+				var f = _systemFonts[size];
+				if (f == null) {
+					f = new Font ("SystemFont", FontOptions.None, size);
+					_systemFonts[size] = f;
+				}
+				return f;
+			}
+		}
+		public static Font UserFixedPitchFontOfSize (int size) {
+			if (size >= _userFixedPitchFonts.Length) {
+				return new Font ("Monospace", FontOptions.None, size);
+			}
+			else {
+				var f = _userFixedPitchFonts[size];
+				if (f == null) {
+					f = new Font ("Monospace", FontOptions.None, size);
+					_userFixedPitchFonts[size] = f;
+				}
+				return f;
+			}
+		}
+		public static Font BoldUserFixedPitchFontOfSize (int size) {
+			if (size >= _boldUserFixedPitchFonts.Length) {
+				return new Font ("Monospace", FontOptions.Bold, size);
+			}
+			else {
+				var f = _boldUserFixedPitchFonts[size];
+				if (f == null) {
+					f = new Font ("Monospace", FontOptions.Bold, size);
+					_boldUserFixedPitchFonts[size] = f;
+				}
+				return f;
+			}
+		}
+		
+		public static Font FromName (string name, int size) {
+			return new Font (name, FontOptions.None, size);
 		}
 
 		public override string ToString()

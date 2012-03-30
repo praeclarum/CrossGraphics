@@ -34,11 +34,21 @@ namespace CrossGraphics.Svg
 		//Font _lastFont = null;
 		string _lastColor = null;
 		
+		class State {
+            public PointF Scale;
+			public PointF Translation;
+            public RectangleF ClippingRect;
+		}
+		readonly Stack<State> _states = new Stack<State> ();
+		State _state = new State ();
+		
 		public SvgGraphics (TextWriter tw, RectangleF viewBox)
 		{
 			_tw = tw;
 			_fontMetrics = new SvgGraphicsFontMetrics ();
 			SetColor (Colors.Black);
+			
+			_states.Push (_state);
 			
 			_tw.WriteLine(@"<?xml version=""1.0""?>
 <!DOCTYPE svg PUBLIC ""-//W3C//DTD SVG 1.1//EN"" ""http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"">");
@@ -57,6 +67,39 @@ namespace CrossGraphics.Svg
 		public void Finish() {
 			_tw.WriteLine("</svg>");
 			_tw.Flush();
+		}
+		
+		public void SaveState ()
+		{			
+			var ns = new State() {
+				Translation = _state.Translation,
+			};
+			_states.Push (ns);
+			_state = ns;
+		}
+
+        public void Scale (float sx, float sy)
+        {
+            _state.Scale.X *= sx;
+            _state.Scale.Y *= sy;
+        }
+		
+		public void Translate (float dx, float dy)
+		{
+			_state.Translation.X += dx;
+			_state.Translation.Y += dy;
+		}
+
+        public void SetClippingRect (float x, float y, float width, float height)
+        {
+            _state.ClippingRect = new RectangleF (x, y, width, height);
+        }
+		
+		public void RestoreState ()
+		{
+			if (_states.Count > 1) {
+				_state = _states.Pop ();
+			}
 		}
 
 		public void SetFont (Font f)
@@ -112,6 +155,23 @@ namespace CrossGraphics.Svg
 			_tw.WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
 				cx, cy, rx, ry, _lastColor, w);
 		}
+		
+		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
+		{
+			var sa = startAngle + Math.PI;
+			var ea = endAngle + Math.PI;
+			
+			var sx = cx + radius * Math.Cos (sa);
+			var sy = cy + radius * Math.Sin (sa);
+			var ex = cx + radius * Math.Cos (ea);
+			var ey = cy + radius * Math.Sin (ea);
+			
+			_tw.WriteLine("<path d=\"M {0} {1} A {2} {3} 0 0 1 {4} {5}\" stroke=\"{6}\" stroke-width=\"{7}\" fill=\"none\" />", 
+				sx, sy,
+				radius, radius,
+				ex, ey,				 
+				_lastColor, w);
+		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
@@ -140,7 +200,7 @@ namespace CrossGraphics.Svg
 		bool _inPolyline = false;
 		bool _startedPolyline = false;
 
-		public void BeginLines ()
+		public void BeginLines (bool rounded)
 		{
 			_inPolyline = true;
 		}
@@ -167,6 +227,13 @@ namespace CrossGraphics.Svg
 				_inPolyline = false;
 				_startedPolyline = false;
 			}
+		}
+		
+		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+		{
+			_tw.WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\">{2}</text>",
+				x, y + _fontMetrics.Height,
+				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"));
 		}
 
 		public void DrawString (string s, float x, float y)
@@ -231,4 +298,3 @@ namespace CrossGraphics.Svg
 		}
 	}
 }
-
