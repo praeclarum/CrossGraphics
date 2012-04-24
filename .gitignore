@@ -1,6 +1,7 @@
 *.suo
 *.user
 *.userprefs
+*.pidb
 .DS_Store
 samples/Clock/ClockWP7/Bin/
 samples/Clock/ClockWP7/obj/
@@ -12,3 +13,5 @@ samples/Clock/ClockSvg/bin/
 samples/Clock/ClockSvg/obj/
 samples/Clock/ClockiOS/bin/
 samples/Clock/ClockiOS/obj/
+samples/Clock/ClockMac/bin/
+samples/Clock/ClockMac/obj/
