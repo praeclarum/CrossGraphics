@@ -44,7 +44,6 @@ namespace Clock.WP7
 
 			_graphics.BeginDrawing ();
 
-			_graphics.BeginEntity (_clock);
 			_clock.Draw (_graphics);
 
 			_graphics.EndDrawing ();

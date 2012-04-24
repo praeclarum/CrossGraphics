@@ -19,6 +19,8 @@ namespace Clock
 
 		public void Draw (IGraphics g)
 		{
+			g.BeginEntity (this);
+
 			var now = DateTime.Now;
 
 			var r = Math.Min (Width / 2, Height / 2);
