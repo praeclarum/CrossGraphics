@@ -41,30 +41,43 @@ namespace CrossGraphics.Svg
 		}
 		readonly Stack<State> _states = new Stack<State> ();
 		State _state = new State ();
-		
+
+		RectangleF _viewBox;
+
 		public SvgGraphics (TextWriter tw, RectangleF viewBox)
 		{
+			_viewBox = viewBox;
 			_tw = tw;
+			IncludeXmlAndDoctype = true;
 			_fontMetrics = new SvgGraphicsFontMetrics ();
-			SetColor (Colors.Black);
-			
+			SetColor (Colors.Black);			
 			_states.Push (_state);
-			
-			_tw.WriteLine(@"<?xml version=""1.0""?>
-<!DOCTYPE svg PUBLIC ""-//W3C//DTD SVG 1.1//EN"" ""http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"">");
-			_tw.WriteLine(@"<svg viewBox=""{0} {1} {2} {3}"" preserveAspectRatio=""xMinYMin meet"" version=""1.1"" xmlns=""http://www.w3.org/2000/svg"">",
-				viewBox.Left, viewBox.Top, viewBox.Width, viewBox.Height);
 		}
 		
-		public SvgGraphics (TextWriter tw, Rectangle viewBox) : this(tw, new RectangleF(viewBox.Left, viewBox.Top, viewBox.Width, viewBox.Height))
+		public SvgGraphics (TextWriter tw, Rectangle viewBox) 
+			: this(tw, new RectangleF(viewBox.Left, viewBox.Top, viewBox.Width, viewBox.Height))
 		{
 		}
 
-		public SvgGraphics (Stream s, RectangleF viewBox) : this(new StreamWriter(s, System.Text.Encoding.UTF8), viewBox)
+		public SvgGraphics (Stream s, RectangleF viewBox) 
+			: this(new StreamWriter(s, System.Text.Encoding.UTF8), viewBox)
 		{
 		}
-		
-		public void Finish() {
+
+		public bool IncludeXmlAndDoctype { get; set; }
+
+		public void BeginDrawing ()
+		{
+			if (IncludeXmlAndDoctype) {
+				_tw.WriteLine (@"<?xml version=""1.0""?>
+<!DOCTYPE svg PUBLIC ""-//W3C//DTD SVG 1.1//EN"" ""http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"">");
+			}
+			_tw.WriteLine (@"<svg viewBox=""{0} {1} {2} {3}"" preserveAspectRatio=""xMinYMin meet"" version=""1.1"" xmlns=""http://www.w3.org/2000/svg"">",
+				_viewBox.Left, _viewBox.Top, _viewBox.Width, _viewBox.Height);
+		}
+
+		public void EndDrawing ()
+		{
 			_tw.WriteLine("</svg>");
 			_tw.Flush();
 		}
