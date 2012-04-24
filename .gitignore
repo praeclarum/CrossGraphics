@@ -1,0 +1,4 @@
+*.suo
+*.user
+samples/Clock/ClockWP7/Bin/
+samples/Clock/ClockWP7/obj/

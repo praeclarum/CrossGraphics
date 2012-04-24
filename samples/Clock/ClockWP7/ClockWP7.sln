@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClockWP7", "ClockWP7.csproj", "{202641C4-7536-4935-8A25-C88C12E2B876}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{202641C4-7536-4935-8A25-C88C12E2B876}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{202641C4-7536-4935-8A25-C88C12E2B876}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{202641C4-7536-4935-8A25-C88C12E2B876}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{202641C4-7536-4935-8A25-C88C12E2B876}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{202641C4-7536-4935-8A25-C88C12E2B876}.Release|Any CPU.Build.0 = Release|Any CPU
+		{202641C4-7536-4935-8A25-C88C12E2B876}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
