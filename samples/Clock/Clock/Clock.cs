@@ -1,6 +1,5 @@
 ﻿using System;
 using CrossGraphics;
-using System.Drawing;
 
 namespace Clock
 {
@@ -24,7 +23,7 @@ namespace Clock
 			var now = DateTime.Now;
 
 			var r = Math.Min (Width / 2, Height / 2);
-			var center = new PointF (Width / 2, Height / 2);
+			var center = new System.Drawing.PointF (Width / 2, Height / 2);
 
 			//
 			// Draw the face
@@ -38,13 +37,11 @@ namespace Clock
 			for (var i = 0; i < 12; i++) {
 				var angle = (i / 12.0) * 2 * Math.PI;
 				g.DrawLine (
-				new PointF (
 					center.X + 0.75f * r * (float)Math.Cos (angle),
-					center.Y + 0.75f * r * (float)Math.Sin (angle)),
-				new PointF (
+					center.Y + 0.75f * r * (float)Math.Sin (angle),
 					center.X + 0.9f * r * (float)Math.Cos (angle),
-					center.Y + 0.9f * r * (float)Math.Sin (angle)),
-				7);
+					center.Y + 0.9f * r * (float)Math.Sin (angle),
+					7);
 			}
 			g.SetFont (LabelFont);
 			var textWidth = g.GetFontMetrics ().StringWidth ("Cross Graphics");
@@ -59,12 +56,10 @@ namespace Clock
 				((h - 12) / 12.0 * 2 * Math.PI - Math.PI /2) :
 				(h / 12.0 * 2 * Math.PI - Math.PI / 2);
 			g.DrawLine (
-				new PointF (
-					center.X + -0.1f * r * (float)Math.Cos (hAngle),
-					center.Y + -0.1f * r * (float)Math.Sin (hAngle)),
-				new PointF (
-					center.X + 0.65f * r * (float)Math.Cos (hAngle),
-					center.Y + 0.65f * r * (float)Math.Sin (hAngle)),
+				center.X + -0.1f * r * (float)Math.Cos (hAngle),
+				center.Y + -0.1f * r * (float)Math.Sin (hAngle),
+				center.X + 0.65f * r * (float)Math.Cos (hAngle),
+				center.Y + 0.65f * r * (float)Math.Sin (hAngle),
 				7);
 
 			//
@@ -74,12 +69,10 @@ namespace Clock
 			var m = now.Minute + now.Second / 60.0;
 			var mAngle = (m / 60.0) * 2 * Math.PI - Math.PI / 2;
 			g.DrawLine (
-				new PointF (
-					center.X + -0.15f * r * (float)Math.Cos (mAngle),
-					center.Y + -0.15f * r * (float)Math.Sin (mAngle)),
-				new PointF (
-					center.X + 0.85f * r * (float)Math.Cos (mAngle),
-					center.Y + 0.85f * r * (float)Math.Sin (mAngle)),
+				center.X + -0.15f * r * (float)Math.Cos (mAngle),
+				center.Y + -0.15f * r * (float)Math.Sin (mAngle),
+				center.X + 0.85f * r * (float)Math.Cos (mAngle),
+				center.Y + 0.85f * r * (float)Math.Sin (mAngle),
 				5);
 
 			//
@@ -88,12 +81,10 @@ namespace Clock
 			g.SetColor (Colors.Red);
 			var sAngle = (now.Second / 60.0) * 2 * Math.PI - Math.PI / 2;
 			g.DrawLine (
-				new PointF (
-					center.X + -0.15f * r * (float)Math.Cos (sAngle),
-					center.Y + -0.15f * r * (float)Math.Sin (sAngle)),
-				new PointF (
-					center.X + 0.85f * r * (float)Math.Cos (sAngle),
-					center.Y + 0.85f * r * (float)Math.Sin (sAngle)),
+				center.X + -0.15f * r * (float)Math.Cos (sAngle),
+				center.Y + -0.15f * r * (float)Math.Sin (sAngle),
+				center.X + 0.85f * r * (float)Math.Cos (sAngle),
+				center.Y + 0.85f * r * (float)Math.Sin (sAngle),
 				1);
 
 			//
