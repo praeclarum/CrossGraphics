@@ -1,5 +1,7 @@
 *.suo
 *.user
+*.userprefs
+.DS_Store
 samples/Clock/ClockWP7/Bin/
 samples/Clock/ClockWP7/obj/
 samples/Clock/ClockAndroid/bin/
@@ -8,4 +10,5 @@ samples/Clock/ClockSilverlight/Bin/
 samples/Clock/ClockSilverlight/obj/
 samples/Clock/ClockSvg/bin/
 samples/Clock/ClockSvg/obj/
-
+samples/Clock/ClockiOS/bin/
+samples/Clock/ClockiOS/obj/

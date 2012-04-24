@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClockiOS", "ClockiOS.csproj", "{52DC6FBE-C8D6-4AD4-BF07-5F9BF9C9E4FF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|iPhoneSimulator = Debug|iPhoneSimulator
+		Release|iPhoneSimulator = Release|iPhoneSimulator
+		Debug|iPhone = Debug|iPhone
+		Release|iPhone = Release|iPhone
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{52DC6FBE-C8D6-4AD4-BF07-5F9BF9C9E4FF}.Debug|iPhone.ActiveCfg = Debug|iPhone
+		{52DC6FBE-C8D6-4AD4-BF07-5F9BF9C9E4FF}.Debug|iPhone.Build.0 = Debug|iPhone
+		{52DC6FBE-C8D6-4AD4-BF07-5F9BF9C9E4FF}.Debug|iPhoneSimulator.ActiveCfg = Debug|iPhoneSimulator
+		{52DC6FBE-C8D6-4AD4-BF07-5F9BF9C9E4FF}.Debug|iPhoneSimulator.Build.0 = Debug|iPhoneSimulator
+		{52DC6FBE-C8D6-4AD4-BF07-5F9BF9C9E4FF}.Release|iPhone.ActiveCfg = Release|iPhone
+		{52DC6FBE-C8D6-4AD4-BF07-5F9BF9C9E4FF}.Release|iPhone.Build.0 = Release|iPhone
+		{52DC6FBE-C8D6-4AD4-BF07-5F9BF9C9E4FF}.Release|iPhoneSimulator.ActiveCfg = Release|iPhoneSimulator
+		{52DC6FBE-C8D6-4AD4-BF07-5F9BF9C9E4FF}.Release|iPhoneSimulator.Build.0 = Release|iPhoneSimulator
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = ClockiOS.csproj
+	EndGlobalSection
+EndGlobal
