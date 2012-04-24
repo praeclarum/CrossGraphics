@@ -2,3 +2,5 @@
 *.user
 samples/Clock/ClockWP7/Bin/
 samples/Clock/ClockWP7/obj/
+samples/Clock/ClockAndroid/bin/
+samples/Clock/ClockAndroid/obj/
