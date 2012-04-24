@@ -45,6 +45,9 @@ using System.Windows.Media;
 using Point = System.Windows.Point;
 using Rectangle = System.Windows.Shapes.Rectangle;
 using Size = System.Windows.Size;
+using NativePolygon = System.Windows.Shapes.Polygon;
+using NativeTextAlignment = System.Windows.TextAlignment;
+using NativeColor = System.Windows.Media.Color;
 #endif
 
 namespace CrossGraphics.SilverlightGraphics
