@@ -210,11 +210,13 @@ namespace CrossGraphics.Droid
 		
 		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
+			if (string.IsNullOrWhiteSpace (s)) return;
 			DrawString (s, x, y);
 		}
 
 		public void DrawString (string s, float x, float y)
 		{
+			if (string.IsNullOrWhiteSpace (s)) return;
             var fm = GetFontMetrics ();
 			_c.DrawText (s, x, y + fm.Height, _paints.Fill);
 		}
@@ -269,9 +271,9 @@ namespace CrossGraphics.Droid
 
 	public class DroidFontMetrics : IFontMetrics
 	{
-		public int StringWidth (string s)
+		public int StringWidth (string s, int startIndex, int length)
 		{
-			return s.Length * 8;
+			return length * 8;
 		}
 
 		public int Height
