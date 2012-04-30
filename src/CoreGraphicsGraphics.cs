@@ -501,8 +501,6 @@ namespace CrossGraphics.CoreGraphics
 				var sz = c.TextPosition.X - mmWidth;
 				
 				if (sz < 0.1f) {
-					// BAD FONT SIZE Why does this happen? I don't know
-//					Console.WriteLine ("BAD FONT MEASUREMENT");
 					Widths = null;
 					return;
 				}
@@ -517,12 +515,12 @@ namespace CrossGraphics.CoreGraphics
 		{
 		}
 		
-		public int StringWidth (string str)
+		public int StringWidth (string str, int startIndex, int length)
 		{
 			if (str == null) return 0;
 
-			var n = str.Length;
-			if (n == 0) return 0;
+			var end = startIndex + str.Length;
+			if (end <= 0) return 0;
 			
 			if (Widths == null) {
 				return 0;
@@ -530,7 +528,7 @@ namespace CrossGraphics.CoreGraphics
 
 			var w = 0.0f;
 
-			for (var i = 0; i < n; i++) {
+			for (var i = startIndex; i < end; i++) {
 				var ch = (int)str[i];
 				if (ch < Widths.Length) {
 					w += Widths[ch];
