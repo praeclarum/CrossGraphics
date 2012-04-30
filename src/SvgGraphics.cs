@@ -284,9 +284,9 @@ namespace CrossGraphics.Svg
 			_height = 10;
 		}
 
-		public int StringWidth (string str)
+		public int StringWidth (string str, int startIndex, int length)
 		{
-			return str.Length * 10;
+			return length * 10;
 		}
 
 		public int Height
