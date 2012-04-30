@@ -145,16 +145,16 @@ namespace CrossGraphics
 			_height = 10;
 		}
 
-		public int StringWidth (string str)
+		public int StringWidth (string str, int startIndex, int length)
 		{
 			if (str == null) return 0;
 
-			var n = str.Length;
-			if (n == 0) return 0;
+			var end = startIndex + length;
+			if (end <= 0) return 0;
 
 			var w = 0;
 
-			for (var i = 0; i < n; i++) {
+			for (var i = startIndex; i < end; i++) {
 				w += DefaultWidth;
 			}
 			return w;

@@ -15,3 +15,5 @@ samples/Clock/ClockiOS/bin/
 samples/Clock/ClockiOS/obj/
 samples/Clock/ClockMac/bin/
 samples/Clock/ClockMac/obj/
+samples/Clock/ClockWpf/bin/
+samples/Clock/ClockWpf/obj/

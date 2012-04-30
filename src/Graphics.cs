@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010 Frank A. Krueger
+// Copyright (c) 2010-2012 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -266,13 +266,21 @@ namespace CrossGraphics
 
 	public interface IFontMetrics
 	{
-		int StringWidth(string s);
+		int StringWidth(string s, int startIndex, int length);
 
 		int Height { get; }
 
 		int Ascent { get; }
 
 		int Descent { get; }
+	}
+
+	public static class FontMetricsEx
+	{
+		public static int StringWidth (this IFontMetrics fm, string s)
+		{
+			return fm.StringWidth (s, 0, s.Length);
+		}
 	}
 
 	public class Color

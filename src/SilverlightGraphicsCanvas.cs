@@ -104,6 +104,8 @@ namespace CrossGraphics.SilverlightGraphics
 					PointerPressed += SilverlightGraphicsCanvas_PointerPressed;
 					PointerMoved += SilverlightGraphicsCanvas_PointerMoved;
 					PointerReleased += SilverlightGraphicsCanvas_PointerReleased;
+					PointerCanceled += SilverlightGraphicsCanvas_PointerCanceled;
+					PointerExited += SilverlightGraphicsCanvas_PointerExited;
 #else
                     Touch.FrameReported += HandleTouchFrameReported;
 #endif
@@ -119,6 +121,8 @@ namespace CrossGraphics.SilverlightGraphics
                 }
             }
         }
+
+		
 
         #region Drawing
 
@@ -282,9 +286,15 @@ namespace CrossGraphics.SilverlightGraphics
 
 		const float DoubleClickMinDistance = 10;
 
+		class NetfxCoreTouch : CanvasTouch
+		{
+			public bool IsMoving;
+		}
+
 		void SilverlightGraphicsCanvas_PointerPressed(DispatcherTimerTickEventArgs sender, PointerEventArgs e)
 		{
 			var handle = new IntPtr(e.Pointer.PointerId);
+			//Debug.WriteLine (string.Format ("{0} PRESSED {1}", DateTime.Now, handle));
 
 			var now = DateTime.Now;
 			var pos = ToPointF(e.GetCurrentPoint(this));
@@ -306,12 +316,13 @@ namespace CrossGraphics.SilverlightGraphics
 			//
 			// TouchBegan
 			//
-			var touch = new CanvasTouch {
+			var touch = new NetfxCoreTouch {
 				Handle = handle,
 				Time = now,
 				SuperCanvasLocation = ToPointF(e.GetCurrentPoint((UIElement)Parent)),
 				CanvasLocation = pos,
 				TapCount = tapCount,
+				IsMoving = false,
 			};
 			touch.PreviousTime = touch.Time;
 			touch.SuperCanvasPreviousLocation = touch.SuperCanvasLocation;
@@ -331,23 +342,33 @@ namespace CrossGraphics.SilverlightGraphics
 		{
 			if (e.Pointer.IsInContact) {
 				var handle = new IntPtr(e.Pointer.PointerId);
+				//Debug.WriteLine (string.Format ("{0} MOVED {1}", DateTime.Now, handle));
 
 				if (_activeTouches.ContainsKey(handle)) {
-					var touch = _activeTouches[handle];
+					var touch = (NetfxCoreTouch)_activeTouches[handle];
 
 					var sloc = ToPointF (e.GetCurrentPoint ((UIElement)Parent));
-					var loc = ToPointF (e.GetCurrentPoint (this));
 
-					touch.SuperCanvasPreviousLocation = touch.SuperCanvasLocation;
-					touch.CanvasPreviousLocation = touch.CanvasLocation;
-					touch.PreviousTime = touch.Time;
+					var dx = sloc.X - touch.SuperCanvasLocation.X;
+					var dy = sloc.Y - touch.SuperCanvasLocation.Y;
 
-					touch.SuperCanvasLocation = sloc;
-					touch.CanvasLocation = loc;
-					touch.Time = DateTime.Now;
+					if (touch.IsMoving || (Math.Abs (dx) > 1) || (Math.Abs (dy) > 1)) {
 
-					if (Delegate != null) {
-						Delegate.TouchesMoved(new[] { touch });
+						touch.IsMoving = true;
+
+						var loc = ToPointF (e.GetCurrentPoint (this));
+
+						touch.SuperCanvasPreviousLocation = touch.SuperCanvasLocation;
+						touch.CanvasPreviousLocation = touch.CanvasLocation;
+						touch.PreviousTime = touch.Time;
+
+						touch.SuperCanvasLocation = sloc;
+						touch.CanvasLocation = loc;
+						touch.Time = DateTime.Now;
+
+						if (Delegate != null) {
+							Delegate.TouchesMoved (new[] { touch });
+						}
 					}
 				}			
 			}
@@ -356,6 +377,7 @@ namespace CrossGraphics.SilverlightGraphics
 		void SilverlightGraphicsCanvas_PointerReleased(object sender, PointerEventArgs e)
 		{
 			var handle = new IntPtr(e.Pointer.PointerId);
+			//Debug.WriteLine (string.Format ("{0} RELEASED {1}", DateTime.Now, handle));
 
 			if (_activeTouches.ContainsKey(handle)) {
 				var touch = _activeTouches[handle];
@@ -363,6 +385,36 @@ namespace CrossGraphics.SilverlightGraphics
 
 				if (Delegate != null) {
 					Delegate.TouchesEnded(new[] { touch });
+				}
+			}
+		}
+
+		void SilverlightGraphicsCanvas_PointerCanceled (DispatcherTimerTickEventArgs sender, PointerEventArgs e)
+		{
+			var handle = new IntPtr(e.Pointer.PointerId);
+			//Debug.WriteLine (string.Format ("{0} CANCELED {1}", DateTime.Now, handle));
+
+			if (_activeTouches.ContainsKey (handle)) {
+				var touch = _activeTouches[handle];
+				_activeTouches.Remove (handle);
+
+				if (Delegate != null) {
+					Delegate.TouchesCancelled (new[] { touch });
+				}
+			}
+		}
+
+		void SilverlightGraphicsCanvas_PointerExited (DispatcherTimerTickEventArgs sender, PointerEventArgs e)
+		{
+			var handle = new IntPtr (e.Pointer.PointerId);
+			//Debug.WriteLine (string.Format ("{0} EXITED {1}", DateTime.Now, handle));
+
+			if (_activeTouches.ContainsKey (handle)) {
+				var touch = _activeTouches[handle];
+				_activeTouches.Remove (handle);
+
+				if (Delegate != null) {
+					Delegate.TouchesCancelled (new[] { touch });
 				}
 			}
 		}

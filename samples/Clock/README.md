@@ -34,6 +34,12 @@ The clock code is contained in [Clock.cs](https://github.com/praeclarum/CrossGra
 
 <a href="https://github.com/praeclarum/CrossGraphics/raw/master/samples/Clock/Screenshots/Silverlight.png"><img title="Silverlight Screenshot" src="https://github.com/praeclarum/CrossGraphics/raw/master/samples/Clock/Screenshots/Silverlight.png" width="300" /></a>
 
+## WPF
+
+`SilverlightGraphics` is used to render the clock on a `Canvas` in [MainWindow.xaml.cs](https://github.com/praeclarum/CrossGraphics/blob/master/samples/Clock/ClockWpf/MainWindow.xaml.cs).
+
+<a href="https://github.com/praeclarum/CrossGraphics/raw/master/samples/Clock/Screenshots/Wpf.png"><img title="WPF Screenshot" src="https://github.com/praeclarum/CrossGraphics/raw/master/samples/Clock/Screenshots/Wpf.png" width="300" /></a>
+
 ## SVG
 
 `SvgGraphics` is used to render the clock into an svg element on an HTML5 page in [Default.aspx](https://github.com/praeclarum/CrossGraphics/blob/master/samples/Clock/ClockSvg/Default.aspx).
