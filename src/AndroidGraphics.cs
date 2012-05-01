@@ -23,28 +23,27 @@ using System;
 using Android.Graphics;
 
 
-namespace CrossGraphics.Droid
+namespace CrossGraphics.Android
 {
-	public class DroidGraphics : IGraphics
+	public class AndroidGraphics : IGraphics
 	{
 		Canvas _c;
 		ColPaints _paints;
 		Font _font;
-		DroidFontMetrics _fm;
 
-        public Canvas Canvas { get { return _c; } }
+		public Canvas Canvas { get { return _c; } }
 
 		class ColPaints
 		{
 			public Paint Fill;
 			public Paint Stroke;
+			public Font Font;
 		}
 
-		public DroidGraphics (Canvas canvas)
+		public AndroidGraphics (Canvas canvas)
 		{
 			_c = canvas;
 			_font = null;
-			_fm = new DroidFontMetrics ();
 			SetColor (Colors.Black);
 		}
 
@@ -61,11 +60,11 @@ namespace CrossGraphics.Droid
 		{
 			if (c.Tag == null) {
 				var stroke = new Paint ();
-				stroke.Color = Android.Graphics.Color.Argb (c.Alpha, c.Red, c.Green, c.Blue);
+				stroke.Color = global::Android.Graphics.Color.Argb (c.Alpha, c.Red, c.Green, c.Blue);
 				stroke.AntiAlias = true;
 				stroke.SetStyle (Paint.Style.Stroke);
 				var fill = new Paint ();
-				fill.Color = Android.Graphics.Color.Argb (c.Alpha, c.Red, c.Green, c.Blue);
+				fill.Color = global::Android.Graphics.Color.Argb (c.Alpha, c.Red, c.Green, c.Blue);
 				fill.AntiAlias = true;
 				fill.SetStyle (Paint.Style.Fill);
 				var paints = new ColPaints () {
@@ -140,13 +139,13 @@ namespace CrossGraphics.Droid
 			_c.DrawOval (new RectF (x, y, x + width, y + width), _paints.Stroke);
 		}
 
-        const float RadiansToDegrees = (float)(180 / Math.PI);
+		const float RadiansToDegrees = (float)(180 / Math.PI);
 		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
-            var sa = startAngle * RadiansToDegrees - 180.0f;
-            var ea = endAngle * RadiansToDegrees - 180.0f;
-            _c.DrawArc (new RectF (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Stroke);
+			var sa = startAngle * RadiansToDegrees - 180.0f;
+			var ea = endAngle * RadiansToDegrees - 180.0f;
+			_c.DrawArc (new RectF (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Stroke);
 		}
 
 		bool _inLines = false;
@@ -197,7 +196,7 @@ namespace CrossGraphics.Droid
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
 		{
-			var dimg = img as DroidImage;
+			var dimg = img as AndroidImage;
 			if (dimg != null) {
 				SetColor (Colors.White);
 				_c.DrawBitmap (
@@ -214,16 +213,64 @@ namespace CrossGraphics.Droid
 			DrawString (s, x, y);
 		}
 
+		static AndroidFontInfo GetFontInfo (Font f)
+		{
+			var fi = f.Tag as AndroidFontInfo;
+			if (fi == null) {
+				var tf = f.IsBold ? Typeface.DefaultBold : Typeface.Default;
+				fi = new AndroidFontInfo {
+					Typeface = tf,
+				};
+				f.Tag = fi;
+			}
+			return fi;
+		}
+
+		static void ApplyFontToPaint (Font f, Paint p)
+		{
+			var fi = GetFontInfo (f);
+
+			p.SetTypeface (fi.Typeface);
+			p.TextSize = f.Size;
+
+			if (fi.FontMetrics == null) {
+				fi.FontMetrics = new AndroidFontMetrics (p);
+			}
+		}
+
+		void SetFontOnPaints ()
+		{
+			var f = _paints.Font;
+			if (f == null || f != _font) {
+				f = _font;
+				_paints.Font = f;
+				ApplyFontToPaint (f, _paints.Fill);
+			}
+		}
+
 		public void DrawString (string s, float x, float y)
 		{
 			if (string.IsNullOrWhiteSpace (s)) return;
-            var fm = GetFontMetrics ();
+
+			SetFontOnPaints ();
+			var fm = GetFontMetrics ();
 			_c.DrawText (s, x, y + fm.Height, _paints.Fill);
 		}
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			return _fm;
+			SetFontOnPaints ();
+			return ((AndroidFontInfo)_paints.Font.Tag).FontMetrics;
+		}
+
+		public static IFontMetrics GetFontMetrics (Font font)
+		{
+			var fi = GetFontInfo (font);
+			if (fi.FontMetrics == null) {
+				var paint = new Paint ();
+				ApplyFontToPaint (font, paint); // This ensures font metrics
+			}
+			return fi.FontMetrics;
 		}
 
 		public IImage ImageFromFile (string path)
@@ -231,7 +278,7 @@ namespace CrossGraphics.Droid
 			var bmp = BitmapFactory.DecodeFile (path);
 			if (bmp == null) return null;
 			
-			var dimg = new DroidImage () {
+			var dimg = new AndroidImage () {
 				Bitmap = bmp
 			};
 			return dimg;
@@ -261,43 +308,70 @@ namespace CrossGraphics.Droid
 		{
 			throw new NotImplementedException ();
 		}
-
 	}
 
-	public class DroidImage : IImage
+	class AndroidFontInfo
+	{
+		public Typeface Typeface;
+		public AndroidFontMetrics FontMetrics;
+	}
+
+	public class AndroidImage : IImage
 	{
 		public Bitmap Bitmap;
 	}
 
-	public class DroidFontMetrics : IFontMetrics
+	public class AndroidFontMetrics : IFontMetrics
 	{
+		const int NumWidths = 128;
+		float[] _widths;
+
+		static char[] _chars;
+		static AndroidFontMetrics ()
+		{
+			_chars = new char[NumWidths];
+			for (var i = 0; i < NumWidths; i++) {
+				if (i <= ' ') {
+					_chars[i] = ' ';
+				}
+				else {
+					_chars[i] = (char)i;
+				}
+			}
+		}
+
+		public AndroidFontMetrics (Paint paint)
+		{
+			_widths = new float[NumWidths];
+			paint.GetTextWidths (_chars, 0, NumWidths, _widths);
+			Ascent = (int)(Math.Abs (paint.Ascent () * (10.0f / 14.0f)) + 0.5f);
+			Height = Ascent;
+		}
+
 		public int StringWidth (string s, int startIndex, int length)
 		{
-			return length * 8;
+			if (string.IsNullOrEmpty (s)) return 0;
+
+			var end = startIndex + length;
+			if (end <= 0) return 0;
+
+			var a = 0.0f;
+			for (var i = startIndex; i < end; i++) {
+				if (s[i] < NumWidths) {
+					a += _widths[s[i]];
+				}
+				else {
+					a += _widths[' '];
+				}
+			}
+
+			return (int)(a + 0.5f);
 		}
 
-		public int Height
-		{
-			get
-			{
-				return 10;
-			}
-		}
+		public int Height { get; private set; }
 
-		public int Ascent
-		{
-			get
-			{
-				return 10;
-			}
-		}
+		public int Ascent { get; private set; }
 
-		public int Descent
-		{
-			get
-			{
-				return 0;
-			}
-		}
+		public int Descent { get; private set; }
 	}
 }

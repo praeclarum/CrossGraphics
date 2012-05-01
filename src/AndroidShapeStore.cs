@@ -23,7 +23,7 @@ using System;
 using Android.Graphics;
 using CrossGraphics.OpenGL;
 
-namespace CrossGraphics.Droid
+namespace CrossGraphics.Android
 {
 	public class AndroidShapeStore : OpenGLShapeStore
 	{
@@ -77,13 +77,13 @@ namespace CrossGraphics.Droid
 
 			public override IGraphics BeginRendering ()
 			{
-				return new DroidGraphics (new Canvas (_bmp));
+				return new AndroidGraphics (new Canvas (_bmp));
 			}
 
 			public override void EndRendering (IGraphics g)
 			{
 				base.EndRendering (g);
-				var dg = g as DroidGraphics;
+				var dg = g as AndroidGraphics;
 				if (dg != null) {
 					dg.Canvas.Dispose ();
 				}
@@ -101,7 +101,7 @@ namespace CrossGraphics.Droid
 		{
 			get {
 				return System.IO.Path.Combine (
-					Android.OS.Environment.ExternalStorageDirectory.AbsolutePath,
+					global::Android.OS.Environment.ExternalStorageDirectory.AbsolutePath,
 					"Android",
 					"data",
 					_packageName,
