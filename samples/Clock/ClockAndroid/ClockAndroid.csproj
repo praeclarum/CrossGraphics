@@ -46,8 +46,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\..\src\DroidGraphics.cs">
-      <Link>DroidGraphics.cs</Link>
+    <Compile Include="..\..\..\src\AndroidGraphics.cs">
+      <Link>AndroidGraphics.cs</Link>
     </Compile>
     <Compile Include="..\..\..\src\Graphics.cs">
       <Link>Graphics.cs</Link>

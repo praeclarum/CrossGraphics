@@ -4,7 +4,7 @@ using Android.App;
 using Android.Content;
 using Android.OS;
 using Android.Views;
-using CrossGraphics.Droid;
+using CrossGraphics.Android;
 
 namespace Clock.Android
 {
@@ -42,7 +42,7 @@ namespace Clock.Android
 			{
 				base.Draw (canvas);
 
-				var g = new DroidGraphics (canvas);
+				var g = new AndroidGraphics (canvas);
 
 				_clock.Width = Width;
 				_clock.Height = Height;
