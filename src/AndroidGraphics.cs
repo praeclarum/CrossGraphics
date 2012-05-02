@@ -188,9 +188,19 @@ namespace CrossGraphics.Android
 		public void EndLines ()
 		{
 			if (_inLines) {
-				_paints.Stroke.StrokeWidth = _lineWidth;
-				_c.DrawLines (_linePoints, 0, _numLineElements, _paints.Stroke);
 				_inLines = false;
+				if (_numLineElements < 1) {
+					return;
+				}
+				using (var path = new Path ()) {
+					path.MoveTo (_linePoints[0], _linePoints[1]);
+					for (var i = 2; i < _numLineElements - 1; i += 2) {
+						path.LineTo (_linePoints[i], _linePoints[i + 1]);
+					}
+					_paints.Stroke.StrokeWidth = _lineWidth;
+					_paints.Stroke.StrokeJoin = Paint.Join.Round;
+					_c.DrawPath (path, _paints.Stroke);
+				}
 			}
 		}
 
@@ -254,7 +264,7 @@ namespace CrossGraphics.Android
 
 			SetFontOnPaints ();
 			var fm = GetFontMetrics ();
-			_c.DrawText (s, x, y + fm.Height, _paints.Fill);
+			_c.DrawText (s, x, y + fm.Ascent, _paints.Fill);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -344,8 +354,9 @@ namespace CrossGraphics.Android
 		{
 			_widths = new float[NumWidths];
 			paint.GetTextWidths (_chars, 0, NumWidths, _widths);
-			Ascent = (int)(Math.Abs (paint.Ascent () * (10.0f / 14.0f)) + 0.5f);
-			Height = Ascent;
+			Ascent = (int)(Math.Abs (paint.Ascent ()) + 0.5f);
+			Descent = (int)(paint.Descent () + 0.5f);
+			Height = Ascent + Descent;
 		}
 
 		public int StringWidth (string s, int startIndex, int length)
