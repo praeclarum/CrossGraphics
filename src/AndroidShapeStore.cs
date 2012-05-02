@@ -44,7 +44,7 @@ namespace CrossGraphics.Android
 				: base (0, 0)
 			{
 				using (var ibmp = BitmapFactory.DecodeFile (path)) {
-					_bmp = ibmp.Copy (Bitmap.Config.Argb8888, true);
+					_bmp = ibmp.Copy (Bitmap.Config.Alpha8, true);
 				}
 				Width = _bmp.Width;
 				Height = _bmp.Height;
@@ -53,15 +53,12 @@ namespace CrossGraphics.Android
 			public BitmapTexture (int width, int height)
 				: base (width, height)
 			{
-				_bmp = Bitmap.CreateBitmap (width, height, Bitmap.Config.Argb8888);
+				_bmp = Bitmap.CreateBitmap (width, height, Bitmap.Config.Alpha8);
 			}
 
 			protected override void CallTexImage2D ()
 			{
-				/*using (var s = LogServer.SharedServer.LogFile ("tex.png")) {
-					_bmp.Compress (Bitmap.CompressFormat.Png, 100, s);
-				}*/
-				using (var dst = Java.Nio.ByteBuffer.AllocateDirect (Width * Height * 4)) {
+				using (var dst = Java.Nio.ByteBuffer.AllocateDirect (Width * Height)) {
 					_bmp.CopyPixelsToBuffer (dst);
 					var ptr = dst.GetDirectBufferAddress ();
 					TexImage2D (ptr);
@@ -70,8 +67,10 @@ namespace CrossGraphics.Android
 
 			public void WritePng (string path)
 			{
-				using (var s = System.IO.File.Create (path)) {
-					_bmp.Compress (Bitmap.CompressFormat.Png, 100, s);
+				using (var bigBmp = _bmp.Copy (Bitmap.Config.Argb8888, false)) {
+					using (var s = System.IO.File.Create (path)) {
+						bigBmp.Compress (Bitmap.CompressFormat.Png, 100, s);
+					}
 				}
 			}
 
@@ -97,16 +96,21 @@ namespace CrossGraphics.Android
 			return new BitmapTexture (width, height);
 		}
 
+		string _shapeStorePath;
 		protected override string ShapeStorePath
 		{
 			get {
-				return System.IO.Path.Combine (
-					global::Android.OS.Environment.ExternalStorageDirectory.AbsolutePath,
-					"Android",
-					"data",
-					_packageName,
-					"cache",
-					_storeName);
+				if (_shapeStorePath == null) {
+					var externalPath = global::Android.OS.Environment.ExternalStorageDirectory.AbsolutePath;
+					_shapeStorePath = System.IO.Path.Combine (
+						externalPath,
+						"Android",
+						"data",
+						_packageName,
+						"cache",
+						_storeName);
+				}
+				return _shapeStorePath;
 			}
 		}
 
@@ -126,7 +130,6 @@ namespace CrossGraphics.Android
 			var bmp = (BitmapTexture)texture;
 			var path = System.IO.Path.Combine (ShapeStorePath, "Texture" + id + ".png");
 			bmp.WritePng (path);
-
 		}
 	}
 }

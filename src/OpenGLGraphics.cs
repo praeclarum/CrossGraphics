@@ -58,9 +58,18 @@ namespace CrossGraphics.OpenGL
 		int _nextDrawCallIndex = 0;
 
 		Dictionary<OpenGLShape, OpenGLShape> _frameShapes = new Dictionary<OpenGLShape, OpenGLShape> ();
-		
-		public void BeginFrame ()
+
+		/// <summary>
+		/// Multiply this by coords input to this graphics to convert to pixels
+		/// </summary>
+		float _zoom;
+		float _oneOverZoom;
+
+		public void BeginDrawing (float zoom = 1)
 		{
+			_zoom = zoom;
+			_oneOverZoom = 1.0f / zoom;
+
 			_frameShapes.Clear ();
 
 			foreach (var b in _buffers) {
@@ -71,7 +80,7 @@ namespace CrossGraphics.OpenGL
 			_nextDrawCallIndex = 0;
 		}
 		
-		public void EndFrame ()
+		public void EndDrawing ()
 		{
 			if (_frameShapes.Count == 0) return;
 			
@@ -212,7 +221,7 @@ namespace CrossGraphics.OpenGL
 			}
 		}
 
-		void AddSolidRect (float x, float y, float width, float height)
+		void AddSolidRect (float x, float y, float width, float height, float alpha = 1)
 		{
 			if (_nextDrawCallIndex < MaxDrawCalls) {
 
@@ -226,10 +235,15 @@ namespace CrossGraphics.OpenGL
 				b.Positions[i + 2] = new Vector2 (x + width, y + height);
 				b.Positions[i + 3] = new Vector2 (x + width, y);
 
-				b.Colors[i] = _color;
-				b.Colors[i + 1] = _color;
-				b.Colors[i + 2] = _color;
-				b.Colors[i + 3] = _color;
+				var col = _color;
+				if (alpha <= 0.9961f) {
+					col.A = (byte)(col.A * alpha);
+				}
+
+				b.Colors[i] = col;
+				b.Colors[i + 1] = col;
+				b.Colors[i + 2] = col;
+				b.Colors[i + 3] = col;
 
 				b.Length += 4;
 			
@@ -324,35 +338,78 @@ namespace CrossGraphics.OpenGL
 			AddShape (_store.GetShape (ref r), x, y);
 		}
 
+		const int MaxPolylinePoints = 1024;
+		bool _inPolyline = false;
+		PointF[] _polyline = new PointF[MaxPolylinePoints];
+		int _polylineLength = 0;
+		float _polylineWidth = 1;
+
 		public void BeginLines (bool rounded)
 		{
+			_inPolyline = true;
+			_polylineLength = 0;
 		}
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			var dx = ex - sx;
-			var dy = ey - sy;
-
-			if (Math.Abs (dx) < 0.01) {
-				AddSolidRect (sx - w / 2, sy, w, dy);
-			}
-			else if (Math.Abs (dy) < 0.01) {
-				AddSolidRect (sx, sy - w / 2, dx, w);
+			if (_inPolyline) {
+				if (_polylineLength < MaxPolylinePoints) {
+					if (_polylineLength == 0) {
+						_polyline[0] = new PointF (sx, sy);
+						_polyline[1] = new PointF (ex, ey);
+						_polylineLength = 2;
+						_polylineWidth = w;
+					}
+					else {
+						_polyline[_polylineLength] = new PointF (ex, ey);
+						_polylineLength++;
+					}					
+				}
 			}
 			else {
-				if (dx >= 0) {
-					var r = OpenGLShapeInfo.Line (dx, dy, w);
-					AddShape (_store.GetShape (ref r), sx, sy);
+				var dx = ex - sx;
+				var dy = ey - sy;
+
+				if (Math.Abs (dx) < 0.01) {
+					var a = 1.0f;
+					var zw = w * _zoom;
+					if (zw < 1) {
+						a = zw;
+						w = _oneOverZoom;
+					}
+					AddSolidRect (sx - w / 2, sy, w, dy, a);
+				}
+				else if (Math.Abs (dy) < 0.01) {
+					var a = 1.0f;
+					var zw = w * _zoom;
+					if (zw < 1) {
+						a = zw;
+						w = _oneOverZoom;
+					}
+					AddSolidRect (sx, sy - w / 2, dx, w, a);
 				}
 				else {
-					var r = OpenGLShapeInfo.Line (-dx, -dy, w);
-					AddShape (_store.GetShape (ref r), ex, ey);
+					if (dx >= 0) {
+						var r = OpenGLShapeInfo.Line (dx, dy, w);
+						AddShape (_store.GetShape (ref r), sx, sy);
+					}
+					else {
+						var r = OpenGLShapeInfo.Line (-dx, -dy, w);
+						AddShape (_store.GetShape (ref r), ex, ey);
+					}
 				}
 			}
 		}
 
 		public void EndLines ()
 		{
+			if (_inPolyline) {
+				_inPolyline = false;
+				if (_polylineLength < 2) return;
+				var p0 = _polyline [0];
+				var r = OpenGLShapeInfo.Polyline (_polyline, _polylineLength, _polylineWidth);
+				AddShape (_store.GetShape (ref r), p0.X, p0.Y);
+			}
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
@@ -392,9 +449,10 @@ namespace CrossGraphics.OpenGL
 
 			var xx = x;
 			for (var i = 0; i < s.Length; i++) {
-				var r = OpenGLShapeInfo.Character (s[i], _font, width, height);
+				var w = fm.StringWidth (s, i, 1);
+				var r = OpenGLShapeInfo.Character (s[i], _font, w, height);
 				AddShape (_store.GetShape (ref r), xx, y);
-				xx += fm.StringWidth (s, i, 1);
+				xx += w;
 			}
 		}
 
@@ -440,6 +498,7 @@ namespace CrossGraphics.OpenGL
 		Character = 4,
 		Polygon = 5,
 		Arc = 6,
+		Polyline = 7,
 	}
 	
 	public struct OpenGLShapeInfo
@@ -450,6 +509,8 @@ namespace CrossGraphics.OpenGL
 		public char Char;
 		public Font Font;
 		public Polygon Poly;
+		public PointF[] PolylinePoints;
+		public int PolylineLength;
 
 		public static OpenGLShapeInfo ReadXml (System.Xml.XmlReader r)
 		{
@@ -484,6 +545,16 @@ namespace CrossGraphics.OpenGL
 					}
 					i.Poly = poly;
 				}
+				else if (r.IsStartElement ("Polyline")) {
+					var parts = r.GetAttribute ("Points").Split (WS, StringSplitOptions.RemoveEmptyEntries);
+					var poly = new List<PointF> ();
+					for (var j = 0; j < parts.Length; j += 2) {
+						var p = new PointF (float.Parse (parts[j], icult), float.Parse (parts[j + 1], icult));
+						poly.Add (p);
+					}
+					i.PolylinePoints = poly.ToArray ();
+					i.PolylineLength = i.PolylinePoints.Length;
+				}
 			}
 
 			return i;
@@ -514,6 +585,16 @@ namespace CrossGraphics.OpenGL
 				w.WriteStartElement ("Polygon");
 				var pointsValue = new System.Text.StringBuilder ();
 				foreach (var p in Poly.Points) {
+					pointsValue.AppendFormat (icult, "{0} {1} ", p.X, p.Y);
+				}
+				w.WriteAttributeString ("Points", pointsValue.ToString ());
+				w.WriteEndElement ();
+			}
+			if (PolylinePoints != null) {
+				w.WriteStartElement ("Polyline");
+				var pointsValue = new System.Text.StringBuilder ();
+				for (var i = 0; i < PolylineLength; i++) {
+					var p = PolylinePoints[i];
 					pointsValue.AppendFormat (icult, "{0} {1} ", p.X, p.Y);
 				}
 				w.WriteAttributeString ("Points", pointsValue.ToString ());
@@ -583,6 +664,21 @@ namespace CrossGraphics.OpenGL
 				break;
 			case OpenGLShapeType.Arc:
 				g.DrawArc (x, y, A, B, C, D);
+				break;
+			case OpenGLShapeType.Polyline: {
+					var dx = x - PolylinePoints[0].X;
+					var dy = y - PolylinePoints[0].Y;
+					g.BeginLines (true);
+					for (var i = 0; i < PolylineLength - 1; i++) {
+						g.DrawLine (
+							PolylinePoints[i].X + dx,
+							PolylinePoints[i].Y + dy,
+							PolylinePoints[i + 1].X + dx,
+							PolylinePoints[i + 1].Y + dy,
+							A);
+					}
+					g.EndLines ();
+				}
 				break;
 			default:
 				throw new NotSupportedException ();
@@ -667,6 +763,33 @@ namespace CrossGraphics.OpenGL
 						ShapeOffset = new Vector2 (A + p, A + p),
 					};
 				}
+			case OpenGLShapeType.Polyline: {
+					var p = Fill ? 3 : A;
+					var left = 0.0f;
+					var top = 0.0f;
+					var right = 0.0f;
+					var bottom = 0.0f;
+					var p0 = PolylinePoints[0];
+					for (var i = 1; i < PolylineLength; i++) {
+						var dx = PolylinePoints[i].X - p0.X;
+						var dy = PolylinePoints[i].Y - p0.Y;
+						if (dx > 0) {
+							right = Math.Max (right, dx);
+						}
+						else if (dx < 0) {
+							left = Math.Max (left, -dx);
+						}
+						if (dy > 0) {
+							bottom = Math.Max (bottom, dy);
+						}
+						else if (dy < 0) {
+							top = Math.Max (top, -dy);
+						}
+					}
+					return new OpenGLTextureReference (left + right + 2 * p, top + bottom + 2 * p) {
+						ShapeOffset = new Vector2 (left + p, top + p),
+					};
+				}
 			default:
 				throw new NotSupportedException ();
 			}
@@ -720,6 +843,18 @@ namespace CrossGraphics.OpenGL
 				return true;
 			case OpenGLShapeType.Arc:
 				return Math.Abs (A - other.A) < Tolerance && Math.Abs (B - other.B) < ArcAngleTolerance && Math.Abs (C - other.C) < ArcAngleTolerance && Math.Abs (D - other.D) < Tolerance;
+			case OpenGLShapeType.Polyline:
+				if (Math.Abs (A - other.A) >= Tolerance) return false;
+				if (PolylineLength != other.PolylineLength) return false;
+				for (var i = 1; i < PolylineLength; i++) {
+					var dx = PolylinePoints[i].X - PolylinePoints[i - 1].X;
+					var odx = other.PolylinePoints[i].X - other.PolylinePoints[i - 1].X;
+					if (Math.Abs (dx - odx) >= Tolerance) return false;
+					var dy = PolylinePoints[i].Y - PolylinePoints[i - 1].Y;
+					var ody = other.PolylinePoints[i].Y - other.PolylinePoints[i - 1].Y;
+					if (Math.Abs (dy - ody) >= Tolerance) return false;
+				}
+				return true;
 			default:
 				throw new NotImplementedException ();
 			}
@@ -822,6 +957,16 @@ namespace CrossGraphics.OpenGL
 			};
 		}
 
+		public static OpenGLShapeInfo Polyline (PointF[] poly, int length, float w)
+		{
+			return new OpenGLShapeInfo {
+				ShapeType = OpenGLShapeType.Polyline,
+				A = w,
+				PolylinePoints = poly,
+				PolylineLength = length,
+			};
+		}
+
 		public static OpenGLShapeInfo Polygon (Polygon poly)
 		{
 			var info = Polygon (poly, 0);
@@ -887,6 +1032,15 @@ namespace CrossGraphics.OpenGL
 		public OpenGLShape (OpenGLShapeInfo info)
 		{
 			Info = info;
+			//
+			// Clone the polyline array. This is a little hack so we can get
+			// away with using the same array while drawing and avoid allocations.
+			//
+			if (info.PolylineLength > 0 && info.PolylinePoints != null) {
+				var newPoints = new PointF[info.PolylineLength];
+				Array.Copy (info.PolylinePoints, newPoints, newPoints.Length);
+				Info.PolylinePoints = newPoints;
+			}
 		}
 
 		public OpenGLShape (System.Xml.XmlReader r, List<OpenGLTexture> textures)
@@ -959,7 +1113,7 @@ namespace CrossGraphics.OpenGL
 		protected abstract void CallTexImage2D ();
 		protected void TexImage2D (IntPtr data)
 		{
-			GL.TexImage2D (All.Texture2D, 0, (int)All.Rgba, Width, Height, 0, All.Rgba, All.UnsignedByte, data);
+			GL.TexImage2D (All.Texture2D, 0, (int)All.Alpha, Width, Height, 0, All.Alpha, All.UnsignedByte, data);
 		}
 
 		public void Bind ()
@@ -1155,7 +1309,7 @@ namespace CrossGraphics.OpenGL
 
 		static List<OpenGLShape>[] CreateShapesByType ()
 		{
-			var numShapeTypes = 7;
+			var numShapeTypes = 8;
 			var shapesByType = new List<OpenGLShape>[numShapeTypes];
 			for (var i = 0; i < numShapeTypes; i++) {
 				shapesByType[i] = new List<OpenGLShape> ();
