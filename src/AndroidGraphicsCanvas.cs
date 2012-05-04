@@ -23,7 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Timers;
+using System.Threading;
 
 
 namespace CrossGraphics.Android
@@ -31,7 +31,7 @@ namespace CrossGraphics.Android
 	public class AndroidGraphicsCanvas : global::Android.Views.View, ICanvas
 	{
 		int _fps;
-		readonly Timer _drawTimer;
+		global::Android.OS.Handler _handler;
 
 		const double CpuUtilization = 0.25;
 		public int MinFps { get; set; }
@@ -44,19 +44,14 @@ namespace CrossGraphics.Android
 
 		public CanvasDelegate Delegate { get; set; }
 
-		public AndroidGraphicsCanvas (global::Android.App.Activity c)
+		public AndroidGraphicsCanvas (global::Android.Content.Context c)
 			: base (c)
 		{
 			MinFps = 4;
 			MaxFps = 30;
 			_fps = (MinFps + MaxFps) / 2;
 
-			_drawTimer = new Timer();
-			_drawTimer.Elapsed += delegate {
-				c.RunOnUiThread (delegate {
-					Invalidate ();
-				});
-			};
+			_handler = new global::Android.OS.Handler ();			
 		}
 
 		#region Touching
@@ -79,48 +74,31 @@ namespace CrossGraphics.Android
 
 		#region Drawing
 
+		void HandleDrawTimerElapsed ()
+		{
+			Invalidate ();
+		}
+
+		bool _running = false;
+
 		public void Start()
 		{
-			_paused = false;
-
-			_drawTimer.Interval = 1.0 / _fps;
-
-			if (!_drawTimer.Enabled) {
-				_drawTimer.Start();
-			}
+			_running = true;
+			_drawCount = 0;
+			_drawTime = 0;
+			_lastThrottleTime = DateTime.Now;
+			Invalidate ();
 		}
 
 		public void Stop()
 		{
-			_drawTimer.Stop();
-		}
-
-		bool _paused = false;
-		public bool Paused
-		{
-			get
-			{
-				return _paused;
-			}
-			set
-			{
-				if (_paused != value) {
-					_paused = value;
-					_lastThrottleTime = DateTime.Now;
-				}
-			}
+			_running = false;
 		}
 
 		public event EventHandler DrewFrame;
 
 		public override void Draw (global::Android.Graphics.Canvas canvas)
 		{
-			if (Paused) {
-				_drawCount = 0;
-				_drawTime = 0;
-				return;
-			}            
-
 			//
 			// Start drawing
 			//
@@ -171,6 +149,10 @@ namespace CrossGraphics.Android
 			var df = DrewFrame;
 			if (df != null) {
 				df(this, EventArgs.Empty);
+			}
+
+			if (_running) {
+				_handler.PostDelayed (HandleDrawTimerElapsed, 1000 / _fps);
 			}
 		}
 
