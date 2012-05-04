@@ -74,6 +74,8 @@ namespace CrossGraphics.Android
 
 		void Initialize ()
 		{
+			_touchMan = new AndroidCanvasTouchManager (0);
+
 			MinFps = 4;
 			MaxFps = 30;
 			_fps = (MinFps + MaxFps) / 2;
@@ -82,7 +84,7 @@ namespace CrossGraphics.Android
 
 		#region Touching
 
-		AndroidCanvasTouchManager _touchMan = new AndroidCanvasTouchManager ();
+		AndroidCanvasTouchManager _touchMan;
 
 		public override bool OnTouchEvent (global::Android.Views.MotionEvent e)
 		{
@@ -198,7 +200,19 @@ namespace CrossGraphics.Android
 	public class AndroidCanvasTouchManager
 	{
 		const int MaxTouchId = 10;
-		CanvasTouch[] _activeTouches = new CanvasTouch[MaxTouchId];
+		AndroidTouch[] _activeTouches = new AndroidTouch[MaxTouchId];
+
+		float _initialMoveResolution;
+
+		class AndroidTouch : CanvasTouch
+		{
+			public bool IsMoving;
+		}
+
+		public AndroidCanvasTouchManager (float initialMoveResolution = 4)
+		{
+			_initialMoveResolution = initialMoveResolution;
+		}
 
 		public Func<PointF, PointF> LocationFromViewLocationFunc { get; set; }
 
@@ -239,10 +253,13 @@ namespace CrossGraphics.Android
 						if (t != null) {
 							var curSuperLoc = t.SuperCanvasLocation;
 							var newSuperLoc = new System.Drawing.PointF (e.GetX (index), e.GetY (index));
-							if (Math.Abs (curSuperLoc.X - newSuperLoc.X) > 4 || Math.Abs (curSuperLoc.Y - newSuperLoc.Y) > 4) {
+							if (t.IsMoving ||
+								(Math.Abs (curSuperLoc.X - newSuperLoc.X) > _initialMoveResolution ||
+								Math.Abs (curSuperLoc.Y - newSuperLoc.Y) > _initialMoveResolution)) {
 								t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
 								t.CanvasPreviousLocation = t.CanvasLocation;
 								t.PreviousTime = t.Time;
+								t.IsMoving = true;
 
 								t.SuperCanvasLocation = newSuperLoc;
 								t.CanvasLocation = LocationFromView (t.SuperCanvasLocation);
@@ -257,7 +274,7 @@ namespace CrossGraphics.Android
 			case global::Android.Views.MotionEventActions.Down:
 			case global::Android.Views.MotionEventActions.PointerDown:
 				if (actionId < MaxTouchId) {
-					var t = new CanvasTouch {
+					var t = new AndroidTouch {
 						Handle = new IntPtr (actionId + 1), // +1 because IntPtr=0 is special
 						SuperCanvasLocation = new System.Drawing.PointF (e.GetX (actionIndex), e.GetY (actionIndex)),
 						Time = DateTime.UtcNow,
