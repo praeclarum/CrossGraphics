@@ -27,7 +27,12 @@ using CrossGraphics;
 
 namespace CrossGraphics
 {
-    public class GraphicsCanvasDelegate
+	public interface ICanvas
+	{
+		CanvasDelegate Delegate { get; }
+	}
+
+    public class CanvasDelegate
     {
         public RectangleF Frame = new RectangleF(0, 0, 320, 480);
         public bool DrawBackground = true;
