@@ -41,7 +41,7 @@ using DispatcherTimerTickEventArgs = System.EventArgs;
 
 namespace CrossGraphics.SilverlightGraphics
 {
-    public class SilverlightGraphicsCanvas : Canvas
+    public class SilverlightGraphicsCanvas : Canvas, ICanvas
     {
         const int NativePointsPerInch = 160;
 
@@ -59,7 +59,7 @@ namespace CrossGraphics.SilverlightGraphics
         int _drawCount;
         DateTime _lastThrottleTime = DateTime.Now;
 
-        public GraphicsCanvasDelegate Delegate { get; set; }
+        public CanvasDelegate Delegate { get; set; }
 
         public SilverlightGraphicsCanvas()
         {
@@ -277,14 +277,14 @@ namespace CrossGraphics.SilverlightGraphics
         readonly Dictionary<IntPtr, DateTime> _lastDownTime = new Dictionary<IntPtr, DateTime>();
         readonly Dictionary<IntPtr, PointF> _lastBeganPosition = new Dictionary<IntPtr, PointF>();
 
+		const float DoubleClickMinDistance = 10;
+
 #if NETFX_CORE
 
 		PointF ToPointF(Windows.UI.Input.PointerPoint pt)
 		{
 			return new PointF((float)pt.Position.X, (float)pt.Position.Y);
 		}
-
-		const float DoubleClickMinDistance = 10;
 
 		class NetfxCoreTouch : CanvasTouch
 		{
