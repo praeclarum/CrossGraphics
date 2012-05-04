@@ -42,16 +42,42 @@ namespace CrossGraphics.Android
 		int _drawCount;
 		DateTime _lastThrottleTime = DateTime.Now;
 
-		public CanvasContent Content { get; set; }
+		CanvasContent _content;
+		public CanvasContent Content
+		{
+			get { return _content; }
+			set
+			{
+				if (_content != value) {
+					if (_content != null) {
+						_content.NeedsDisplay -= HandleNeedsDisplay;
+					}
+					_content = value;
+					if (_content != null) {
+						_content.NeedsDisplay += HandleNeedsDisplay;
+					}
+				}
+			}
+		}
 
-		public AndroidGraphicsCanvas (global::Android.Content.Context c)
-			: base (c)
+		public AndroidGraphicsCanvas (global::Android.Content.Context context, global::Android.Util.IAttributeSet attrs)
+			: base (context, attrs)
+		{
+			Initialize ();
+		}
+
+		public AndroidGraphicsCanvas (global::Android.Content.Context context)
+			: base (context)
+		{
+			Initialize ();
+		}
+
+		void Initialize ()
 		{
 			MinFps = 4;
 			MaxFps = 30;
 			_fps = (MinFps + MaxFps) / 2;
-
-			_handler = new global::Android.OS.Handler ();			
+			_handler = new global::Android.OS.Handler ();
 		}
 
 		#region Touching
@@ -73,6 +99,11 @@ namespace CrossGraphics.Android
 		#endregion
 
 		#region Drawing
+
+		void HandleNeedsDisplay (object sender, EventArgs e)
+		{
+			Invalidate ();
+		}
 
 		void HandleDrawTimerElapsed ()
 		{
