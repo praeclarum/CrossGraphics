@@ -42,7 +42,7 @@ namespace CrossGraphics.Android
 		int _drawCount;
 		DateTime _lastThrottleTime = DateTime.Now;
 
-		public CanvasDelegate Delegate { get; set; }
+		public CanvasContent Content { get; set; }
 
 		public AndroidGraphicsCanvas (global::Android.Content.Context c)
 			: base (c)
@@ -60,9 +60,9 @@ namespace CrossGraphics.Android
 
 		public override bool OnTouchEvent (global::Android.Views.MotionEvent e)
 		{
-			var del = Delegate;
+			var del = Content;
 			if (del != null) {
-				_touchMan.OnTouchEvent (e, Delegate);
+				_touchMan.OnTouchEvent (e, Content);
 				return true;
 			}
 			else {
@@ -102,7 +102,7 @@ namespace CrossGraphics.Android
 			//
 			// Start drawing
 			//
-			var del = Delegate;
+			var del = Content;
 			if (del == null) return;
 
 			var startT = DateTime.Now;
@@ -182,10 +182,10 @@ namespace CrossGraphics.Android
 			}
 		}
 
-		public void OnTouchEvent (global::Android.Views.MotionEvent e, CanvasDelegate del)
+		public void OnTouchEvent (global::Android.Views.MotionEvent e, CanvasContent content)
 		{
 			if (e == null) throw new ArgumentNullException ("e");
-			if (del == null) throw new ArgumentNullException ("del");
+			if (content == null) throw new ArgumentNullException ("del");
 
 			var began = new List<CanvasTouch> ();
 			var moved = new List<CanvasTouch> ();
@@ -253,16 +253,16 @@ namespace CrossGraphics.Android
 			}
 
 			if (began.Count > 0) {
-				del.TouchesBegan (began.ToArray ());
+				content.TouchesBegan (began.ToArray ());
 			}
 			if (moved.Count > 0) {
-				del.TouchesMoved (moved.ToArray ());
+				content.TouchesMoved (moved.ToArray ());
 			}
 			if (ended.Count > 0) {
-				del.TouchesEnded (ended.ToArray ());
+				content.TouchesEnded (ended.ToArray ());
 			}
 			if (cancelled.Count > 0) {
-				del.TouchesCancelled (cancelled.ToArray ());
+				content.TouchesCancelled (cancelled.ToArray ());
 			}
 		}
 	}

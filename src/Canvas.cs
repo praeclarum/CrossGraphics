@@ -29,13 +29,29 @@ namespace CrossGraphics
 {
 	public interface ICanvas
 	{
-		CanvasDelegate Delegate { get; }
+		CanvasContent Content { get; set; }
 	}
 
-    public class CanvasDelegate
+    public class CanvasContent
     {
         public RectangleF Frame = new RectangleF(0, 0, 320, 480);
-        public bool DrawBackground = true;
+
+		public event EventHandler NeedsDisplay;
+
+		protected virtual void SetNeedsDisplay ()
+		{
+			var nd = NeedsDisplay;
+			if (nd != null) {
+				nd (this, EventArgs.Empty);
+			}
+		}
+
+		public bool DrawBackground { get; set; }
+
+		public CanvasContent ()
+		{
+			DrawBackground = true;
+		}
 
         public virtual void TouchesBegan(CanvasTouch[] touches)
         {
