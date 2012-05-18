@@ -59,7 +59,7 @@ namespace CrossGraphics.SilverlightGraphics
         int _drawCount;
         DateTime _lastThrottleTime = DateTime.Now;
 
-        public CanvasDelegate Delegate { get; set; }
+        public CanvasContent Content { get; set; }
 
         public SilverlightGraphicsCanvas()
         {
@@ -194,7 +194,7 @@ namespace CrossGraphics.SilverlightGraphics
                 return;
             }
 
-            var del = Delegate;
+            var del = Content;
             if (del == null) return;
 
             if (_graphics == null) {
@@ -333,8 +333,8 @@ namespace CrossGraphics.SilverlightGraphics
 
 			_activeTouches[handle] = touch;
 
-			if (Delegate != null) {
-				Delegate.TouchesBegan(new[] { touch });
+			if (Content != null) {
+				Content.TouchesBegan(new[] { touch });
 			}
 		}
 
@@ -366,8 +366,8 @@ namespace CrossGraphics.SilverlightGraphics
 						touch.CanvasLocation = loc;
 						touch.Time = DateTime.Now;
 
-						if (Delegate != null) {
-							Delegate.TouchesMoved (new[] { touch });
+						if (Content != null) {
+							Content.TouchesMoved (new[] { touch });
 						}
 					}
 				}			
@@ -383,8 +383,8 @@ namespace CrossGraphics.SilverlightGraphics
 				var touch = _activeTouches[handle];
 				_activeTouches.Remove(handle);
 
-				if (Delegate != null) {
-					Delegate.TouchesEnded(new[] { touch });
+				if (Content != null) {
+					Content.TouchesEnded(new[] { touch });
 				}
 			}
 		}
@@ -398,8 +398,8 @@ namespace CrossGraphics.SilverlightGraphics
 				var touch = _activeTouches[handle];
 				_activeTouches.Remove (handle);
 
-				if (Delegate != null) {
-					Delegate.TouchesCancelled (new[] { touch });
+				if (Content != null) {
+					Content.TouchesCancelled (new[] { touch });
 				}
 			}
 		}
@@ -413,8 +413,8 @@ namespace CrossGraphics.SilverlightGraphics
 				var touch = _activeTouches[handle];
 				_activeTouches.Remove (handle);
 
-				if (Delegate != null) {
-					Delegate.TouchesCancelled (new[] { touch });
+				if (Content != null) {
+					Content.TouchesCancelled (new[] { touch });
 				}
 			}
 		}
