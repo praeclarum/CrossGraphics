@@ -140,6 +140,13 @@ namespace CrossGraphics.Android
 		}
 
 		const float RadiansToDegrees = (float)(180 / Math.PI);
+
+		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
+		{
+			var sa = startAngle * RadiansToDegrees - 180.0f;
+			var ea = endAngle * RadiansToDegrees - 180.0f;
+			_c.DrawArc (new RectF (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Fill);
+		}
 		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{

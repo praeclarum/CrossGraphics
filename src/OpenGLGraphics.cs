@@ -412,6 +412,12 @@ namespace CrossGraphics.OpenGL
 			}
 		}
 
+		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
+		{
+			var r = OpenGLShapeInfo.Arc (radius, startAngle, endAngle);
+			AddShape (_store.GetShape (ref r), cx, cy);
+		}
+
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
 			var r = OpenGLShapeInfo.Arc (radius, startAngle, endAngle, w);
@@ -842,6 +848,8 @@ namespace CrossGraphics.OpenGL
 				}
 				return true;
 			case OpenGLShapeType.Arc:
+				if (Fill && !other.Fill) return false;
+				if (!Fill && Math.Abs (D - other.D) >= Tolerance) return false;
 				return Math.Abs (A - other.A) < Tolerance && Math.Abs (B - other.B) < ArcAngleTolerance && Math.Abs (C - other.C) < ArcAngleTolerance && Math.Abs (D - other.D) < Tolerance;
 			case OpenGLShapeType.Polyline:
 				if (Math.Abs (A - other.A) >= Tolerance) return false;
@@ -974,6 +982,17 @@ namespace CrossGraphics.OpenGL
 			return info;
 		}
 
+		public static OpenGLShapeInfo Arc (float radius, float startAngle, float endAngle)
+		{
+			return new OpenGLShapeInfo {
+				ShapeType = OpenGLShapeType.Arc,
+				A = radius,
+				B = startAngle,
+				C = endAngle,
+				Fill = true,
+			};
+		}
+
 		public static OpenGLShapeInfo Arc (float radius, float startAngle, float endAngle, float w)
 		{
 			return new OpenGLShapeInfo {
@@ -982,6 +1001,7 @@ namespace CrossGraphics.OpenGL
 				B = startAngle,
 				C = endAngle,
 				D = w,
+				Fill = false,
 			};
 		}
 	}

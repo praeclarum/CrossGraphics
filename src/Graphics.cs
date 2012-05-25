@@ -54,6 +54,8 @@ namespace CrossGraphics
 		void DrawLine(float sx, float sy, float ex, float ey, float w);
 
 		void EndLines();
+
+		void FillArc(float cx, float cy, float radius, float startAngle, float endAngle);
 		
 		void DrawArc(float cx, float cy, float radius, float startAngle, float endAngle, float w);
 

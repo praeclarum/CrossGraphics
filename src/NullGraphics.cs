@@ -83,8 +83,12 @@ namespace CrossGraphics
 		public void EndLines ()
 		{
 		}
+
+		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
+		{
+		}
 		
-		public void DrawArc(float cx, float cy, float radius, float startAngle, float endAngle, float w)
+		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
 		}
 
