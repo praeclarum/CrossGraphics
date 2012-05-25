@@ -168,8 +168,18 @@ namespace CrossGraphics.Svg
 			_tw.WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
 				cx, cy, rx, ry, _lastColor, w);
 		}
+
+		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
+		{
+			WriteArc (cx, cy, radius, startAngle, endAngle, 0, "none", _lastColor);
+		}
 		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
+		{
+			WriteArc (cx, cy, radius, startAngle, endAngle, w, _lastColor, "none");
+		}
+
+		public void WriteArc (float cx, float cy, float radius, float startAngle, float endAngle, float w, string stroke, string fill)
 		{
 			var sa = startAngle + Math.PI;
 			var ea = endAngle + Math.PI;
@@ -179,11 +189,11 @@ namespace CrossGraphics.Svg
 			var ex = cx + radius * Math.Cos (ea);
 			var ey = cy + radius * Math.Sin (ea);
 			
-			_tw.WriteLine("<path d=\"M {0} {1} A {2} {3} 0 0 1 {4} {5}\" stroke=\"{6}\" stroke-width=\"{7}\" fill=\"none\" />", 
+			_tw.WriteLine("<path d=\"M {0} {1} A {2} {3} 0 0 1 {4} {5}\" stroke=\"{6}\" stroke-width=\"{7}\" fill=\"{8}\" />", 
 				sx, sy,
 				radius, radius,
 				ex, ey,				 
-				_lastColor, w);
+				stroke, w, fill);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)

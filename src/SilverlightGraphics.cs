@@ -239,14 +239,19 @@ namespace CrossGraphics.SilverlightGraphics
 			_eshape.DrawString (s, x, y);
 		}
 
+		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
+		{
+			_eshape.FillArc (cx, cy, radius, startAngle, endAngle);
+		}
+
 		public void DrawArc(float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
-			_eshape.DrawArc(cx, cy, radius, startAngle, endAngle, w);
+			_eshape.DrawArc (cx, cy, radius, startAngle, endAngle, w);
 		}
 
 		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			_eshape.DrawString(s, x, y, width, height, lineBreak, align);
+			_eshape.DrawString (s, x, y, width, height, lineBreak, align);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -792,19 +797,19 @@ namespace CrossGraphics.SilverlightGraphics
 
 			if (s.Y != y) {
 				s.Y = y;
-				Canvas.SetTop(e, y);
+				Canvas.SetTop(e, y - w / 2);
 			}
 			if (s.X != x) {
 				s.X = x;
-				Canvas.SetLeft(e, x);
+				Canvas.SetLeft(e, x - w / 2);
 			}
 			if (s.Width != width) {
 				s.Width = width;
-				e.Width = width;
+				e.Width = width + w;
 			}
 			if (s.Height != height) {
 				s.Height = height;
-				e.Height = height;
+				e.Height = height + w;
 			}
 			if (s.Color != _currentColor || s.DrawOp != DrawOp.Draw) {
 				s.Color = _currentColor;
@@ -818,7 +823,38 @@ namespace CrossGraphics.SilverlightGraphics
 			}
 		}
 
+		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
+		{
+			var s = DoArc (cx, cy, radius, startAngle, endAngle);
+			var e = (Path)s.Element;
+
+			if (s.Color != _currentColor || s.DrawOp != DrawOp.Draw) {
+				s.Color = _currentColor;
+				s.DrawOp = DrawOp.Draw;
+				e.Stroke = null;
+				e.Fill = _currentColor.GetBrush ();
+			}
+		}
+
 		public void DrawArc(float cx, float cy, float radius, float startAngle, float endAngle, float w)
+		{
+			var s = DoArc (cx, cy, radius, startAngle, endAngle);
+			var e = (Path)s.Element;
+
+			if (s.Thickness != w) {
+				s.Thickness = w;
+				e.StrokeThickness = w;
+			}
+
+			if (s.Color != _currentColor || s.DrawOp != DrawOp.Draw) {
+				s.Color = _currentColor;
+				s.DrawOp = DrawOp.Draw;
+				e.Stroke = _currentColor.GetBrush ();
+				e.Fill = null;
+			}
+		}
+
+		ShapeData DoArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
 			var s = GetNextShape(TypeId.Arc);
 			var e = s.Element as Path;
@@ -848,17 +884,7 @@ namespace CrossGraphics.SilverlightGraphics
 				e.Data = geo; 
 			}
 
-			if (s.Thickness != w) {
-				s.Thickness = w;
-				e.StrokeThickness = w;
-			}
-
-			if (s.Color != _currentColor || s.DrawOp != DrawOp.Draw) {
-				s.Color = _currentColor;
-				s.DrawOp = DrawOp.Draw;
-				e.Stroke = _currentColor.GetBrush();
-				e.Fill = null;
-			}
+			return s;
 		}
 
 		Path _linePath = null;

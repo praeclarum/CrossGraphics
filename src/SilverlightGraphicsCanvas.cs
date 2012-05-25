@@ -186,53 +186,62 @@ namespace CrossGraphics.SilverlightGraphics
 
         public event EventHandler DrewFrame;
 
+		double Draw ()
+		{
+			var del = Content;
+			if (del == null) return 0;
+
+			if (_graphics == null) {
+				_graphics = new SilverlightGraphics (this);
+			}
+
+			var startT = DateTime.Now;
+
+			_graphics.BeginDrawing ();
+			_graphics.BeginEntity (del);
+
+			//
+			// Draw
+			//
+			var fr = new RectangleF (0, 0, (float)ActualWidth, (float)ActualHeight);
+			if (_ppi != NativePointsPerInch) {
+				fr.Width /= _ppi / (float)NativePointsPerInch;
+				fr.Height /= _ppi / (float)NativePointsPerInch;
+			}
+			del.Frame = fr;
+			try {
+				del.Draw (_graphics);
+			}
+			catch (Exception) {
+			}
+
+			_graphics.EndDrawing ();
+
+			var endT = DateTime.Now;
+			return (endT - startT).TotalSeconds;
+		}
+
 		void DrawTick(object sender, DispatcherTimerTickEventArgs e)
         {
+			//
+			// Decide if we should draw
+			//
             if (Paused) {
                 _drawCount = 0;
                 _drawTime = 0;
                 return;
             }
 
-            var del = Content;
-            if (del == null) return;
-
-            if (_graphics == null) {
-                _graphics = new SilverlightGraphics(this);
-            }
+			var del = Content;
+			if (del == null) return;
 
             var good = ActualWidth > 0 && ActualHeight > 0;
             if (!good) return;
-
-            //
-            // Start drawing
-            //
-            var startT = DateTime.Now;
-            _graphics.BeginDrawing();
-
-            //
-            // Draw
-            //
-            var fr = new RectangleF(0, 0, (float)ActualWidth, (float)ActualHeight);
-            if (_ppi != NativePointsPerInch) {
-                fr.Width /= _ppi/(float) NativePointsPerInch;
-                fr.Height /= _ppi / (float)NativePointsPerInch;
-            }
-            del.Frame = fr;
-            try {
-                del.Draw (_graphics);
-            }
-            catch (Exception) {
-            }
-
-            //
-            // End drawing
-            //
-            _graphics.EndDrawing();
-
-            var endT = DateTime.Now;
-
-            _drawTime += (endT - startT).TotalSeconds;
+			
+			//
+			// Draw
+			//
+            _drawTime += Draw ();
             _drawCount++;
 
             //
