@@ -143,15 +143,15 @@ namespace CrossGraphics.Android
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
-			var sa = startAngle * RadiansToDegrees - 180.0f;
-			var ea = endAngle * RadiansToDegrees - 180.0f;
+			var sa = -startAngle * RadiansToDegrees;
+			var ea = -endAngle * RadiansToDegrees;
 			_c.DrawArc (new RectF (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Fill);
 		}
 		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
-			var sa = startAngle * RadiansToDegrees - 180.0f;
-			var ea = endAngle * RadiansToDegrees - 180.0f;
+			var sa = -startAngle * RadiansToDegrees;
+			var ea = -endAngle * RadiansToDegrees;
 			_c.DrawArc (new RectF (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Stroke);
 		}
 
