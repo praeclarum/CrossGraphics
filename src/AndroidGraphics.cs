@@ -303,27 +303,27 @@ namespace CrossGraphics.Android
 		
 		public void SaveState()
 		{
-			throw new NotImplementedException ();
+			_c.Save ();
 		}
 		
 		public void SetClippingRect (float x, float y, float width, float height)
 		{
-			throw new NotImplementedException ();
+			_c.ClipRect (x, y, x + width, y + height);
 		}
 		
 		public void Translate(float dx, float dy)
 		{
-			throw new NotImplementedException ();
+			_c.Translate (dx, dy);
 		}
 		
 		public void Scale(float sx, float sy)
 		{
-			throw new NotImplementedException ();
+			_c.Scale (sx, sy);
 		}
 		
 		public void RestoreState()
 		{
-			throw new NotImplementedException ();
+			_c.Restore ();
 		}
 	}
 
