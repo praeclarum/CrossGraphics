@@ -156,35 +156,28 @@ namespace CrossGraphics.Android
 		}
 
 		bool _inLines = false;
+		Path _linesPath = null;
+		int _linesCount = 0;
 		float _lineWidth = 1;
-		float[] _linePoints = new float[2 * 100];
-		int _numLineElements = 0;
 
 		public void BeginLines (bool rounded)
 		{
 			if (!_inLines) {
 				_inLines = true;
-				_numLineElements = 0;
+				_linesPath = new Path ();
+				_linesCount = 0;
 			}
 		}
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
 			if (_inLines) {
+				if (_linesCount == 0) {
+					_linesPath.MoveTo (sx, sy);
+				}
+				_linesPath.LineTo (ex, ey);
 				_lineWidth = w;
-				if (_numLineElements == 0) {
-					_linePoints[0] = sx;
-					_linePoints[1] = sy;
-					_linePoints[2] = ex;
-					_linePoints[3] = ey;
-					_numLineElements += 4;
-				}
-				else {
-					if (_numLineElements < _linePoints.Length - 2) {
-						_linePoints[_numLineElements++] = ex;
-						_linePoints[_numLineElements++] = ey;
-					}
-				}
+				_linesCount++;
 			}
 			else {
 				_paints.Stroke.StrokeWidth = w;
@@ -196,18 +189,11 @@ namespace CrossGraphics.Android
 		{
 			if (_inLines) {
 				_inLines = false;
-				if (_numLineElements < 1) {
-					return;
-				}
-				using (var path = new Path ()) {
-					path.MoveTo (_linePoints[0], _linePoints[1]);
-					for (var i = 2; i < _numLineElements - 1; i += 2) {
-						path.LineTo (_linePoints[i], _linePoints[i + 1]);
-					}
-					_paints.Stroke.StrokeWidth = _lineWidth;
-					_paints.Stroke.StrokeJoin = Paint.Join.Round;
-					_c.DrawPath (path, _paints.Stroke);
-				}
+				_paints.Stroke.StrokeWidth = _lineWidth;
+				_paints.Stroke.StrokeJoin = Paint.Join.Round;
+				_c.DrawPath (_linesPath, _paints.Stroke);
+				_linesPath.Dispose ();
+				_linesPath = null;
 			}
 		}
 
