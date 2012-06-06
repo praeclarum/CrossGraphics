@@ -82,7 +82,7 @@ namespace CrossGraphics.OpenGL
 		
 		public void EndDrawing ()
 		{
-			if (_frameShapes.Count == 0) return;
+			if (_nextDrawCallIndex == 0) return;
 			
 			//
 			// Render the texture content
