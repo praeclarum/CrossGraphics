@@ -202,6 +202,18 @@ namespace CrossGraphics.Android
 		const int MaxTouchId = 10;
 		AndroidTouch[] _activeTouches = new AndroidTouch[MaxTouchId];
 
+		int NumActiveTouches
+		{
+			get
+			{
+				var c = 0;
+				for (var id = 0; id < MaxTouchId; id++) {
+					if (_activeTouches[id] != null) c++;
+				}
+				return c;
+			}
+		}
+
 		float _initialMoveResolution;
 
 		class AndroidTouch : CanvasTouch
@@ -262,7 +274,9 @@ namespace CrossGraphics.Android
 							var dy = curSuperLoc.Y - newSuperLoc.Y;
 							if (t.IsMoving ||
 								(Math.Abs (dx) > _initialMoveResolution ||
-								Math.Abs (dy) > _initialMoveResolution)) {
+								Math.Abs (dy) > _initialMoveResolution) ||
+								NumActiveTouches > 1) {
+
 								t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
 								t.CanvasPreviousLocation = t.CanvasLocation;
 								t.PreviousTime = t.Time;
