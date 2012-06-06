@@ -209,7 +209,12 @@ namespace CrossGraphics.Android
 			public bool IsMoving;
 		}
 
-		public AndroidCanvasTouchManager (float initialMoveResolution = 4)
+		/// <summary>
+		/// </summary>
+		/// <param name="initialMoveResolution">
+		/// In pixels (or SuperLocation units)
+		/// </param>
+		public AndroidCanvasTouchManager (float initialMoveResolution = 6)
 		{
 			_initialMoveResolution = initialMoveResolution;
 		}
@@ -253,9 +258,11 @@ namespace CrossGraphics.Android
 						if (t != null) {
 							var curSuperLoc = t.SuperCanvasLocation;
 							var newSuperLoc = new System.Drawing.PointF (e.GetX (index), e.GetY (index));
+							var dx = curSuperLoc.X - newSuperLoc.X;
+							var dy = curSuperLoc.Y - newSuperLoc.Y;
 							if (t.IsMoving ||
-								(Math.Abs (curSuperLoc.X - newSuperLoc.X) > _initialMoveResolution ||
-								Math.Abs (curSuperLoc.Y - newSuperLoc.Y) > _initialMoveResolution)) {
+								(Math.Abs (dx) > _initialMoveResolution ||
+								Math.Abs (dy) > _initialMoveResolution)) {
 								t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
 								t.CanvasPreviousLocation = t.CanvasLocation;
 								t.PreviousTime = t.Time;
