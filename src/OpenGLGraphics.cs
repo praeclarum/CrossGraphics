@@ -221,12 +221,65 @@ namespace CrossGraphics.OpenGL
 			}
 		}
 
-		void AddSolidRect (float x, float y, float width, float height, float alpha = 1)
+		const float Cos45 = 0.70710678118654752440084436210485f;
+
+		void AddSolidRoundedRect (float x, float y, float w, float h, float r)
 		{
 			if (_nextDrawCallIndex < MaxDrawCalls) {
 
 				EnsureRoomForVertices (4);
 				
+				var b = _buffers[_currentBufferIndex];
+				var i = b.Length;
+
+				// At each corner, we put a little spike so that there
+				// is no seam between this and the corner arcs. (See FillRoundedRect)
+				// cr = r - ((r/2) + (r*cos45))/2
+				// cr = r * (1 - 0.25 - Cos45/2)
+				var cr = r * (1 - 0.25f - Cos45/2);
+
+				var ri = x + w;
+				var bo = y + h;
+
+				b.Positions[i] = new Vector2 (x + cr, y + cr);
+				b.Positions[i + 1] = new Vector2 (x, y + r);
+				b.Positions[i + 2] = new Vector2 (x, bo - r);
+				b.Positions[i + 3] = new Vector2 (x + cr, bo - cr);
+				b.Positions[i + 4] = new Vector2 (x + r, bo);
+				b.Positions[i + 5] = new Vector2 (ri - r, bo);
+				b.Positions[i + 6] = new Vector2 (ri - cr, bo - cr);
+				b.Positions[i + 7] = new Vector2 (ri, bo - r);
+				b.Positions[i + 8] = new Vector2 (ri, y + r);
+				b.Positions[i + 9] = new Vector2 (ri - cr, y + cr);
+				b.Positions[i + 10] = new Vector2 (ri - r, y);
+				b.Positions[i + 11] = new Vector2 (x + r, y);				
+
+				var col = _color;
+				for (var j = 0; j < 12; j++) {
+					b.Colors[i + j] = col;
+				}
+
+				b.Length += 12;
+			
+				var call = new OpenGLDrawArrayCall {
+					Operation = All.TriangleFan,
+					BufferIndex = (byte)_currentBufferIndex,
+					Offset = (ushort)i,
+					NumVertices = 12,
+					Texture = null,
+				};
+
+				_calls[_nextDrawCallIndex] = call;
+				_nextDrawCallIndex++;
+			}
+		}
+
+		void AddSolidRect (float x, float y, float width, float height, float alpha = 1)
+		{
+			if (_nextDrawCallIndex < MaxDrawCalls) {
+
+				EnsureRoomForVertices (12);
+
 				var b = _buffers[_currentBufferIndex];
 				var i = b.Length;
 
@@ -246,7 +299,7 @@ namespace CrossGraphics.OpenGL
 				b.Colors[i + 3] = col;
 
 				b.Length += 4;
-			
+
 				var call = new OpenGLDrawArrayCall {
 					Operation = All.TriangleFan,
 					BufferIndex = (byte)_currentBufferIndex,
@@ -314,10 +367,16 @@ namespace CrossGraphics.OpenGL
 			AddSolidRect (x + w2, y + height - w2, width - w, w); //bottom
 		}
 
+		const float Pi = 3.1415926535897932384626433832795f;
+		const float PiBy2 = 1.5707963267948966192313216916398f;
+
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
-			var r = OpenGLShapeInfo.RoundedRect (width, height, radius);
-			AddShape (_store.GetShape (ref r), x, y);
+			AddSolidRoundedRect (x, y, width, height, radius);
+			FillArc (x + radius, y + radius, radius, PiBy2, Pi);
+			FillArc (x + radius, y + height - radius, radius, Pi, Pi + PiBy2);
+			FillArc (x + width - radius, y + height - radius, radius, Pi + PiBy2, 2 * Pi);
+			FillArc (x + width - radius, y + radius, radius, 0, PiBy2);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
