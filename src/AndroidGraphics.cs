@@ -152,6 +152,7 @@ namespace CrossGraphics.Android
 		{
 			var sa = -startAngle * RadiansToDegrees;
 			var ea = -endAngle * RadiansToDegrees;
+			_paints.Stroke.StrokeWidth = w;
 			_c.DrawArc (new RectF (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Stroke);
 		}
 

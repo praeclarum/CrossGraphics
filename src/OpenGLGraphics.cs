@@ -669,7 +669,12 @@ namespace CrossGraphics.OpenGL
 				}
 				break;
 			case OpenGLShapeType.Arc:
-				g.DrawArc (x, y, A, B, C, D);
+				if (Fill) {
+					g.FillArc (x, y, A, B, C);
+				}
+				else {
+					g.DrawArc (x, y, A, B, C, D);
+				}
 				break;
 			case OpenGLShapeType.Polyline: {
 					var dx = x - PolylinePoints[0].X;
@@ -850,7 +855,7 @@ namespace CrossGraphics.OpenGL
 			case OpenGLShapeType.Arc:
 				if (Fill && !other.Fill) return false;
 				if (!Fill && Math.Abs (D - other.D) >= Tolerance) return false;
-				return Math.Abs (A - other.A) < Tolerance && Math.Abs (B - other.B) < ArcAngleTolerance && Math.Abs (C - other.C) < ArcAngleTolerance && Math.Abs (D - other.D) < Tolerance;
+				return Math.Abs (A - other.A) < Tolerance && Math.Abs (B - other.B) < ArcAngleTolerance && Math.Abs (C - other.C) < ArcAngleTolerance;
 			case OpenGLShapeType.Polyline:
 				if (Math.Abs (A - other.A) >= Tolerance) return false;
 				if (PolylineLength != other.PolylineLength) return false;
