@@ -21,6 +21,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using CrossGraphics;
@@ -32,7 +33,7 @@ namespace CrossGraphics
 		CanvasContent Content { get; set; }
 	}
 
-    public class CanvasContent
+    public class CanvasContent : INotifyPropertyChanged
     {
         public RectangleF Frame = new RectangleF(0, 0, 320, 480);
 
@@ -73,7 +74,17 @@ namespace CrossGraphics
         public virtual void Draw(IGraphics g)
         {
         }
-    }
+
+		public event PropertyChangedEventHandler PropertyChanged;
+
+		protected virtual void OnPropertyChanged (string propertyName)
+		{
+			var ev = PropertyChanged;
+			if (ev != null) {
+				ev (this, new PropertyChangedEventArgs (propertyName));
+			}
+		}
+	}
 
 	public class CanvasTouch
 	{
