@@ -200,7 +200,7 @@ namespace CrossGraphics.Android
 	public class AndroidCanvasTouchManager
 	{
 		const int MaxTouchId = 10;
-		AndroidTouch[] _activeTouches = new AndroidTouch[MaxTouchId];
+		readonly AndroidTouch[] _activeTouches = new AndroidTouch[MaxTouchId];
 
 		int NumActiveTouches
 		{
@@ -216,6 +216,15 @@ namespace CrossGraphics.Android
 
 		float _initialMoveResolution;
 
+		int _longClickToken = -1;
+		readonly int _longClickTimeoutMillis;		
+		readonly Random _longClickTokenGenerator = new Random ();
+		readonly global::Android.OS.Handler _handler;
+		
+		DateTime _lastBeganTime;
+		PointF _lastBeganLocation;
+		readonly int _doubleTapTimeoutMillis;
+
 		class AndroidTouch : CanvasTouch
 		{
 			public bool IsMoving;
@@ -229,9 +238,13 @@ namespace CrossGraphics.Android
 		public AndroidCanvasTouchManager (float initialMoveResolution = 6)
 		{
 			_initialMoveResolution = initialMoveResolution;
+			_longClickTimeoutMillis = global::Android.Views.ViewConfiguration.LongPressTimeout;
+			_doubleTapTimeoutMillis = global::Android.Views.ViewConfiguration.DoubleTapTimeout;
+			_handler = new global::Android.OS.Handler ();
 		}
 
 		public Func<PointF, PointF> LocationFromViewLocationFunc { get; set; }
+		public event EventHandler LongClick;
 
 		PointF LocationFromView (PointF viewLocation)
 		{
@@ -246,8 +259,8 @@ namespace CrossGraphics.Android
 
 		public void OnTouchEvent (global::Android.Views.MotionEvent e, CanvasContent content)
 		{
+			if (content == null) throw new ArgumentNullException ("content");
 			if (e == null) throw new ArgumentNullException ("e");
-			if (content == null) throw new ArgumentNullException ("del");
 
 			var began = new List<CanvasTouch> ();
 			var moved = new List<CanvasTouch> ();
@@ -287,6 +300,8 @@ namespace CrossGraphics.Android
 								t.Time = DateTime.UtcNow;
 
 								moved.Add (t);
+
+								_longClickToken = -1;
 							}
 						}
 					}
@@ -299,6 +314,7 @@ namespace CrossGraphics.Android
 						Handle = new IntPtr (actionId + 1), // +1 because IntPtr=0 is special
 						SuperCanvasLocation = new System.Drawing.PointF (e.GetX (actionIndex), e.GetY (actionIndex)),
 						Time = DateTime.UtcNow,
+						TapCount = 1,
 					};
 					t.CanvasLocation = LocationFromView (t.SuperCanvasLocation);
 					t.CanvasPreviousLocation = t.CanvasLocation;
@@ -306,6 +322,31 @@ namespace CrossGraphics.Android
 					t.PreviousTime = t.Time;
 					began.Add (t);
 					_activeTouches[actionId] = t;
+
+					//
+					// Detect double tap
+					//
+					if ((t.Time - _lastBeganTime).TotalMilliseconds <= _doubleTapTimeoutMillis &&
+						Math.Abs (_lastBeganLocation.X - t.SuperCanvasLocation.X) <= _initialMoveResolution &&
+						Math.Abs (_lastBeganLocation.Y - t.SuperCanvasLocation.Y) <= _initialMoveResolution) {
+						t.TapCount = 2;
+					}
+					else {
+						//
+						// Detect long press
+						//
+						if (NumActiveTouches == 1) {
+							var tok = _longClickTokenGenerator.Next ();
+							_handler.PostDelayed (() => { HandleLongClick (tok, content); }, _longClickTimeoutMillis);
+							_longClickToken = tok;
+						}
+						else {
+							_longClickToken = -1;
+						}
+					}
+
+					_lastBeganTime = t.Time;
+					_lastBeganLocation = t.SuperCanvasLocation;
 				}
 				break;
 			case global::Android.Views.MotionEventActions.Up:
@@ -317,6 +358,7 @@ namespace CrossGraphics.Android
 						_activeTouches[actionId] = null;
 						ended.Add (t);
 					}
+					_longClickToken = -1;
 				}
 				break;
 			}
@@ -332,6 +374,31 @@ namespace CrossGraphics.Android
 			}
 			if (cancelled.Count > 0) {
 				content.TouchesCancelled (cancelled.ToArray ());
+			}
+		}
+
+		void HandleLongClick (int token, CanvasContent content)
+		{
+			if (_longClickToken == token) {
+				//
+				// Cancel the touch
+				//
+				var cancelled = new List<CanvasTouch> ();
+				for (var i = 0; i < _activeTouches.Length; i++) {
+					if (_activeTouches[i] != null) {
+						cancelled.Add (_activeTouches[i]);
+						_activeTouches[i] = null;
+					}
+				}
+				content.TouchesCancelled (cancelled.ToArray ());
+
+				//
+				// Notify
+				//
+				var ev = LongClick;
+				if (ev != null) {
+					ev (this, EventArgs.Empty);
+				}
 			}
 		}
 	}
