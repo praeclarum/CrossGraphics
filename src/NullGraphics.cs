@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010 Frank A. Krueger
+// Copyright (c) 2010-2012 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,15 +25,18 @@ namespace CrossGraphics
 {
 	public class NullGraphics : IGraphics
 	{
-		NullGraphicsFontMetrics _fontMetrics;
+		const int MaxFontSize = 120;
+		NullGraphicsFontMetrics[] _fontMetrics;
+
+		int _fontSize = 10;
 
 		public NullGraphics ()
 		{
-			_fontMetrics = new NullGraphicsFontMetrics ();
 		}
 
 		public void SetFont (Font f)
 		{
+			_fontSize = f.Size;
 		}
 
 		public void SetColor (Color c)
@@ -102,7 +105,14 @@ namespace CrossGraphics
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			return _fontMetrics;
+			if (_fontMetrics == null) {
+				_fontMetrics = new NullGraphicsFontMetrics[MaxFontSize + 1];
+			}
+			var i = Math.Min (_fontMetrics.Length, _fontSize);
+			if (_fontMetrics[i] == null) {
+				_fontMetrics[i] = new NullGraphicsFontMetrics (i);
+			}
+			return _fontMetrics[i];
 		}
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
@@ -141,27 +151,18 @@ namespace CrossGraphics
 
 	class NullGraphicsFontMetrics : IFontMetrics
 	{
-		const int DefaultWidth = 10;
-		int _height = 10;
+		int _height;
+		int _charWidth;
 
-		public NullGraphicsFontMetrics ()
+		public NullGraphicsFontMetrics (int size)
 		{
-			_height = 10;
+			_height = size;
+			_charWidth = (855 * size) / 1600;
 		}
 
 		public int StringWidth (string str, int startIndex, int length)
 		{
-			if (str == null) return 0;
-
-			var end = startIndex + length;
-			if (end <= 0) return 0;
-
-			var w = 0;
-
-			for (var i = startIndex; i < end; i++) {
-				w += DefaultWidth;
-			}
-			return w;
+			return length * _charWidth;
 		}
 
 		public int Height
