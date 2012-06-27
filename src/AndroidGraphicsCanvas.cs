@@ -80,6 +80,8 @@ namespace CrossGraphics.Android
 			MaxFps = 30;
 			_fps = (MinFps + MaxFps) / 2;
 			_handler = new global::Android.OS.Handler ();
+
+			SetWillNotDraw (false);
 		}
 
 		#region Touching
@@ -160,7 +162,7 @@ namespace CrossGraphics.Android
 			//
 			// Throttle
 			//
-			if (_drawCount > 2 && (DateTime.Now - _lastThrottleTime) >= ThrottleInterval) {
+			if (_running && _drawCount > 2 && (DateTime.Now - _lastThrottleTime) >= ThrottleInterval) {
 
 				_lastThrottleTime = DateTime.Now;
 
