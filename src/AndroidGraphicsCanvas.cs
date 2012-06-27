@@ -214,7 +214,7 @@ namespace CrossGraphics.Android
 			}
 		}
 
-		float _initialMoveResolution;
+		readonly float _initialMoveResolution;
 
 		int _longClickToken = -1;
 		readonly int _longClickTimeoutMillis;		
@@ -224,6 +224,7 @@ namespace CrossGraphics.Android
 		DateTime _lastBeganTime;
 		PointF _lastBeganLocation;
 		readonly int _doubleTapTimeoutMillis;
+		readonly float _doubleTapResolution;
 
 		class AndroidTouch : CanvasTouch
 		{
@@ -240,6 +241,7 @@ namespace CrossGraphics.Android
 			_initialMoveResolution = initialMoveResolution;
 			_longClickTimeoutMillis = global::Android.Views.ViewConfiguration.LongPressTimeout;
 			_doubleTapTimeoutMillis = global::Android.Views.ViewConfiguration.DoubleTapTimeout;
+			_doubleTapResolution = 20;
 			_handler = new global::Android.OS.Handler ();
 		}
 
@@ -327,8 +329,8 @@ namespace CrossGraphics.Android
 					// Detect double tap
 					//
 					if ((t.Time - _lastBeganTime).TotalMilliseconds <= _doubleTapTimeoutMillis &&
-						Math.Abs (_lastBeganLocation.X - t.SuperCanvasLocation.X) <= _initialMoveResolution &&
-						Math.Abs (_lastBeganLocation.Y - t.SuperCanvasLocation.Y) <= _initialMoveResolution) {
+						Math.Abs (_lastBeganLocation.X - t.SuperCanvasLocation.X) <= _doubleTapResolution &&
+						Math.Abs (_lastBeganLocation.Y - t.SuperCanvasLocation.Y) <= _doubleTapResolution) {
 						t.TapCount = 2;
 					}
 					else {
