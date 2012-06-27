@@ -139,7 +139,12 @@ namespace CrossGraphics.OpenGL
 						boundTexture.Bind ();
 					}
 				}
-				
+
+				if (c.Operation == All.Lines) {
+					var w = _buffers[c.BufferIndex].Positions[c.Offset + 2].X;
+					GL.LineWidth (w);
+				}
+
 				GL.DrawArrays (c.Operation, c.Offset, c.NumVertices);
 			}
 
@@ -227,7 +232,7 @@ namespace CrossGraphics.OpenGL
 		{
 			if (_nextDrawCallIndex < MaxDrawCalls) {
 
-				EnsureRoomForVertices (4);
+				EnsureRoomForVertices (12);
 				
 				var b = _buffers[_currentBufferIndex];
 				var i = b.Length;
@@ -278,7 +283,7 @@ namespace CrossGraphics.OpenGL
 		{
 			if (_nextDrawCallIndex < MaxDrawCalls) {
 
-				EnsureRoomForVertices (12);
+				EnsureRoomForVertices (4);
 
 				var b = _buffers[_currentBufferIndex];
 				var i = b.Length;
@@ -305,6 +310,42 @@ namespace CrossGraphics.OpenGL
 					BufferIndex = (byte)_currentBufferIndex,
 					Offset = (ushort)i,
 					NumVertices = 4,
+					Texture = null,
+				};
+
+				_calls[_nextDrawCallIndex] = call;
+				_nextDrawCallIndex++;
+			}
+		}
+
+		void AddLine (float sx, float sy, float ex, float ey, float w, float alpha = 1)
+		{
+			if (_nextDrawCallIndex < MaxDrawCalls) {
+
+				EnsureRoomForVertices (3);
+
+				var b = _buffers[_currentBufferIndex];
+				var i = b.Length;
+
+				b.Positions[i] = new Vector2 (sx, sy);
+				b.Positions[i + 1] = new Vector2 (ex, ey);
+				b.Positions[i + 2] = new Vector2 (w * _zoom, 0); // Used to store info
+
+				var col = _color;
+				if (alpha <= 0.9961f) {
+					col.A = (byte)(col.A * alpha);
+				}
+
+				b.Colors[i] = col;
+				b.Colors[i + 1] = col;
+
+				b.Length += 3;
+
+				var call = new OpenGLDrawArrayCall {
+					Operation = All.Lines,
+					BufferIndex = (byte)_currentBufferIndex,
+					Offset = (ushort)i,
+					NumVertices = 2,
 					Texture = null,
 				};
 
@@ -409,6 +450,9 @@ namespace CrossGraphics.OpenGL
 			_polylineLength = 0;
 		}
 
+		const float OrthogonalLineThreshold = 0.01f;
+		const float MaxAntialiasLineLengthSquared = 96 * 96;
+
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
 			if (_inPolyline) {
@@ -429,7 +473,10 @@ namespace CrossGraphics.OpenGL
 				var dx = ex - sx;
 				var dy = ey - sy;
 
-				if (Math.Abs (dx) < 0.01) {
+				//
+				// Try to draw a horizontal or vertical line
+				//
+				if (Math.Abs (dx) < OrthogonalLineThreshold) {
 					var a = 1.0f;
 					var zw = w * _zoom;
 					if (zw < 1) {
@@ -438,7 +485,7 @@ namespace CrossGraphics.OpenGL
 					}
 					AddSolidRect (sx - w / 2, sy, w, dy, a);
 				}
-				else if (Math.Abs (dy) < 0.01) {
+				else if (Math.Abs (dy) < OrthogonalLineThreshold) {
 					var a = 1.0f;
 					var zw = w * _zoom;
 					if (zw < 1) {
@@ -448,13 +495,28 @@ namespace CrossGraphics.OpenGL
 					AddSolidRect (sx, sy - w / 2, dx, w, a);
 				}
 				else {
-					if (dx >= 0) {
-						var r = OpenGLShapeInfo.Line (dx, dy, w);
-						AddShape (_store.GetShape (ref r), sx, sy);
+					//
+					// Draw the angled line either using an OpenGL line call if it's big,
+					// otherwise using a bitmap to keep it nice looking (antialiased)
+					//
+					if (dx * dx + dy * dy > MaxAntialiasLineLengthSquared) {
+						var a = 1.0f;
+						var zw = w * _zoom;
+						if (zw < 1) {
+							a = zw;
+							w = _oneOverZoom;
+						}
+						AddLine (sx, sy, ex, ey, w, a);
 					}
 					else {
-						var r = OpenGLShapeInfo.Line (-dx, -dy, w);
-						AddShape (_store.GetShape (ref r), ex, ey);
+						if (dx >= 0) {
+							var r = OpenGLShapeInfo.Line (dx, dy, w);
+							AddShape (_store.GetShape (ref r), sx, sy);
+						}
+						else {
+							var r = OpenGLShapeInfo.Line (-dx, -dy, w);
+							AddShape (_store.GetShape (ref r), ex, ey);
+						}
 					}
 				}
 			}
