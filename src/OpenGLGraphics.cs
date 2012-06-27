@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+//#define PROFILE
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -65,6 +66,22 @@ namespace CrossGraphics.OpenGL
 		float _zoom;
 		float _oneOverZoom;
 
+#if PROFILE
+		long _p = 0;
+		int _pBuildTime = 0;
+		int _pTexGenTime = 0;
+		int _pDrawTime = 0;
+		int _pCount = 0;
+
+		int Tic ()
+		{
+			var n = Java.Lang.JavaSystem.CurrentTimeMillis ();
+			var dt = (int)(n - _p);
+			_p = n;
+			return dt;
+		}
+#endif
+
 		public void BeginDrawing (float zoom = 1)
 		{
 			_zoom = zoom;
@@ -78,11 +95,19 @@ namespace CrossGraphics.OpenGL
 			_currentBufferIndex = 0;
 
 			_nextDrawCallIndex = 0;
+
+#if PROFILE
+			Tic ();
+#endif
 		}
 		
 		public void EndDrawing ()
 		{
 			if (_nextDrawCallIndex == 0) return;
+
+#if PROFILE
+			_pBuildTime += Tic ();
+#endif
 			
 			//
 			// Render the texture content
@@ -98,6 +123,10 @@ namespace CrossGraphics.OpenGL
 				}
 				kv.Key.EndRendering (g);
 			}
+
+#if PROFILE
+			_pTexGenTime += Tic ();
+#endif
 			
 			//
 			// Draw
@@ -152,6 +181,22 @@ namespace CrossGraphics.OpenGL
 			GL.DisableClientState (All.TextureCoordArray);
 			GL.DisableClientState (All.ColorArray);
 			GL.Disable (All.Texture2D);
+
+#if PROFILE
+			_pDrawTime += Tic ();
+			_pCount++;
+
+			if (_pCount > 10) {
+				var t = (float)(_pBuildTime + _pTexGenTime + _pDrawTime);
+				Circuit.Log.WriteLine ("B = {0}ms {1:0}%, T = {2}ms {3:0}%, D = {4}ms {5:0}% ({6:0} fps)",
+				                       _pBuildTime, _pBuildTime / t * 100,
+				                       _pTexGenTime, _pTexGenTime / t * 100,
+				                       _pDrawTime, _pDrawTime / t * 100,
+				                       _pCount / (t / 1000));
+				_pBuildTime = _pTexGenTime = _pDrawTime = 0;
+				_pCount = 0;
+			}
+#endif
 		}
 
 		void EnsureRoomForVertices (int count)
