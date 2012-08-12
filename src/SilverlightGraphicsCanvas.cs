@@ -501,7 +501,7 @@ namespace CrossGraphics.SilverlightGraphics
                     }
                 }
 
-                var del = Delegate;
+				var del = Content;
                 if (del != null && _touchEnabled) {
                     if (began.Count > 0) {
                         del.TouchesBegan(began.ToArray());
