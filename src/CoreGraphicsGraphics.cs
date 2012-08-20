@@ -83,8 +83,8 @@ namespace CrossGraphics.CoreGraphics
 		public void SetColor (Color c)
 		{
 			var cgcol = c.GetCGColor ();
-			_c.SetFillColorWithColor (cgcol);
-			_c.SetStrokeColorWithColor (cgcol);
+			_c.SetFillColor (cgcol);
+			_c.SetStrokeColor (cgcol);
 		}
 
 		public void FillPolygon (Polygon poly)
@@ -150,6 +150,12 @@ namespace CrossGraphics.CoreGraphics
 			_c.SetLineWidth (w);
 			_c.AddArc (cx, cy, radius, -startAngle, -endAngle, true);
 			_c.StrokePath ();
+		}
+
+		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
+		{
+			_c.AddArc (cx, cy, radius, -startAngle, -endAngle, true);
+			_c.FillPath ();
 		}
 
 		const int _linePointsCount = 1024;
