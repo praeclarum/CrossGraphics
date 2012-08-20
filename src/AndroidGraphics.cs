@@ -258,7 +258,7 @@ namespace CrossGraphics.Android
 
 			SetFontOnPaints ();
 			var fm = GetFontMetrics ();
-			_c.DrawText (s, x, y + fm.Ascent, _paints.Fill);
+			_c.DrawText (s, x, y + fm.Ascent - fm.Descent, _paints.Fill);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -349,8 +349,8 @@ namespace CrossGraphics.Android
 			_widths = new float[NumWidths];
 			paint.GetTextWidths (_chars, 0, NumWidths, _widths);
 			Ascent = (int)(Math.Abs (paint.Ascent ()) + 0.5f);
-			Descent = (int)(paint.Descent () + 0.5f);
-			Height = Ascent + Descent;
+			Descent = (int)(paint.Descent ()/2 + 0.5f);
+			Height = Ascent;
 		}
 
 		public int StringWidth (string s, int startIndex, int length)
