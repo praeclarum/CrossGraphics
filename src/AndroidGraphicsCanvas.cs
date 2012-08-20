@@ -42,6 +42,16 @@ namespace CrossGraphics.Android
 		int _drawCount;
 		DateTime _lastThrottleTime = DateTime.Now;
 
+		float _zoom = 1.0f;
+		public float Zoom {
+			get { return _zoom; }
+			set {
+				if (value > 0) {
+					_zoom = value;
+				}
+			}
+		}
+
 		CanvasContent _content;
 		public CanvasContent Content
 		{
@@ -63,23 +73,29 @@ namespace CrossGraphics.Android
 		public AndroidGraphicsCanvas (global::Android.Content.Context context, global::Android.Util.IAttributeSet attrs)
 			: base (context, attrs)
 		{
-			Initialize ();
+			Initialize (context);
 		}
 
 		public AndroidGraphicsCanvas (global::Android.Content.Context context)
 			: base (context)
 		{
-			Initialize ();
+			Initialize (context);
 		}
 
-		void Initialize ()
+		void Initialize (global::Android.Content.Context context)
 		{
 			_touchMan = new AndroidCanvasTouchManager (0);
+			_touchMan.LocationFromViewLocationFunc = p => new PointF (p.X / _zoom, p.Y / _zoom);
 
 			MinFps = 4;
 			MaxFps = 30;
 			_fps = (MinFps + MaxFps) / 2;
 			_handler = new global::Android.OS.Handler ();
+
+			var a = context as global::Android.App.Activity;
+			if (a != null) {
+				Zoom = a.GetDpi () / 160.0f;
+			}
 
 			SetWillNotDraw (false);
 		}
@@ -143,16 +159,21 @@ namespace CrossGraphics.Android
 			var startT = DateTime.Now;
 
 			var _graphics = new AndroidGraphics (canvas);
+			_graphics.SaveState ();
+			_graphics.Scale (Zoom, Zoom);
+
 
 			//
 			// Draw
 			//
-			del.Frame = new RectangleF (0, 0, Width, Height);
+			del.Frame = new RectangleF (0, 0, Width / Zoom, Height / Zoom);
 			try {
 				del.Draw (_graphics);
 			}
 			catch (Exception) {
 			}
+
+			_graphics.RestoreState ();
 
 			var endT = DateTime.Now;
 
@@ -404,6 +425,16 @@ namespace CrossGraphics.Android
 					ev (this, EventArgs.Empty);
 				}
 			}
+		}
+	}
+
+	public static class ActivityEx
+	{
+		public static float GetDpi (this global::Android.App.Activity activity)
+		{
+			var metrics = new global::Android.Util.DisplayMetrics ();
+			activity.WindowManager.DefaultDisplay.GetMetrics (metrics);
+			return metrics.Xdpi;
 		}
 	}
 }
