@@ -300,7 +300,7 @@ namespace CrossGraphics.SilverlightGraphics
 			public bool IsMoving;
 		}
 
-		void SilverlightGraphicsCanvas_PointerPressed(DispatcherTimerTickEventArgs sender, PointerEventArgs e)
+        void SilverlightGraphicsCanvas_PointerPressed(DispatcherTimerTickEventArgs sender, PointerRoutedEventArgs e)
 		{
 			var handle = new IntPtr(e.Pointer.PointerId);
 			//Debug.WriteLine (string.Format ("{0} PRESSED {1}", DateTime.Now, handle));
@@ -347,7 +347,7 @@ namespace CrossGraphics.SilverlightGraphics
 			}
 		}
 
-		void SilverlightGraphicsCanvas_PointerMoved(DispatcherTimerTickEventArgs sender, PointerEventArgs e)
+        void SilverlightGraphicsCanvas_PointerMoved(DispatcherTimerTickEventArgs sender, PointerRoutedEventArgs e)
 		{
 			if (e.Pointer.IsInContact) {
 				var handle = new IntPtr(e.Pointer.PointerId);
@@ -383,7 +383,7 @@ namespace CrossGraphics.SilverlightGraphics
 			}
 		}
 
-		void SilverlightGraphicsCanvas_PointerReleased(object sender, PointerEventArgs e)
+        void SilverlightGraphicsCanvas_PointerReleased(object sender, PointerRoutedEventArgs e)
 		{
 			var handle = new IntPtr(e.Pointer.PointerId);
 			//Debug.WriteLine (string.Format ("{0} RELEASED {1}", DateTime.Now, handle));
@@ -398,9 +398,9 @@ namespace CrossGraphics.SilverlightGraphics
 			}
 		}
 
-		void SilverlightGraphicsCanvas_PointerCanceled (DispatcherTimerTickEventArgs sender, PointerEventArgs e)
+		void SilverlightGraphicsCanvas_PointerCanceled (DispatcherTimerTickEventArgs sender, PointerRoutedEventArgs e)
 		{
-			var handle = new IntPtr(e.Pointer.PointerId);
+			var handle = new IntPtr (e.Pointer.PointerId);
 			//Debug.WriteLine (string.Format ("{0} CANCELED {1}", DateTime.Now, handle));
 
 			if (_activeTouches.ContainsKey (handle)) {
@@ -413,7 +413,7 @@ namespace CrossGraphics.SilverlightGraphics
 			}
 		}
 
-		void SilverlightGraphicsCanvas_PointerExited (DispatcherTimerTickEventArgs sender, PointerEventArgs e)
+		void SilverlightGraphicsCanvas_PointerExited (DispatcherTimerTickEventArgs sender, PointerRoutedEventArgs e)
 		{
 			var handle = new IntPtr (e.Pointer.PointerId);
 			//Debug.WriteLine (string.Format ("{0} EXITED {1}", DateTime.Now, handle));
