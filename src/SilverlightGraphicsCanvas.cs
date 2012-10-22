@@ -59,12 +59,34 @@ namespace CrossGraphics.SilverlightGraphics
         int _drawCount;
         DateTime _lastThrottleTime = DateTime.Now;
 
-        public CanvasContent Content { get; set; }
+		CanvasContent content;
+		public CanvasContent Content
+		{
+			get
+			{
+				return content;
+			}
+			set
+			{
+				if (content != value) {
+					if (content != null) {
+						content.NeedsDisplay -= OnNeedsDisplay;
+					}
+					content = value;
+					if (content != null) {
+						content.NeedsDisplay += OnNeedsDisplay;
+					}
+				}
+			}
+		}
+
+		public bool Continuous { get; set; }
 
         public SilverlightGraphicsCanvas()
         {
             MinFps = 4;
             MaxFps = 30;
+			Continuous = true;
 
             _drawTimer = new DispatcherTimer();
             _drawTimer.Tick += DrawTick;
@@ -77,7 +99,7 @@ namespace CrossGraphics.SilverlightGraphics
         {
             //Debug.WriteLine("LOADED {0}", Delegate);
             TouchEnabled = true;
-            _drawTimer.Start();
+			Start ();
         }
 
         void HandleUnloaded(object sender, RoutedEventArgs e)
@@ -86,6 +108,11 @@ namespace CrossGraphics.SilverlightGraphics
             TouchEnabled = false;
             _drawTimer.Stop();
         }
+
+		void OnNeedsDisplay (object sender, EventArgs e)
+		{
+			Draw ();
+		}
 
         bool _touchEnabled = false;
 
@@ -122,8 +149,6 @@ namespace CrossGraphics.SilverlightGraphics
             }
         }
 
-		
-
         #region Drawing
 
         int _ppi = NativePointsPerInch;
@@ -153,7 +178,7 @@ namespace CrossGraphics.SilverlightGraphics
         {
             _drawTimer.Interval = TimeSpan.FromSeconds(1.0 / _fps);
 
-            if (!_drawTimer.IsEnabled) {
+            if (Continuous && !_drawTimer.IsEnabled) {
                 _drawTimer.Start();
             }
         }
