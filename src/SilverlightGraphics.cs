@@ -464,7 +464,7 @@ namespace CrossGraphics.SilverlightGraphics
 			UIElement element;
 
 			if (typeId == TypeId.Line) {
-				var line = new Line {StrokeEndLineCap = PenLineCap.Round};
+				var line = new Line { StrokeEndLineCap = PenLineCap.Round, StrokeStartLineCap = PenLineCap.Round, };
 				element = line;
 			}
 			else if (typeId == TypeId.Text) {
@@ -474,7 +474,7 @@ namespace CrossGraphics.SilverlightGraphics
 				element = new Ellipse ();
 			}
 			else if (typeId == TypeId.Arc) {
-				element = new Path();
+				element = new Path { StrokeEndLineCap = PenLineCap.Round, StrokeStartLineCap = PenLineCap.Round, };
 			}
 			else if (typeId == TypeId.RoundedRect) {
 				element = new Rectangle ();
