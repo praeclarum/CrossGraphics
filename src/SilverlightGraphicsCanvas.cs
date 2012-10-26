@@ -99,14 +99,13 @@ namespace CrossGraphics.SilverlightGraphics
         {
             //Debug.WriteLine("LOADED {0}", Delegate);
             TouchEnabled = true;
-			Start ();
         }
 
         void HandleUnloaded(object sender, RoutedEventArgs e)
         {
             //Debug.WriteLine("UNLOADED {0}", Delegate);
             TouchEnabled = false;
-            _drawTimer.Stop();
+            Stop();
         }
 
 		void OnNeedsDisplay (object sender, EventArgs e)
