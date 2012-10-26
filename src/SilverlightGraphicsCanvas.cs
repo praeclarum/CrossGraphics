@@ -389,7 +389,13 @@ namespace CrossGraphics.SilverlightGraphics
 
 						touch.IsMoving = true;
 
-						var loc = ToPointF (e.GetCurrentPoint (this));
+						// Rate limit
+						var now = DateTime.Now;
+						if ((now - touch.Time).TotalSeconds < (1.0 / 20)) return;
+
+						var loc = ToPointF (e.GetCurrentPoint (this));						
+
+						//Debug.WriteLine (string.Format ("MOVE:{0} {1} {2}", handle, sloc, loc));
 
 						touch.SuperCanvasPreviousLocation = touch.SuperCanvasLocation;
 						touch.CanvasPreviousLocation = touch.CanvasLocation;
@@ -397,7 +403,7 @@ namespace CrossGraphics.SilverlightGraphics
 
 						touch.SuperCanvasLocation = sloc;
 						touch.CanvasLocation = loc;
-						touch.Time = DateTime.Now;
+						touch.Time = now;
 
 						if (Content != null) {
 							Content.TouchesMoved (new[] { touch });
