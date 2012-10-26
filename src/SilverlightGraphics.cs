@@ -367,6 +367,7 @@ namespace CrossGraphics.SilverlightGraphics
 	enum TypeId
 	{
 		Line = 0,
+		Polyline,
 		Text,
 		Oval,
 		RoundedRect,
@@ -464,7 +465,18 @@ namespace CrossGraphics.SilverlightGraphics
 			UIElement element;
 
 			if (typeId == TypeId.Line) {
-				var line = new Line { StrokeEndLineCap = PenLineCap.Round, StrokeStartLineCap = PenLineCap.Round, };
+				var line = new Line {
+					StrokeEndLineCap = PenLineCap.Round,
+					StrokeStartLineCap = PenLineCap.Round,
+				};
+				element = line;
+			}
+			else if (typeId == TypeId.Polyline) {
+				var line = new Polyline { 
+					StrokeEndLineCap = PenLineCap.Round,
+					StrokeStartLineCap = PenLineCap.Round,
+					StrokeLineJoin = PenLineJoin.Round,
+				};
 				element = line;
 			}
 			else if (typeId == TypeId.Text) {
@@ -565,7 +577,7 @@ namespace CrossGraphics.SilverlightGraphics
 		public void FillPolygon (Polygon poly)
 		{
 			var s = GetNextShape(TypeId.Polygon);
-			var e = s.Element as NativePolygon;
+			var e = (NativePolygon)s.Element;
 
 			var n = poly.Points.Count;
 			if (n == 0) return;
@@ -596,7 +608,7 @@ namespace CrossGraphics.SilverlightGraphics
 		public void DrawPolygon (Polygon poly, float w)
 		{
 			var s = GetNextShape(TypeId.Polygon);
-			var e = s.Element as NativePolygon;
+			var e = (NativePolygon)s.Element;
 
 			var n = poly.Points.Count;
 			if (n == 0) return;
@@ -631,8 +643,10 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
+			if (width <= 0 || height <= 0) return;
+
 			var s = GetNextShape(TypeId.RoundedRect);
-			var e = s.Element as Rectangle;
+			var e = (Rectangle)s.Element;
 
 			if (s.Y != y) {
 				s.Y = y;
@@ -664,8 +678,10 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
-			var s = GetNextShape(TypeId.RoundedRect);
-			var e = s.Element as Rectangle;
+			if (width <= 0 || height <= 0) return;
+
+			var s = GetNextShape (TypeId.RoundedRect);
+			var e = (Rectangle)s.Element;
 
 			if (s.Y != y) {
 				s.Y = y;
@@ -701,8 +717,10 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public void FillRect (float x, float y, float width, float height)
 		{
-			var s = GetNextShape(TypeId.Rect);
-			var e = s.Element as Rectangle;
+			if (width <= 0 || height <= 0) return;
+
+			var s = GetNextShape (TypeId.Rect);
+			var e = (Rectangle)s.Element;
 
 			if (s.Y != y) {
 				s.Y = y;
@@ -730,8 +748,10 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			var s = GetNextShape(TypeId.Rect);
-			var e = s.Element as Rectangle;
+			if (width <= 0 || height <= 0) return;
+
+			var s = GetNextShape (TypeId.Rect);
+			var e = (Rectangle)s.Element;
 
 			if (s.Y != y) {
 				s.Y = y;
@@ -763,8 +783,10 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public void FillOval (float x, float y, float width, float height)
 		{
-			var s = GetNextShape(TypeId.Oval);
-			var e = s.Element as Ellipse;
+			if (width <= 0 || height <= 0) return;
+
+			var s = GetNextShape (TypeId.Oval);
+			var e = (Ellipse)s.Element;
 
 			if (s.Y != y) {
 				s.Y = y;
@@ -792,8 +814,10 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
-			var s = GetNextShape(TypeId.Oval);
-			var e = s.Element as Ellipse;
+			if (width <= 0 || height <= 0) return;
+
+			var s = GetNextShape (TypeId.Oval);
+			var e = (Ellipse)s.Element;
 
 			if (s.Y != y) {
 				s.Y = y;
@@ -825,6 +849,8 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
+			if (radius <= 0) return;
+
 			var s = DoArc (cx, cy, radius, startAngle, endAngle);
 			var e = (Path)s.Element;
 
@@ -838,6 +864,8 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public void DrawArc(float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
+			if (radius <= 0) return;
+
 			var s = DoArc (cx, cy, radius, startAngle, endAngle);
 			var e = (Path)s.Element;
 
@@ -856,7 +884,7 @@ namespace CrossGraphics.SilverlightGraphics
 
 		ShapeData DoArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
-			var s = GetNextShape(TypeId.Arc);
+			var s = GetNextShape (TypeId.Arc);
 			var e = s.Element as Path;
 
 			if (e.Data == null || s.X != cx || s.Y != cy || s.Radius != radius || s.Width != startAngle || s.Height != endAngle) {
@@ -887,23 +915,62 @@ namespace CrossGraphics.SilverlightGraphics
 			return s;
 		}
 
-		Path _linePath = null;
+		ShapeData polylineShape = null;
+		Polyline polyline = null;
+		PointCollection polylinePoints = null;
+		int polylineLength = 0;
 
 		public void BeginLines ()
 		{
-			//_linePath = GetNextElement ("LinePath") as Path;
+			polylineShape = GetNextShape (TypeId.Polyline);
+			polyline = (Polyline)polylineShape.Element;
+			polylinePoints = polyline.Points;
+			polylineLength = 0;
 		}
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			if (_linePath != null) {
+			if (polyline != null) {
 
-				//_linePath.D
+				var n = polylinePoints.Count;
 
+				if (polylineLength == 0) {
+					var sp = new Point (sx, sy);
+					if (n == 0) {
+						polylinePoints.Add (sp);
+						n++;
+					}
+					else {
+						polylinePoints[0] = sp;
+					}
+					polylineLength = 1;
+				}
+
+				var ep = new Point (ex, ey);
+
+				if (polylineLength >= n) {
+					polylinePoints.Add (ep);
+				}
+				else {
+					polylinePoints[polylineLength] = ep;
+				}
+
+				polylineLength++;
+
+				var s = polylineShape;
+
+				if (s.Color != _currentColor) {
+					s.Color = _currentColor;
+					polyline.Stroke = _currentColor.GetBrush ();
+				}
+				if (s.Thickness != w) {
+					s.Thickness = w;
+					polyline.StrokeThickness = w;
+				}
 			}
 			else {
 				var s = GetNextShape(TypeId.Line);
-				var line = s.Element as Line;
+				var line = (Line)s.Element;
 
 				if (s.X != sx) {
 					s.X = sx;
@@ -928,13 +995,22 @@ namespace CrossGraphics.SilverlightGraphics
 				if (s.Thickness != w) {
 					s.Thickness = w;
 					line.StrokeThickness = w;
-				}				
+				}
 			}
 		}
 
 		public void EndLines ()
 		{
-			if (_linePath != null) {
+			if (polyline != null) {
+				var n = polylinePoints.Count;
+				while (n > polylineLength) {
+					polylinePoints.RemoveAt (n - 1);
+					n--;
+				}
+				polylineShape = null;
+				polyline = null;
+				polylinePoints = null;
+				polylineLength = 0;
 			}
 		}
 
