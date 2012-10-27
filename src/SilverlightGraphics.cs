@@ -267,7 +267,12 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public IImage ImageFromFile (string path)
 		{
-			return new SilverlightImage (path);
+			try {
+				return new SilverlightImage (path);
+			}
+			catch (Exception ex) {
+				return null;
+			}
 		}
 	}
 
