@@ -259,7 +259,7 @@ namespace CrossGraphics.SilverlightGraphics
 			var f = _eshape.CurrentFont;
 			var fm = f.Tag as FontMetrics;
 			if (fm == null) {
-				fm = new FontMetrics(f);
+				fm = new FontMetrics (f);
 				f.Tag = fm;
 			}
 			return fm;
@@ -291,11 +291,21 @@ namespace CrossGraphics.SilverlightGraphics
 		int _height = 10;
 		static float DefaultWidth = 9.5f;
 
-		public FontMetrics(Font f)
+		public static readonly FontFamily SystemFont = new FontFamily ("Global User Interface");
+		public static readonly FontFamily Monospace = new FontFamily ("Courier New");
+
+		public FontMetrics (Font f)
 		{
+			var ff = SystemFont;
+			if (f.FontFamily == "Monospace") {
+				ff = Monospace;
+			}
+
+			var bold = f.IsBold;
+
 			int fsz = f.Size;
 
-			var mmSize = StringSize("MM", fsz);
+			var mmSize = StringSize("MM", fsz, ff, bold);
 
 			_height = f.Size;// (int)mmSize.Height;// f.Size;// (int)(mmSize.Height * 1.2f);
 
@@ -305,7 +315,7 @@ namespace CrossGraphics.SilverlightGraphics
 
 				var s = "M" + ((char)i).ToString() + "M";
 
-				var ssz = StringSize(s, fsz);
+				var ssz = StringSize(s, fsz, ff, bold);
 
 				var w = ssz.Width - mmSize.Width;
 
@@ -313,15 +323,16 @@ namespace CrossGraphics.SilverlightGraphics
 			}
 		}
 
-		static System.Drawing.SizeF StringSize(string text, int fontSize)
+		static System.Drawing.SizeF StringSize (string text, int fontSize, FontFamily fontFamily, bool bold)
 		{
 			TextBlock txtMeasure = new TextBlock();
+			txtMeasure.FontFamily = fontFamily;
 			txtMeasure.FontSize = fontSize;
+			txtMeasure.FontWeight = bold ? Windows.UI.Text.FontWeights.Bold : Windows.UI.Text.FontWeights.Normal;
 			txtMeasure.Text = text;
 			txtMeasure.Measure (new Size (1, 1));
 			return new System.Drawing.SizeF((float)txtMeasure.ActualWidth, (float)txtMeasure.ActualHeight);
 		}
-
 
 		public int StringWidth(string str, int startIndex, int length)
 		{
@@ -1099,6 +1110,18 @@ namespace CrossGraphics.SilverlightGraphics
 			}
 			if (s.Font != CurrentFont) {
 				s.Font = CurrentFont;
+				if (CurrentFont.FontFamily == "Monospace") {
+					e.FontFamily = FontMetrics.Monospace;
+				}
+				else {
+					e.FontFamily = FontMetrics.SystemFont;
+				}
+				if (CurrentFont.IsBold) {
+					e.FontWeight = Windows.UI.Text.FontWeights.Bold;
+				}
+				else {
+					e.FontWeight = Windows.UI.Text.FontWeights.Normal;
+				}
 				e.Padding = new Thickness(0);
 				e.RenderTransform = new TranslateTransform() {
 					X = 0,
