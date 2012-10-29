@@ -310,7 +310,7 @@ namespace CrossGraphics.SilverlightGraphics
         readonly Dictionary<IntPtr, DateTime> _lastDownTime = new Dictionary<IntPtr, DateTime>();
         readonly Dictionary<IntPtr, PointF> _lastBeganPosition = new Dictionary<IntPtr, PointF>();
 
-		const float DoubleClickMinDistance = 10;
+		const float DoubleClickMinDistance = 20;
 
 #if NETFX_CORE
 
