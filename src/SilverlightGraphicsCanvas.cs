@@ -93,7 +93,25 @@ namespace CrossGraphics.SilverlightGraphics
 
             Unloaded += HandleUnloaded;
             Loaded += HandleLoaded;
+			LayoutUpdated += HandleLayoutUpdated;
         }
+
+		double lastUpdateWidth = -1, lastUpdateHeight = -1;
+
+		void HandleLayoutUpdated (DispatcherTimerTickEventArgs sender, DispatcherTimerTickEventArgs e)
+		{
+			if (Content != null && (Math.Abs (lastUpdateWidth - ActualWidth) > 0.5 || Math.Abs (lastUpdateHeight - ActualHeight) > 0.5)) {
+				lastUpdateWidth = ActualWidth;
+				lastUpdateHeight = ActualHeight;
+#if NETFX_CORE
+#pragma warning disable 4014
+				Dispatcher.RunAsync (Windows.UI.Core.CoreDispatcherPriority.Normal, delegate {
+					Content.SetNeedsDisplay ();
+				});
+#pragma warning restore 4014
+#endif
+			}
+		}
 
         void HandleLoaded(object sender, RoutedEventArgs e)
         {

@@ -39,7 +39,7 @@ namespace CrossGraphics
 
 		public event EventHandler NeedsDisplay;
 
-		protected virtual void SetNeedsDisplay ()
+		public virtual void SetNeedsDisplay ()
 		{
 			var nd = NeedsDisplay;
 			if (nd != null) {
