@@ -83,8 +83,13 @@ namespace CrossGraphics.CoreGraphics
 		public void SetColor (Color c)
 		{
 			var cgcol = c.GetCGColor ();
+#if MONOMAC
+			_c.SetFillColorWithColor (cgcol);
+			_c.SetStrokeColorWithColor (cgcol);
+#else
 			_c.SetFillColor (cgcol);
 			_c.SetStrokeColor (cgcol);
+#endif
 		}
 
 		public void FillPolygon (Polygon poly)
