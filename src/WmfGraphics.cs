@@ -29,6 +29,8 @@ namespace CrossGraphics.Wmf
 {
 	public class WmfGraphics : IGraphics
 	{
+        const float TwipsFromUnits = 1;//11.25f;
+
 		BinaryWriter fw;
 
 		WmfGraphicsFontMetrics _fontMetrics;
@@ -75,6 +77,24 @@ namespace CrossGraphics.Wmf
             rw.Write ((ushort)4);
             rw.Write ((int)PostScriptCap.Round);
             EndRecord ();
+
+            objects.Clear ();
+
+            // 0 = Null Pen
+            StartRecord (Function.CreatePenIndirect);
+            rw.Write ((ushort)PenStyle.Null);
+            rw.Write ((uint)0); // PointS
+            rw.Write ((uint)0); // ColorRef
+            EndRecord ();
+            objects.Add (null);
+
+            // 1 = Null Brush
+            StartRecord (Function.CreateBrushIndirect);
+            rw.Write ((ushort)BrushStyle.Null);
+            rw.Write ((uint)0); // ColorRef
+            rw.Write ((ushort)HatchStyle.Horizontal); // BrushHatch
+            EndRecord ();
+            objects.Add (null);            
 		}
 
 		public void EndDrawing ()
@@ -163,42 +183,83 @@ namespace CrossGraphics.Wmf
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
+            SelectNullBrush ();
+            SelectPenRecord (w);
+
+            StartRecord (Function.Polygon);
+            rw.Write ((ushort)poly.Points.Count);
+            foreach (var p in poly.Points) {
+                WriteRecordCoord (p.Y, p.X);
+            }
+            EndRecord ();
 		}
 
 		public void FillOval (float x, float y, float width, float height)
 		{
+            SelectNullPen ();
+            SelectBrushRecord ();
+
+            StartRecord (Function.Ellipse);
+            WriteRecordCoord (x + width + 1, y + height + 1);
+            WriteRecordCoord (x, y);
+            EndRecord ();
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
+            SelectNullBrush ();
+            SelectPenRecord (w);
+
+            StartRecord (Function.Ellipse);
+            WriteRecordCoord (x + width + 1, y + height + 1);
+            WriteRecordCoord (x, y);
+            EndRecord ();
 		}
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
-		}
+            SelectNullPen ();
+            SelectBrushRecord ();
+        }
 		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
-		}
-
-		public void WriteArc (float cx, float cy, float radius, float startAngle, float endAngle, float w, string stroke, string fill)
-		{
+            SelectNullBrush ();
+            SelectPenRecord (w);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
-		}
+            SelectNullPen ();
+            SelectBrushRecord ();
+        }
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
+            SelectNullBrush ();
+            SelectPenRecord (w);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
 		{
+            SelectNullPen ();
+            SelectBrushRecord ();
+
+            StartRecord (Function.Rectangle);
+            WriteRecordCoord (x + width + 1, y + height + 1);
+            WriteRecordCoord (x, y);
+            EndRecord ();
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
+            SelectNullBrush ();
+            SelectPenRecord (w);
+
+            StartRecord (Function.Rectangle);
+            WriteRecordCoord (x + width + 1, y + height + 1);
+            WriteRecordCoord (x, y);
+            EndRecord ();
 		}
 		
 		bool _inPolyline = false;
@@ -225,7 +286,15 @@ namespace CrossGraphics.Wmf
         }
         List<GObject> objects = new List<GObject> ();
 
-        const float TwipsFromUnits = 0.5f;//11.25f;
+        void SelectNullPen ()
+        {
+            SelectObjectRecord (0);
+        }
+
+        void SelectNullBrush ()
+        {
+            SelectObjectRecord (1);
+        }
 
         void SelectPenRecord (float lineWidth)
         {
@@ -233,7 +302,7 @@ namespace CrossGraphics.Wmf
 
             var objectIndex = -1;
 
-            for (var i = 0; i < objects.Count; i++) {
+            for (var i = 2; i < objects.Count; i++) {
                 var o = objects[i];
                 if (!o.IsBrush && o.WidthInTwips == lineWidthInTwips && o.Color == _lastColor) {
                     objectIndex = i;
@@ -264,16 +333,65 @@ namespace CrossGraphics.Wmf
             SelectObjectRecord (objectIndex);
         }
 
+        void SelectBrushRecord ()
+        {
+            var objectIndex = -1;
+
+            for (var i = 2; i < objects.Count; i++) {
+                var o = objects[i];
+                if (o.IsBrush && o.Color == _lastColor) {
+                    objectIndex = i;
+                    break;
+                }
+            }
+
+            if (objectIndex < 0) {
+                var brush = new GObject {
+                    IsBrush = true,
+                    Color = _lastColor,
+                };
+                objectIndex = objects.Count;
+                objects.Add (brush);
+
+                StartRecord (Function.CreateBrushIndirect);
+                rw.Write ((ushort)BrushStyle.Solid);
+                rw.Write ((byte)_lastColor.Red); // ColorRef.Red
+                rw.Write ((byte)_lastColor.Green); // ColorRef.Green
+                rw.Write ((byte)_lastColor.Blue); // ColorRef.Blue
+                rw.Write ((byte)0); // ColorRef.Reserved
+                rw.Write ((ushort)HatchStyle.Horizontal); // ColorRef.Reserved
+                EndRecord ();
+            }
+
+            SelectObjectRecord (objectIndex);
+        }
+
         [Flags]
         enum PenStyle : ushort
         {
             Solid = 0,
             Dash = 0x01,
             Dot = 0x02,
+            Null = 0x05,
             EndCapSquare = 0x0100,
             EndCapFlat = 0x0200,
             JoinBevel = 0x1000,
             JoinMiter = 0x2000,
+        }
+
+        enum BrushStyle : ushort
+        {
+            Solid = 0,
+            Null = 1,
+            Hatched = 2,
+            Pattern = 3,
+            Indexed = 4,
+        }
+
+        enum HatchStyle : ushort
+        {
+            Horizontal = 0,
+            Verical = 1,
         }
 
         public void DrawLine (float sx, float sy, float ex, float ey, float w)
@@ -310,9 +428,11 @@ namespace CrossGraphics.Wmf
             LineTo = 0x0213,
             MoveTo = 0x0214,
             CreatePenIndirect = 0x02FA,
+            CreateBrushIndirect = 0x02FC,
             Polygon = 0x0324,
             Polyline = 0x0325,
             Ellipse = 0x0418,
+            Rectangle = 0x041B,
             TextOut = 0x0521,
             Escape = 0x0626,
             Pie = 0x081A,
