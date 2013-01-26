@@ -351,6 +351,17 @@ namespace CrossGraphics
 			return new Color (Red, Green, Blue, aa);
 		}
 
+        public override bool Equals (object obj)
+        {
+            var o = obj as Color;
+            return (o != null) && (o.Red == Red) && (o.Green == Green) && (o.Blue == Blue) && (o.Alpha == Alpha);
+        }
+
+        public override int GetHashCode ()
+        {
+            return (Red + Green + Blue + Alpha).GetHashCode ();
+        }
+
 		public override string ToString()
 		{
 			return string.Format ("[Color: RedValue={0}, GreenValue={1}, BlueValue={2}, AlphaValue={3}]", RedValue, GreenValue, BlueValue, AlphaValue);
