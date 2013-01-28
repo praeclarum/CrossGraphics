@@ -29,7 +29,7 @@ namespace CrossGraphics.Wmf
 {
 	public class WmfGraphics : IGraphics
 	{
-        const float TwipsFromUnits = 1;//11.25f;
+        const float TwipsFromUnits = 11.25f;
 
 		BinaryWriter fw;
 
@@ -71,6 +71,10 @@ namespace CrossGraphics.Wmf
             fw.Write ((ushort)1); // HEADER Type
             fw.Write ((ushort)9); // HEADER HeaderSize
             fw.Write ((ushort)0x300); // HEADER Version
+
+            StartRecord (Function.SetMapMode);
+            rw.Write ((ushort)MapMode.Twips);
+            EndRecord ();
 
             StartRecord (Function.Escape);
             rw.Write ((ushort)EscapeFunction.SetLineCap);
@@ -415,8 +419,8 @@ namespace CrossGraphics.Wmf
 
         void WriteRecordCoord (float x, float y)
         {
-            var tx = (short)(x * TwipsFromUnits + 0.5f);
-            var ty = (short)(y * TwipsFromUnits + 0.5f);
+            var tx = (short)((x + _state.Translation.X) * TwipsFromUnits + 0.5f);
+            var ty = (short)((y + _state.Translation.Y) * TwipsFromUnits + 0.5f);
             rw.Write (ty);
             rw.Write (tx);
         }
@@ -424,6 +428,7 @@ namespace CrossGraphics.Wmf
         enum Function : ushort
         {
             Eof = 0,
+            SetMapMode = 0x0103,
             SelectObject = 0x012D,
             LineTo = 0x0213,
             MoveTo = 0x0214,
@@ -438,6 +443,14 @@ namespace CrossGraphics.Wmf
             Pie = 0x081A,
             Arc = 0x0817,
             ExtTextOut = 0x0A32,
+        }
+
+        enum MapMode : ushort
+        {
+            Text = 1,
+            Twips = 6,
+            Isotropic = 7,
+            Anisotropic = 8,
         }
 
         enum EscapeFunction : ushort
