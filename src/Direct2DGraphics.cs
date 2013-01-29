@@ -24,6 +24,7 @@ using System.Linq;
 using SharpDX.Direct2D1;
 using SharpDX;
 using SharpDX.WIC;
+using System.Collections.Generic;
 
 namespace CrossGraphics.Direct2D
 {
@@ -37,7 +38,17 @@ namespace CrossGraphics.Direct2D
 
 		Factory factory;
 		SharpDX.WIC.Bitmap bitmap;
-		RenderTarget dc;        
+		RenderTarget dc;
+		StrokeStyle strokeStyle;
+
+		SharpDX.DirectWrite.Factory dwFactory;
+		SharpDX.DirectWrite.TextFormat textFormat;
+
+		class State
+		{
+			public Matrix3x2 Transform;
+		}
+		Stack<State> states;
 
 		public byte[] GetPixels ()
 		{
@@ -55,6 +66,11 @@ namespace CrossGraphics.Direct2D
 		public Direct2DGraphics (int width, int height)
 		{
 			factory = new Factory (FactoryType.MultiThreaded);
+			dwFactory = new SharpDX.DirectWrite.Factory ();
+
+			//
+			// Create the back buffer
+			//
 			var wicFactory = new ImagingFactory2 ();
 			bitmap = new SharpDX.WIC.Bitmap (wicFactory, width, height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnDemand);
 			dc = new WicRenderTarget (
@@ -67,7 +83,22 @@ namespace CrossGraphics.Direct2D
 					RenderTargetUsage.None,
 					FeatureLevel.Level_DEFAULT));
 
+			//
+			// Initialize
+			//
+			strokeStyle = new StrokeStyle (factory, new StrokeStyleProperties {
+				EndCap = CapStyle.Round,
+				StartCap = CapStyle.Round,
+			});
+
+			states = new Stack<State> ();
+			states.Push (new State {
+				Transform = Matrix3x2.Identity,
+			});
+
 			lastColor = Colors.Black;
+
+			SetFont (Font.SystemFontOfSize (16));
 		}
 
 		~Direct2DGraphics ()
@@ -83,6 +114,18 @@ namespace CrossGraphics.Direct2D
 
 		protected virtual void Dispose (bool disposing)
 		{
+			if (dwFactory != null) {
+				dwFactory.Dispose ();
+				dwFactory = null;
+			}
+			if (textFormat != null) {
+				textFormat.Dispose ();
+				textFormat = null;
+			}
+			if (strokeStyle != null) {
+				strokeStyle.Dispose ();
+				strokeStyle = null;
+			}
 			if (dc != null) {                
 				dc.Dispose ();
 				dc = null;
@@ -114,6 +157,10 @@ namespace CrossGraphics.Direct2D
 
 		public void SetFont (Font f)
 		{
+			if (textFormat != null) {
+				textFormat.Dispose ();
+			}
+			textFormat = new SharpDX.DirectWrite.TextFormat (dwFactory, "Segoe", f.Size);
 			_fontSize = f.Size;
 		}
 
@@ -131,19 +178,35 @@ namespace CrossGraphics.Direct2D
 		public void DrawPolygon (Polygon poly, float w)
 		{
 			var g = poly.GetGeometry (factory);
-			dc.DrawGeometry (g, lastColor.GetBrush (dc));
+			dc.DrawGeometry (g, lastColor.GetBrush (dc), w);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
+			dc.FillRoundedRectangle (new RoundedRectangle {
+				Rect = new RectangleF (x, y, x + width, y + height),
+				RadiusX = radius,
+				RadiusY = radius,
+			}, lastColor.GetBrush (dc));
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
+			dc.DrawRoundedRectangle (new RoundedRectangle {
+				Rect = new RectangleF (x, y, x + width, y + height),
+				RadiusX = radius,
+				RadiusY = radius,
+			}, lastColor.GetBrush (dc), w);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
 		{
+			dc.FillRectangle (new RectangleF (x, y, x + width, y + height), lastColor.GetBrush (dc));
+		}
+
+		public void DrawRect (float x, float y, float width, float height, float w)
+		{
+			dc.DrawRectangle (new RectangleF (x, y, x + width, y + height), lastColor.GetBrush (dc), w);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
@@ -158,19 +221,15 @@ namespace CrossGraphics.Direct2D
 			var rx = width / 2;
 			var ry = height / 2;
 			dc.DrawEllipse (new Ellipse (new DrawingPointF (x + rx, y + ry), rx, ry), lastColor.GetBrush (dc), w);
-		}
-
-		public void DrawRect (float x, float y, float width, float height, float w)
-		{
-		}
+		}		
 
 		public void BeginLines (bool rounded)
 		{
-		}
+		}	
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			dc.DrawLine (new DrawingPointF (sx, sy), new DrawingPointF (ex, ey), lastColor.GetBrush (dc), w);
+			dc.DrawLine (new DrawingPointF (sx, sy), new DrawingPointF (ex, ey), lastColor.GetBrush (dc), w, strokeStyle);
 		}
 
 		public void EndLines ()
@@ -185,12 +244,28 @@ namespace CrossGraphics.Direct2D
 		{
 		}
 
+		const float FontOffsetScale = 0.25f;
+
 		public void DrawString (string s, float x, float y)
 		{
+			var yy = y - FontOffsetScale * _fontSize;
+
+			dc.DrawText (
+				s,
+				textFormat,
+				new RectangleF (x, yy, x + 1000, yy + 1000),
+				lastColor.GetBrush (dc));
 		}
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
+			var yy = y - FontOffsetScale * _fontSize;
+
+			dc.DrawText (
+				s,
+				textFormat,
+				new RectangleF (x, yy, x + width, yy + height),
+				lastColor.GetBrush (dc));
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -211,6 +286,12 @@ namespace CrossGraphics.Direct2D
 		
 		public void SaveState ()
 		{
+			var s = states.Peek ();
+			var n = new State {
+				Transform = s.Transform,
+			};
+			states.Push (n);
+			dc.Transform = n.Transform;
 		}
 		
 		public void SetClippingRect (float x, float y, float width, float height)
@@ -229,6 +310,11 @@ namespace CrossGraphics.Direct2D
 		
 		public void RestoreState ()
 		{
+			if (states.Count > 1) {
+				states.Pop ();
+				var s = states.Peek ();
+				dc.Transform = s.Transform;
+			}
 		}
 
 		public IImage ImageFromFile (string filename)
