@@ -33,6 +33,14 @@ namespace CrossGraphics
 		CanvasContent Content { get; set; }
 	}
 
+	[Flags]
+	public enum CanvasKeys
+	{
+		None = 0,
+		Command = 0x01,
+		Shift = 0x02,
+	}
+
     public class CanvasContent : INotifyPropertyChanged
     {
         public RectangleF Frame = new RectangleF(0, 0, 320, 480);
@@ -54,7 +62,7 @@ namespace CrossGraphics
 			DrawBackground = true;
 		}
 
-        public virtual void TouchesBegan(CanvasTouch[] touches)
+        public virtual void TouchesBegan(CanvasTouch[] touches, CanvasKeys keys)
         {
         }
 

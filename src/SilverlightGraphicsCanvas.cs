@@ -385,7 +385,19 @@ namespace CrossGraphics.SilverlightGraphics
 			_activeTouches[handle] = touch;
 
 			if (Content != null) {
-				Content.TouchesBegan(new[] { touch });
+				var keys = CanvasKeys.None;
+#if NETFX_CORE
+				var ctrl = Windows.UI.Core.CoreWindow.GetForCurrentThread ().GetKeyState (Windows.System.VirtualKey.Control);
+				var shift = Windows.UI.Core.CoreWindow.GetForCurrentThread ().GetKeyState (Windows.System.VirtualKey.Shift);
+				if ((ctrl & Windows.UI.Core.CoreVirtualKeyStates.Down) != 0) {
+					keys = keys | CanvasKeys.Command;
+				}
+				if ((shift & Windows.UI.Core.CoreVirtualKeyStates.Down) != 0) {
+					keys = keys | CanvasKeys.Shift;
+				}
+#endif
+
+				Content.TouchesBegan(new[] { touch }, keys);
 			}
 		}
 
