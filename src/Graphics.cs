@@ -430,7 +430,7 @@ namespace CrossGraphics
     {
         public float M11, M12, M13;
         public float M21, M22, M23;
-        public float M31, M32, M33;
+        //public float M31, M32, M33;
 
         public void Apply (float x, float y, out float xp, out float yp)
         {
@@ -442,17 +442,17 @@ namespace CrossGraphics
         {
             var t = new Transform2D ();
 
-            t.M11 = l.M11 * r.M11 + l.M12 * r.M21 + l.M13 * r.M31;
-            t.M12 = l.M11 * r.M12 + l.M12 * r.M22 + l.M13 * r.M32;
-            t.M13 = l.M11 * r.M13 + l.M12 * r.M23 + l.M13 * r.M33;
+			t.M11 = l.M11 * r.M11 + l.M12 * r.M21;// +l.M13 * r.M31;
+			t.M12 = l.M11 * r.M12 + l.M12 * r.M22;// +l.M13 * r.M32;
+			t.M13 = l.M11 * r.M13 + l.M12 * r.M23 + l.M13;// *r.M33;
 
-            t.M21 = l.M21 * r.M11 + l.M22 * r.M21 + l.M23 * r.M31;
-            t.M22 = l.M21 * r.M12 + l.M22 * r.M22 + l.M23 * r.M32;
-            t.M23 = l.M21 * r.M13 + l.M22 * r.M23 + l.M23 * r.M33;
+			t.M21 = l.M21 * r.M11 + l.M22 * r.M21;// +l.M23 * r.M31;
+			t.M22 = l.M21 * r.M12 + l.M22 * r.M22;// +l.M23 * r.M32;
+			t.M23 = l.M21 * r.M13 + l.M22 * r.M23 + l.M23;// *r.M33;
 
-            t.M31 = l.M31 * r.M11 + l.M32 * r.M21 + l.M33 * r.M31;
-            t.M32 = l.M31 * r.M12 + l.M32 * r.M22 + l.M33 * r.M32;
-            t.M33 = l.M31 * r.M13 + l.M32 * r.M23 + l.M33 * r.M33;
+            //t.M31 = l.M31 * r.M11 + l.M32 * r.M21 + l.M33 * r.M31;
+            //t.M32 = l.M31 * r.M12 + l.M32 * r.M22 + l.M33 * r.M32;
+            //t.M33 = l.M31 * r.M13 + l.M32 * r.M23 + l.M33 * r.M33;
 
             return t;
         }
@@ -462,7 +462,7 @@ namespace CrossGraphics
             var t = new Transform2D ();
             t.M11 = 1;
             t.M22 = 1;
-            t.M33 = 1;
+            //t.M33 = 1;
             return t;
         }
 
@@ -471,7 +471,7 @@ namespace CrossGraphics
             var t = new Transform2D ();
             t.M11 = 1;
             t.M22 = 1;
-            t.M33 = 1;
+            //t.M33 = 1;
             t.M13 = x;
             t.M23 = y;
             return t;
@@ -481,7 +481,7 @@ namespace CrossGraphics
             var t = new Transform2D ();
             t.M11 = x;
             t.M22 = y;
-            t.M33 = 1;
+            //t.M33 = 1;
             return t;
         }
 
