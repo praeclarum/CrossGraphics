@@ -50,9 +50,9 @@ using NativeTextAlignment = System.Windows.TextAlignment;
 using NativeColor = System.Windows.Media.Color;
 #endif
 
-namespace CrossGraphics.SilverlightGraphics
+namespace CrossGraphics
 {
-	public class SilverlightGraphics : IGraphics
+	public class XamlGraphics : IGraphics
 	{
 		Dictionary<object, EntityShapes> _shapes = new Dictionary<object, EntityShapes> ();
 		Dictionary<object, EntityShapes> _drawnShapes = new Dictionary<object, EntityShapes> ();
@@ -71,7 +71,7 @@ namespace CrossGraphics.SilverlightGraphics
 
 		Stack<State> _states = new Stack<State>();
 
-		public SilverlightGraphics (Canvas canvas)
+		public XamlGraphics (Canvas canvas)
 		{
 			if (canvas == null) throw new ArgumentNullException ("canvas");
 			_canvas = canvas;
@@ -1137,7 +1137,7 @@ namespace CrossGraphics.SilverlightGraphics
 		}
 	}
 
-	public static class ColorEx
+	public static partial class ColorEx
 	{
 		public static SolidColorBrush GetBrush (this Color color)
 		{

@@ -39,13 +39,13 @@ using System.Windows.Threading;
 using DispatcherTimerTickEventArgs = System.EventArgs;
 #endif
 
-namespace CrossGraphics.SilverlightGraphics
+namespace CrossGraphics
 {
-    public class SilverlightGraphicsCanvas : Canvas, ICanvas
+    public class XamlCanvas : Canvas, ICanvas
     {
         const int NativePointsPerInch = 160;
 
-        SilverlightGraphics _graphics;
+        XamlGraphics _graphics;
 
         int _fps = 20;
         readonly DispatcherTimer _drawTimer;
@@ -82,7 +82,7 @@ namespace CrossGraphics.SilverlightGraphics
 
 		public bool Continuous { get; set; }
 
-        public SilverlightGraphicsCanvas()
+        public XamlCanvas ()
         {
             MinFps = 4;
             MaxFps = 30;
@@ -234,7 +234,7 @@ namespace CrossGraphics.SilverlightGraphics
 			if (del == null) return 0;
 
 			if (_graphics == null) {
-				_graphics = new SilverlightGraphics (this);
+				_graphics = new XamlGraphics (this);
 			}
 
 			var startT = DateTime.Now;
