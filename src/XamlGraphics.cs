@@ -603,12 +603,15 @@ namespace CrossGraphics
 			if (n == 0) return;
 
 			var p0 = poly.Points[0];
+			var p1 = poly.Points[1];
 
-			if ((s.Count != n) || (p0.X != s.X) || (p0.Y != s.Y))
+			if ((s.Count != n) || (p0.X != s.X) || (p0.Y != s.Y) || (p1.X != s.Width) || (p1.Y != s.Height))
 			{
 				s.Count = n;
 				s.X = p0.X;
 				s.Y = p0.Y;
+				s.Width = p1.X;
+				s.Height = p1.Y;
 
 				var ps = new PointCollection();
 				for (var i = 0; i < n; i++) {
@@ -631,15 +634,18 @@ namespace CrossGraphics
 			var e = (NativePolygon)s.Element;
 
 			var n = poly.Points.Count;
-			if (n == 0) return;
+			if (n < 3) return;
 
 			var p0 = poly.Points[0];
+			var p1 = poly.Points[1];
 
-			if ((s.Count != n) || (p0.X != s.X) || (p0.Y != s.Y))
+			if ((s.Count != n) || (p0.X != s.X) || (p0.Y != s.Y) || (p1.X != s.Width) || (p1.Y != s.Height))
 			{
 				s.Count = n;
 				s.X = p0.X;
 				s.Y = p0.Y;
+				s.Width = p1.X;
+				s.Height = p1.Y;
 
 				var ps = new PointCollection();                
 				for (var i = 0; i < n; i++)
