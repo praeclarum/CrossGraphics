@@ -181,6 +181,10 @@ namespace CrossGraphics.Wmf
 			_lastColor = c;
 		}
 
+		public void Clear (Color c)
+		{
+		}
+
 		public void FillPolygon (Polygon poly)
 		{
 		}

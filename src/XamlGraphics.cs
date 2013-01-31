@@ -174,6 +174,10 @@ namespace CrossGraphics
 			_eshape.SetColor (color);
 		}
 
+		public void Clear (Color c)
+		{
+		}
+
 		public void FillPolygon (Polygon poly)
 		{
 			_eshape.FillPolygon (poly);

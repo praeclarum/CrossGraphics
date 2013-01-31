@@ -43,6 +43,10 @@ namespace CrossGraphics
 		{
 		}
 
+		public void Clear (Color c)
+		{
+		}
+
 		public void FillPolygon (Polygon poly)
 		{
 		}

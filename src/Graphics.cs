@@ -33,6 +33,8 @@ namespace CrossGraphics
 
 		void SetColor(Color c);
 
+		void Clear (Color c);
+
 		void FillPolygon(Polygon poly);
 
 		void DrawPolygon(Polygon poly,float w);
@@ -484,7 +486,37 @@ namespace CrossGraphics
             //t.M33 = 1;
             return t;
         }
-
     }
+
+	public static class RectangleEx
+	{
+		public static RectangleF ToRectangleF (this System.Drawing.Rectangle r)
+		{
+			return new RectangleF (r.X, r.Y, r.Width, r.Height);
+		}
+
+		public static System.Drawing.Point GetCenter (this System.Drawing.Rectangle r)
+		{
+			return new System.Drawing.Point (r.Left + r.Width / 2,
+										r.Top + r.Height / 2);
+		}
+
+		public static System.Drawing.PointF GetCenter (this System.Drawing.RectangleF r)
+		{
+			return new System.Drawing.PointF (r.X + r.Width / 2.0f,
+										r.Y + r.Height / 2.0f);
+		}
+
+		public static List<RectangleF> GetIntersections (this List<RectangleF> boxes, RectangleF box)
+		{
+			var r = new List<RectangleF> ();
+			foreach (var b in boxes) {
+				if (b.IntersectsWith (box)) {
+					r.Add (b);
+				}
+			}
+			return r;
+		}
+	}
 }
 
