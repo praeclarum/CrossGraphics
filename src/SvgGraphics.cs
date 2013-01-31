@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010 Frank A. Krueger
+// Copyright (c) 2010-2013 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Drawing;
 
-namespace CrossGraphics.Svg
+namespace CrossGraphics
 {
 	public class SvgGraphics : IGraphics
 	{
@@ -66,19 +66,59 @@ namespace CrossGraphics.Svg
 
 		public bool IncludeXmlAndDoctype { get; set; }
 
+		void WriteLine (string s)
+		{
+			_tw.WriteLine (s);
+		}
+		void WriteLine (string format, params object[] args)
+		{
+			WriteLine (string.Format (System.Globalization.CultureInfo.InvariantCulture, format, args));
+		}
+		void Write (string s)
+		{
+			_tw.Write (s);
+		}
+		void Write (string format, params object[] args)
+		{
+			Write (string.Format (System.Globalization.CultureInfo.InvariantCulture, format, args));
+		}
+
 		public void BeginDrawing ()
 		{
 			if (IncludeXmlAndDoctype) {
-				_tw.WriteLine (@"<?xml version=""1.0""?>
+				WriteLine (@"<?xml version=""1.0""?>
 <!DOCTYPE svg PUBLIC ""-//W3C//DTD SVG 1.1//EN"" ""http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"">");
 			}
-			_tw.WriteLine (@"<svg viewBox=""{0} {1} {2} {3}"" preserveAspectRatio=""xMinYMin meet"" version=""1.1"" xmlns=""http://www.w3.org/2000/svg"">",
+			WriteLine (@"<svg viewBox=""{0} {1} {2} {3}"" preserveAspectRatio=""xMinYMin meet"" version=""1.1"" xmlns=""http://www.w3.org/2000/svg"">",
 				_viewBox.Left, _viewBox.Top, _viewBox.Width, _viewBox.Height);
+
+			inGroup = false;
+		}
+
+		bool inGroup = false;
+		public void BeginEntity (object entity)
+		{
+			if (inGroup) {
+				WriteLine ("</g>");
+			}
+			var klass = (entity != null) ? entity.ToString () : "";
+			WriteLine ("<g class=\"{0}\">", klass);
+			inGroup = true;
+		}
+
+		public void Clear (Color clearColor)
+		{
+			WriteLine ("<g id=\"background\"><rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" fill=\"{4}\" stroke=\"none\"/></g>",
+					_viewBox.X, _viewBox.Y, _viewBox.Width, _viewBox.Height, FormatColor (clearColor));
 		}
 
 		public void EndDrawing ()
 		{
-			_tw.WriteLine("</svg>");
+			if (inGroup) {
+				WriteLine ("</g>");
+				inGroup = false;
+			}
+			WriteLine("</svg>");
 			_tw.Flush();
 		}
 		
@@ -120,33 +160,38 @@ namespace CrossGraphics.Svg
 			//_lastFont = f;
 		}
 
+		static string FormatColor (Color c)
+		{
+			return string.Format("#{0:X2}{1:X2}{2:X2}", c.Red, c.Green, c.Blue);
+		}
+
 		public void SetColor (Color c)
 		{
-			_lastColor = string.Format("#{0:X2}{1:X2}{2:X2}", c.Red, c.Green, c.Blue);
+			_lastColor = FormatColor (c);
 		}
 
 		public void FillPolygon (Polygon poly)
 		{
-			_tw.Write("<polygon fill=\"{0}\" stroke=\"none\" points=\"", _lastColor);
+			Write("<polygon fill=\"{0}\" stroke=\"none\" points=\"", _lastColor);
 			foreach (var p in poly.Points) {
-				_tw.Write(p.X);
-				_tw.Write(",");
-				_tw.Write(p.Y);
-				_tw.Write(" ");
+				Write("{0}", p.X);
+				Write(",");
+				Write ("{0}", p.Y);
+				Write(" ");
 			}
-			_tw.WriteLine("\" />");
+			WriteLine("\" />");
 		}
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
-			_tw.Write("<polygon stroke=\"{0}\" stroke-width=\"{1}\" fill=\"none\" points=\"", _lastColor, w);
+			Write("<polygon stroke=\"{0}\" stroke-width=\"{1}\" fill=\"none\" points=\"", _lastColor, w);
 			foreach (var p in poly.Points) {
-				_tw.Write(p.X);
-				_tw.Write(",");
-				_tw.Write(p.Y);
-				_tw.Write(" ");
+				Write("{0}", p.X);
+				Write(",");
+				Write("{0}", p.Y);
+				Write(" ");
 			}
-			_tw.WriteLine("\" />");
+			WriteLine("\" />");
 		}
 
 		public void FillOval (float x, float y, float width, float height)
@@ -155,7 +200,7 @@ namespace CrossGraphics.Svg
 			var ry = height / 2;
 			var cx = x + rx;
 			var cy = y + ry;
-			_tw.WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" fill=\"{4}\" stroke=\"none\" />", 
+			WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" fill=\"{4}\" stroke=\"none\" />", 
 				cx, cy, rx, ry, _lastColor);
 		}
 
@@ -165,7 +210,7 @@ namespace CrossGraphics.Svg
 			var ry = height / 2;
 			var cx = x + rx;
 			var cy = y + ry;
-			_tw.WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
+			WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
 				cx, cy, rx, ry, _lastColor, w);
 		}
 
@@ -189,7 +234,7 @@ namespace CrossGraphics.Svg
 			var ex = cx + radius * Math.Cos (ea);
 			var ey = cy + radius * Math.Sin (ea);
 			
-			_tw.WriteLine("<path d=\"M {0} {1} A {2} {3} 0 0 1 {4} {5}\" stroke=\"{6}\" stroke-width=\"{7}\" fill=\"{8}\" />", 
+			WriteLine("<path d=\"M {0} {1} A {2} {3} 0 0 1 {4} {5}\" stroke=\"{6}\" stroke-width=\"{7}\" fill=\"{8}\" />", 
 				sx, sy,
 				radius, radius,
 				ex, ey,				 
@@ -198,25 +243,25 @@ namespace CrossGraphics.Svg
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
-			_tw.WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{5}\" ry=\"{5}\" fill=\"{4}\" stroke=\"none\" />", 
+			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{5}\" ry=\"{5}\" fill=\"{4}\" stroke=\"none\" />", 
 				x, y, width, height, _lastColor, radius);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
-			_tw.WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{6}\" ry=\"{6}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
+			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{6}\" ry=\"{6}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
 				x, y, width, height, _lastColor, w, radius);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
 		{
-			_tw.WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" fill=\"{4}\" stroke=\"none\" />", 
+			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" fill=\"{4}\" stroke=\"none\" />", 
 				x, y, width, height, _lastColor);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			_tw.WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
+			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
 				x, y, width, height, _lastColor, w);
 		}
 		
@@ -231,22 +276,22 @@ namespace CrossGraphics.Svg
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
 			if (_inPolyline) {
-				if (!_startedPolyline) {				
-					_tw.Write("<polyline stroke=\"{0}\" stroke-width=\"{1}\" fill=\"none\" points=\"", _lastColor, w);
-					_tw.Write("{0},{1} ", sx, sy);
+				if (!_startedPolyline) {
+					Write ("<polyline stroke=\"{0}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"{1}\" fill=\"none\" points=\"", _lastColor, w);
+					Write("{0},{1} ", sx, sy);
 					_startedPolyline = true;
 				}
-				_tw.Write("{0},{1} ", ex, ey);
+				Write("{0},{1} ", ex, ey);
 			}
 			else {
-				_tw.WriteLine("<line x1=\"{0}\" y1=\"{1}\" x2=\"{2}\" y2=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" stroke-linecap=\"round\" fill=\"none\" />", sx, sy, ex, ey, _lastColor, w);
+				WriteLine("<line x1=\"{0}\" y1=\"{1}\" x2=\"{2}\" y2=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" stroke-linecap=\"round\" fill=\"none\" />", sx, sy, ex, ey, _lastColor, w);
 			}
 		}
 
 		public void EndLines ()
 		{
 			if (_inPolyline) {
-				_tw.WriteLine("\" />");
+				WriteLine("\" />");
 				_inPolyline = false;
 				_startedPolyline = false;
 			}
@@ -254,14 +299,14 @@ namespace CrossGraphics.Svg
 		
 		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			_tw.WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\">{2}</text>",
+			WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\">{2}</text>",
 				x, y + _fontMetrics.Height,
 				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"));
 		}
 
 		public void DrawString (string s, float x, float y)
 		{
-			_tw.WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\">{2}</text>",
+			WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\">{2}</text>",
 				x, y + _fontMetrics.Height,
 				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"));
 		}
@@ -278,10 +323,6 @@ namespace CrossGraphics.Svg
 		public IImage ImageFromFile (string filename)
 		{
 			return null;
-		}
-		
-		public void BeginEntity (object entity)
-		{
 		}
 	}
 
