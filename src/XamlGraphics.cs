@@ -30,13 +30,14 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Shapes;
 using Windows.UI.Xaml.Media;
+using Windows.UI.Text;
 using Point = Windows.Foundation.Point;
 using Rectangle = Windows.UI.Xaml.Shapes.Rectangle;
 using Size = Windows.Foundation.Size;
 using NativePolygon = Windows.UI.Xaml.Shapes.Polygon;
 using NativeTextAlignment = Windows.UI.Xaml.TextAlignment;
 using NativeColor = Windows.UI.Color;
-using NativeFontFamily = Windows.UI.FontFamily;
+using NativeFontFamily = Windows.UI.Xaml.Media.FontFamily;
 using NativeImage = Windows.UI.Xaml.Controls.Image;
 #else
 using System.Windows;
