@@ -30,6 +30,7 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Input;
 using DispatcherTimerTickEventArgs = System.Object;
+using NativeColors = Windows.UI.Colors;
 #else
 using System.Windows;
 using System.Windows.Controls;
@@ -37,6 +38,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using DispatcherTimerTickEventArgs = System.EventArgs;
+using NativeColors = System.Windows.Media.Colors;
 #endif
 
 namespace CrossGraphics
@@ -84,6 +86,8 @@ namespace CrossGraphics
 
         public XamlCanvas ()
         {
+			Background = new SolidColorBrush (NativeColors.Transparent);
+
             MinFps = 4;
             MaxFps = 30;
 			Continuous = true;
@@ -604,8 +608,6 @@ namespace CrossGraphics
             }
         }
 #else
-		readonly Dictionary<IntPtr, CanvasTouch> activeTouches = new Dictionary<IntPtr, CanvasTouch> ();
-
 		static readonly IntPtr MouseId = new IntPtr (42424242);
 
 		void XamlCanvas_TouchDown (object sender, TouchEventArgs e)
@@ -623,7 +625,7 @@ namespace CrossGraphics
 			t.CanvasPreviousLocation = t.CanvasLocation;
 			t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
 
-			activeTouches[t.Handle] = t;
+			_activeTouches[t.Handle] = t;
 
 			if (Content != null) {
 				Content.TouchesBegan (new[] { t }, CanvasKeys.None);
@@ -634,7 +636,7 @@ namespace CrossGraphics
 		{
 			var id = new IntPtr (e.TouchDevice.Id);
 			CanvasTouch t;
-			if (!activeTouches.TryGetValue (id, out t)) return;
+			if (!_activeTouches.TryGetValue (id, out t)) return;
 
 			t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
 			t.CanvasPreviousLocation = t.CanvasLocation;
@@ -655,7 +657,9 @@ namespace CrossGraphics
 		{
 			var id = new IntPtr (e.TouchDevice.Id);
 			CanvasTouch t;
-			if (!activeTouches.TryGetValue (id, out t)) return;
+			if (!_activeTouches.TryGetValue (id, out t)) return;
+
+			_activeTouches.Remove (id);
 
 			if (Content != null) {
 				Content.TouchesEnded (new[] { t });
@@ -666,7 +670,9 @@ namespace CrossGraphics
 		{
 			var id = new IntPtr (e.TouchDevice.Id);
 			CanvasTouch t;
-			if (!activeTouches.TryGetValue (id, out t)) return;
+			if (!_activeTouches.TryGetValue (id, out t)) return;
+
+			_activeTouches.Remove (id);
 
 			if (Content != null) {
 				Content.TouchesCancelled (new[] { t });
@@ -692,7 +698,7 @@ namespace CrossGraphics
 			t.CanvasPreviousLocation = t.CanvasLocation;
 			t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
 
-			activeTouches[t.Handle] = t;
+			_activeTouches[t.Handle] = t;
 
 			if (Content != null) {
 				Content.TouchesBegan (new[] { t }, CanvasKeys.None);
@@ -702,7 +708,7 @@ namespace CrossGraphics
 		void XamlCanvas_MouseMove (object sender, MouseEventArgs e)
 		{
 			CanvasTouch t;
-			if (!activeTouches.TryGetValue (MouseId, out t)) return;
+			if (!_activeTouches.TryGetValue (MouseId, out t)) return;
 
 			t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
 			t.CanvasPreviousLocation = t.CanvasLocation;
@@ -722,7 +728,9 @@ namespace CrossGraphics
 		void XamlCanvas_MouseUp (object sender, MouseButtonEventArgs e)
 		{
 			CanvasTouch t;
-			if (!activeTouches.TryGetValue (MouseId, out t)) return;
+			if (!_activeTouches.TryGetValue (MouseId, out t)) return;
+
+			_activeTouches.Remove (MouseId);
 
 			if (Content != null) {
 				Content.TouchesEnded (new[] { t });
