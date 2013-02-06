@@ -25,7 +25,7 @@ using System.IO;
 using System.Drawing;
 using System.Linq;
 
-namespace CrossGraphics.Wmf
+namespace CrossGraphics
 {
 	public class WmfGraphics : IGraphics
 	{
@@ -271,12 +271,12 @@ namespace CrossGraphics.Wmf
 		}
 		
 		bool _inPolyline = false;
-		bool _startedPolyline = false;
+		//bool _startedPolyline = false;
 
 		public void BeginLines (bool rounded)
 		{
 			_inPolyline = true;
-            _startedPolyline = false;
+            //_startedPolyline = false;
 		}
 
         void SelectObjectRecord (int objectIndex)
@@ -405,7 +405,7 @@ namespace CrossGraphics.Wmf
         public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
 			if (_inPolyline) {
-                _startedPolyline = true;
+                //_startedPolyline = true;
 			}
 			else {
 			}
@@ -504,7 +504,7 @@ namespace CrossGraphics.Wmf
 		}
 	}
 
-	public class WmfGraphicsFontMetrics : IFontMetrics
+	class WmfGraphicsFontMetrics : IFontMetrics
 	{
 		int _height;
 

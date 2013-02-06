@@ -583,12 +583,12 @@ namespace CrossGraphics
                 if (del != null && _touchEnabled) {
                     if (began.Count > 0) {
 						var keys = CanvasKeys.None;
-						if (Keyboard.IsKeyDown (Key.LeftCtrl) || Keyboard.IsKeyDown (Key.RightCtrl)) {
-							keys = keys | CanvasKeys.Command;
-						}
-						if (Keyboard.IsKeyDown (Key.LeftShift) || Keyboard.IsKeyDown (Key.RightShift)) {
-							keys = keys | CanvasKeys.Shift;
-						}
+						//if (Keyboard.IsKeyDown (Key.LeftCtrl) || Keyboard.IsKeyDown (Key.RightCtrl)) {
+						//	keys = keys | CanvasKeys.Command;
+						//}
+						//if (Keyboard.IsKeyDown (Key.LeftShift) || Keyboard.IsKeyDown (Key.RightShift)) {
+						//	keys = keys | CanvasKeys.Shift;
+						//}
                         del.TouchesBegan(began.ToArray(), keys);
                     }
                     if (moved.Count > 0) {

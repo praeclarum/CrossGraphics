@@ -326,7 +326,7 @@ namespace CrossGraphics
 		}
 	}
 
-	public class SvgGraphicsFontMetrics : IFontMetrics
+	class SvgGraphicsFontMetrics : IFontMetrics
 	{
 		int _height;
 		

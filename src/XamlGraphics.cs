@@ -266,9 +266,9 @@ namespace CrossGraphics
 		public IFontMetrics GetFontMetrics ()
 		{
 			var f = _eshape.CurrentFont;
-			var fm = f.Tag as FontMetrics;
+			var fm = f.Tag as XamlFontMetrics;
 			if (fm == null) {
-				fm = new FontMetrics (f);
+				fm = new XamlFontMetrics (f);
 				f.Tag = fm;
 			}
 			return fm;
@@ -285,7 +285,7 @@ namespace CrossGraphics
 		}
 	}
 
-	public class SilverlightImage : IImage
+	class SilverlightImage : IImage
 	{
 		public BitmapSource Bitmap { get; private set; }
 		public SilverlightImage (string path)
@@ -294,7 +294,7 @@ namespace CrossGraphics
 		}
 	}
 
-	public class FontMetrics : IFontMetrics
+	class XamlFontMetrics : IFontMetrics
 	{
 		float[] _widths;
 		int _height = 10;
@@ -303,7 +303,7 @@ namespace CrossGraphics
 		public static readonly NativeFontFamily SystemFont = new NativeFontFamily ("Global User Interface");
 		public static readonly NativeFontFamily Monospace = new NativeFontFamily ("Courier New");
 
-		public FontMetrics (Font f)
+		public XamlFontMetrics (Font f)
 		{
 			var ff = SystemFont;
 			if (f.FontFamily == "Monospace") {
@@ -1126,10 +1126,10 @@ namespace CrossGraphics
 			if (s.Font != CurrentFont) {
 				s.Font = CurrentFont;
 				if (CurrentFont.FontFamily == "Monospace") {
-					e.FontFamily = FontMetrics.Monospace;
+					e.FontFamily = XamlFontMetrics.Monospace;
 				}
 				else {
-					e.FontFamily = FontMetrics.SystemFont;
+					e.FontFamily = XamlFontMetrics.SystemFont;
 				}
 				if (CurrentFont.IsBold) {
 					e.FontWeight = FontWeights.Bold;
