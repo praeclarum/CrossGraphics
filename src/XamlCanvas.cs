@@ -1,5 +1,5 @@
 ﻿//
-// Copyright (c) 2010-2012 Frank A. Krueger
+// Copyright (c) 2010-2013 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -93,12 +93,12 @@ namespace CrossGraphics
 
             Unloaded += HandleUnloaded;
             Loaded += HandleLoaded;
-			LayoutUpdated += HandleLayoutUpdated;
+			LayoutUpdated += delegate { HandleLayoutUpdated (); };
         }
 
 		double lastUpdateWidth = -1, lastUpdateHeight = -1;
 
-		void HandleLayoutUpdated (DispatcherTimerTickEventArgs sender, DispatcherTimerTickEventArgs e)
+		void HandleLayoutUpdated ()
 		{
 			if (Content != null && (Math.Abs (lastUpdateWidth - ActualWidth) > 0.5 || Math.Abs (lastUpdateHeight - ActualHeight) > 0.5)) {
 				lastUpdateWidth = ActualWidth;
@@ -150,8 +150,18 @@ namespace CrossGraphics
 					PointerReleased += SilverlightGraphicsCanvas_PointerReleased;
 					PointerCanceled += SilverlightGraphicsCanvas_PointerCanceled;
 					PointerExited += SilverlightGraphicsCanvas_PointerExited;
-#else
+#elif SILVERLIGHT
                     Touch.FrameReported += HandleTouchFrameReported;
+#else
+					TouchDown += XamlCanvas_TouchDown;
+					TouchEnter += XamlCanvas_TouchEnter;
+					TouchLeave += XamlCanvas_TouchLeave;
+					TouchMove += XamlCanvas_TouchMove;
+					TouchUp += XamlCanvas_TouchUp;
+					MouseDown += XamlCanvas_MouseDown;
+					MouseMove += XamlCanvas_MouseMove;
+					MouseUp += XamlCanvas_MouseUp;
+					MouseWheel += XamlCanvas_MouseWheel;
 #endif
                 }
                 else {
@@ -159,8 +169,18 @@ namespace CrossGraphics
 					PointerPressed -= SilverlightGraphicsCanvas_PointerPressed;
 					PointerMoved -= SilverlightGraphicsCanvas_PointerMoved;
 					PointerReleased -= SilverlightGraphicsCanvas_PointerReleased;
-#else
+#elif SILVERLIGHT
                     Touch.FrameReported -= HandleTouchFrameReported;
+#else
+					TouchDown -= XamlCanvas_TouchDown;
+					TouchEnter -= XamlCanvas_TouchEnter;
+					TouchLeave -= XamlCanvas_TouchLeave;
+					TouchMove -= XamlCanvas_TouchMove;
+					TouchUp -= XamlCanvas_TouchUp;
+					MouseDown -= XamlCanvas_MouseDown;
+					MouseMove -= XamlCanvas_MouseMove;
+					MouseUp -= XamlCanvas_MouseUp;
+					MouseWheel -= XamlCanvas_MouseWheel;
 #endif
                 }
             }
@@ -386,7 +406,6 @@ namespace CrossGraphics
 
 			if (Content != null) {
 				var keys = CanvasKeys.None;
-#if NETFX_CORE
 				var ctrl = Windows.UI.Core.CoreWindow.GetForCurrentThread ().GetKeyState (Windows.System.VirtualKey.Control);
 				var shift = Windows.UI.Core.CoreWindow.GetForCurrentThread ().GetKeyState (Windows.System.VirtualKey.Shift);
 				if ((ctrl & Windows.UI.Core.CoreVirtualKeyStates.Down) != 0) {
@@ -395,7 +414,6 @@ namespace CrossGraphics
 				if ((shift & Windows.UI.Core.CoreVirtualKeyStates.Down) != 0) {
 					keys = keys | CanvasKeys.Shift;
 				}
-#endif
 
 				Content.TouchesBegan(new[] { touch }, keys);
 			}
@@ -487,7 +505,7 @@ namespace CrossGraphics
 				}
 			}
 		}
-#else
+#elif SILVERLIGHT
         void HandleTouchFrameReported(object sender, TouchFrameEventArgs e)
         {
             try {
@@ -564,7 +582,14 @@ namespace CrossGraphics
 				var del = Content;
                 if (del != null && _touchEnabled) {
                     if (began.Count > 0) {
-                        del.TouchesBegan(began.ToArray());
+						var keys = CanvasKeys.None;
+						if (Keyboard.IsKeyDown (Key.LeftCtrl) || Keyboard.IsKeyDown (Key.RightCtrl)) {
+							keys = keys | CanvasKeys.Command;
+						}
+						if (Keyboard.IsKeyDown (Key.LeftShift) || Keyboard.IsKeyDown (Key.RightShift)) {
+							keys = keys | CanvasKeys.Shift;
+						}
+                        del.TouchesBegan(began.ToArray(), keys);
                     }
                     if (moved.Count > 0) {
                         del.TouchesMoved(moved.ToArray());
@@ -578,6 +603,135 @@ namespace CrossGraphics
                 System.Diagnostics.Debug.WriteLine(err);
             }
         }
+#else
+		readonly Dictionary<IntPtr, CanvasTouch> activeTouches = new Dictionary<IntPtr, CanvasTouch> ();
+
+		static readonly IntPtr MouseId = new IntPtr (42424242);
+
+		void XamlCanvas_TouchDown (object sender, TouchEventArgs e)
+		{
+			var spt = e.GetTouchPoint ((FrameworkElement)Parent);
+			var pt = e.GetTouchPoint (this);
+
+			var t = new CanvasTouch {
+				Handle = new IntPtr (e.TouchDevice.Id),
+				CanvasLocation = new PointF ((float)pt.Position.X, (float)pt.Position.Y),
+				SuperCanvasLocation = new PointF ((float)spt.Position.X, (float)spt.Position.Y),
+				Time = DateTime.UtcNow,
+			};
+			t.PreviousTime = t.Time;
+			t.CanvasPreviousLocation = t.CanvasLocation;
+			t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
+
+			activeTouches[t.Handle] = t;
+
+			if (Content != null) {
+				Content.TouchesBegan (new[] { t }, CanvasKeys.None);
+			}
+		}
+
+		void XamlCanvas_TouchMove (object sender, TouchEventArgs e)
+		{
+			var id = new IntPtr (e.TouchDevice.Id);
+			CanvasTouch t;
+			if (!activeTouches.TryGetValue (id, out t)) return;
+
+			t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
+			t.CanvasPreviousLocation = t.CanvasLocation;
+			t.PreviousTime = t.Time;
+
+			var spt = e.GetTouchPoint ((FrameworkElement)Parent);
+			var pt = e.GetTouchPoint (this);
+			t.CanvasLocation = new PointF ((float)pt.Position.X, (float)pt.Position.Y);
+			t.SuperCanvasLocation = new PointF ((float)spt.Position.X, (float)spt.Position.Y);
+			t.Time = DateTime.UtcNow;
+
+			if (Content != null) {
+				Content.TouchesMoved (new[] { t });
+			}
+		}
+
+		void XamlCanvas_TouchUp (object sender, TouchEventArgs e)
+		{
+			var id = new IntPtr (e.TouchDevice.Id);
+			CanvasTouch t;
+			if (!activeTouches.TryGetValue (id, out t)) return;
+
+			if (Content != null) {
+				Content.TouchesEnded (new[] { t });
+			}
+		}		
+
+		void XamlCanvas_TouchLeave (object sender, TouchEventArgs e)
+		{
+			var id = new IntPtr (e.TouchDevice.Id);
+			CanvasTouch t;
+			if (!activeTouches.TryGetValue (id, out t)) return;
+
+			if (Content != null) {
+				Content.TouchesCancelled (new[] { t });
+			}
+		}
+
+		void XamlCanvas_TouchEnter (object sender, TouchEventArgs e)
+		{
+		}
+
+		void XamlCanvas_MouseDown (object sender, MouseButtonEventArgs e)
+		{
+			var spt = e.GetPosition ((FrameworkElement)Parent);
+			var pt = e.GetPosition (this);
+
+			var t = new CanvasTouch {
+				Handle = MouseId,
+				CanvasLocation = new PointF ((float)pt.X, (float)pt.Y),
+				SuperCanvasLocation = new PointF ((float)spt.X, (float)spt.Y),
+				Time = DateTime.UtcNow,
+			};
+			t.PreviousTime = t.Time;
+			t.CanvasPreviousLocation = t.CanvasLocation;
+			t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
+
+			activeTouches[t.Handle] = t;
+
+			if (Content != null) {
+				Content.TouchesBegan (new[] { t }, CanvasKeys.None);
+			}
+		}
+
+		void XamlCanvas_MouseMove (object sender, MouseEventArgs e)
+		{
+			CanvasTouch t;
+			if (!activeTouches.TryGetValue (MouseId, out t)) return;
+
+			t.SuperCanvasPreviousLocation = t.SuperCanvasLocation;
+			t.CanvasPreviousLocation = t.CanvasLocation;
+			t.PreviousTime = t.Time;
+
+			var spt = e.GetPosition ((FrameworkElement)Parent);
+			var pt = e.GetPosition (this);
+			t.CanvasLocation = new PointF ((float)pt.X, (float)pt.Y);
+			t.SuperCanvasLocation = new PointF ((float)spt.X, (float)spt.Y);
+			t.Time = DateTime.UtcNow;
+
+			if (Content != null) {
+				Content.TouchesMoved (new[] { t });
+			}
+		}
+
+		void XamlCanvas_MouseUp (object sender, MouseButtonEventArgs e)
+		{
+			CanvasTouch t;
+			if (!activeTouches.TryGetValue (MouseId, out t)) return;
+
+			if (Content != null) {
+				Content.TouchesEnded (new[] { t });
+			}
+		}
+
+		void XamlCanvas_MouseWheel (object sender, MouseWheelEventArgs e)
+		{
+		}
 #endif
 		#endregion
 	}

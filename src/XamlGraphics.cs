@@ -36,6 +36,8 @@ using Size = Windows.Foundation.Size;
 using NativePolygon = Windows.UI.Xaml.Shapes.Polygon;
 using NativeTextAlignment = Windows.UI.Xaml.TextAlignment;
 using NativeColor = Windows.UI.Color;
+using NativeFontFamily = Windows.UI.FontFamily;
+using NativeImage = Windows.UI.Xaml.Controls.Image;
 #else
 using System.Windows;
 using System.Windows.Controls;
@@ -48,6 +50,8 @@ using Size = System.Windows.Size;
 using NativePolygon = System.Windows.Shapes.Polygon;
 using NativeTextAlignment = System.Windows.TextAlignment;
 using NativeColor = System.Windows.Media.Color;
+using NativeFontFamily = System.Windows.Media.FontFamily;
+using NativeImage = System.Windows.Controls.Image;
 #endif
 
 namespace CrossGraphics
@@ -274,7 +278,7 @@ namespace CrossGraphics
 			try {
 				return new SilverlightImage (path);
 			}
-			catch (Exception ex) {
+			catch (Exception) {
 				return null;
 			}
 		}
@@ -295,8 +299,8 @@ namespace CrossGraphics
 		int _height = 10;
 		static float DefaultWidth = 9.5f;
 
-		public static readonly FontFamily SystemFont = new FontFamily ("Global User Interface");
-		public static readonly FontFamily Monospace = new FontFamily ("Courier New");
+		public static readonly NativeFontFamily SystemFont = new NativeFontFamily ("Global User Interface");
+		public static readonly NativeFontFamily Monospace = new NativeFontFamily ("Courier New");
 
 		public FontMetrics (Font f)
 		{
@@ -327,12 +331,12 @@ namespace CrossGraphics
 			}
 		}
 
-		static System.Drawing.SizeF StringSize (string text, int fontSize, FontFamily fontFamily, bool bold)
+		static System.Drawing.SizeF StringSize (string text, int fontSize, NativeFontFamily fontFamily, bool bold)
 		{
 			TextBlock txtMeasure = new TextBlock();
 			txtMeasure.FontFamily = fontFamily;
 			txtMeasure.FontSize = fontSize;
-			txtMeasure.FontWeight = bold ? Windows.UI.Text.FontWeights.Bold : Windows.UI.Text.FontWeights.Normal;
+			txtMeasure.FontWeight = bold ? FontWeights.Bold : FontWeights.Normal;
 			txtMeasure.Text = text;
 			txtMeasure.Measure (new Size (1, 1));
 			return new System.Drawing.SizeF((float)txtMeasure.ActualWidth, (float)txtMeasure.ActualHeight);
@@ -515,7 +519,7 @@ namespace CrossGraphics
 				element = new Rectangle ();
 			}
 			else if (typeId == TypeId.Image) {
-				element = new Image ();
+				element = new NativeImage ();
 			}
 			else if (typeId == TypeId.Polygon) {
 				element = new NativePolygon ();
@@ -1046,7 +1050,7 @@ namespace CrossGraphics
 			if (simg != null) {
 
 				var s = GetNextShape(TypeId.Image);
-				var e = s.Element as Image;
+				var e = s.Element as NativeImage;
 
 				if (s.Image != simg) {
 					s.Image = simg;
@@ -1127,10 +1131,10 @@ namespace CrossGraphics
 					e.FontFamily = FontMetrics.SystemFont;
 				}
 				if (CurrentFont.IsBold) {
-					e.FontWeight = Windows.UI.Text.FontWeights.Bold;
+					e.FontWeight = FontWeights.Bold;
 				}
 				else {
-					e.FontWeight = Windows.UI.Text.FontWeights.Normal;
+					e.FontWeight = FontWeights.Normal;
 				}
 				e.Padding = new Thickness(0);
 				e.RenderTransform = new TranslateTransform() {

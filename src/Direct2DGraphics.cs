@@ -651,7 +651,7 @@ namespace CrossGraphics
 			swapChainDescription.SampleDescription.Quality = 0;
 
 			swapChain = dxgiFactory2.CreateSwapChainForComposition (dxgiDevice2, ref swapChainDescription, null);
-			swapChain.BackgroundColor = new Color4 (1, 0, 0, 1);
+			swapChain.BackgroundColor = new Color4 (1, 0, 0, 0);
 
 			var native = SharpDX.ComObject.QueryInterface<SharpDX.DXGI.ISwapChainBackgroundPanelNative> (this);
 			native.SwapChain = swapChain;
