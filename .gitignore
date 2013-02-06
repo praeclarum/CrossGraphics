@@ -2,6 +2,7 @@
 *.user
 *.userprefs
 *.pidb
+*.nupkg
 .DS_Store
 Thumbs.db
 bin
