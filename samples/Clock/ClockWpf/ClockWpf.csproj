@@ -62,11 +62,11 @@
     <Compile Include="..\..\..\src\Graphics.cs">
       <Link>Graphics.cs</Link>
     </Compile>
-    <Compile Include="..\..\..\src\SilverlightGraphics.cs">
-      <Link>SilverlightGraphics.cs</Link>
-    </Compile>
     <Compile Include="..\..\..\src\System.Drawing.cs">
       <Link>System.Drawing.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\src\XamlGraphics.cs">
+      <Link>XamlGraphics.cs</Link>
     </Compile>
     <Compile Include="..\Clock\Clock.cs">
       <Link>Clock.cs</Link>
