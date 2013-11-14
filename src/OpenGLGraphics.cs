@@ -100,7 +100,7 @@ namespace CrossGraphics.OpenGL
 			Tic ();
 #endif
 		}
-		
+
 		public void EndDrawing ()
 		{
 			if (_nextDrawCallIndex == 0) return;
@@ -197,6 +197,12 @@ namespace CrossGraphics.OpenGL
 				_pCount = 0;
 			}
 #endif
+		}
+
+		public void Clear (Color c)
+		{
+			GL.ClearColor (c.RedValue, c.GreenValue, c.BlueValue, c.AlphaValue);
+			GL.Clear ((uint)All.ColorClearValue);
 		}
 
 		void EnsureRoomForVertices (int count)

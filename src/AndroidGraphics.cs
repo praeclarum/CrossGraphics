@@ -56,6 +56,11 @@ namespace CrossGraphics.Android
 			_font = font;
 		}
 
+		public void Clear (Color c)
+		{
+
+		}
+
 		public void SetColor (Color c)
 		{
 			if (c.Tag == null) {

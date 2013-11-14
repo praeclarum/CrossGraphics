@@ -1,4 +1,4 @@
-﻿//
+//
 // Copyright (c) 2012 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -389,7 +389,7 @@ namespace CrossGraphics.Android
 			}
 
 			if (began.Count > 0) {
-				content.TouchesBegan (began.ToArray ());
+				content.TouchesBegan (began.ToArray (), CanvasKeys.None);
 			}
 			if (moved.Count > 0) {
 				content.TouchesMoved (moved.ToArray ());

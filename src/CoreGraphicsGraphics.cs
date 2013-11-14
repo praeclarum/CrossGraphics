@@ -92,6 +92,11 @@ namespace CrossGraphics.CoreGraphics
 #endif
 		}
 
+		public void Clear (Color color)
+		{
+			_c.ClearRect (_c.GetClipBoundingBox ());
+		}
+
 		public void FillPolygon (Polygon poly)
 		{
 			var count = poly.Points.Count;
@@ -376,7 +381,8 @@ namespace CrossGraphics.CoreGraphics
 		{
 #if MONOMAC
 			var img = new NSImage ("Images/" + filename);
-			return new UIKitImage (img.AsCGImage (new RectangleF (PointF.Empty, img.Size), NSGraphicsContext.CurrentContext, new MonoMac.Foundation.NSDictionary ()));
+			var rect = new RectangleF (PointF.Empty, img.Size);
+			return new UIKitImage (img.AsCGImage (ref rect, NSGraphicsContext.CurrentContext, new MonoMac.Foundation.NSDictionary ()));
 #else
 			return new UIKitImage (UIImage.FromFile ("Images/" + filename).CGImage);
 #endif
