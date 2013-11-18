@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <version>1.0.5</version>
+    <authors>Frank A. Krueger</authors>
+    <owners>Frank A. Krueger</owners>
+    <projectUrl>https://github.com/praeclarum/CrossGraphics</projectUrl>
+    <id>CrossGraphics-gregsn</id>
+    <title>CrossGraphics</title>
+	  <licenseUrl>https://github.com/praeclarum/sqlite-net/blob/master/license.md</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Cross-platform library for rendering vector graphics and writing graphics-rich apps. Supports iOS, OS X, Android, Windows Phone, Windows RT, WPF among a variety of file formats.</description>
+    <tags>graphics rendering vector draw svg wmf</tags>
+	  <summary>Cross-platform library for rendering vector graphics.</summary>
+	  <releaseNotes>
+      <![CDATA[
+      v1.0.5: Fixed bugs with WPF touch and mouse events
+      v1.0.4: Added framework: portable-sl4+wp71+windows8
+      v1.0.3: Added framework: windowsphone8
+      v1.0.2: Cleaned up the namespace
+		  v1.0.1: Initial Release
+		  ]]>
+	  </releaseNotes>
+  </metadata>
+  <files>
+    <file src="net40client\bin\Release\*.dll" target="lib\net40-client" />
+    <file src="net40client\bin\Release\*.pdb" target="lib\net40-client" />
+  </files>
+</package>
