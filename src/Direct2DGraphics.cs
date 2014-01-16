@@ -22,126 +22,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
 using SharpDX.Direct2D1;
 using SharpDX;
 
 namespace CrossGraphics
 {
-	class WindowsDrawTimer
-	{
-		int _fps = 20;
-		readonly DispatcherTimer _drawTimer;
-
-		const double CpuUtilization = 0.25;
-		public int MinFps { get; set; }
-		public int MaxFps { get; set; }
-		static readonly TimeSpan ThrottleInterval = TimeSpan.FromSeconds (1.0);
-
-		double _drawTime;
-		int _drawCount;
-		DateTime _lastThrottleTime = DateTime.Now;
-
-		public bool Continuous { get; set; }
-
-		public WindowsDrawTimer ()
-		{
-			MinFps = 4;
-			MaxFps = 30;
-			Continuous = true;
-
-			_drawTimer = new DispatcherTimer ();
-			_drawTimer.Tick += DrawTick;
-		}
-
-		public void Start ()
-		{
-			_drawTimer.Interval = TimeSpan.FromSeconds (1.0 / _fps);
-
-			if (Continuous && !_drawTimer.IsEnabled) {
-				_drawTimer.Start ();
-			}
-		}
-
-		bool _paused = false;
-		public bool Paused
-		{
-			get
-			{
-				return _paused;
-			}
-			set
-			{
-				if (_paused != value) {
-					_paused = value;
-					_lastThrottleTime = DateTime.Now;
-				}
-			}
-		}
-
-		public void Stop ()
-		{
-			_drawTimer.Stop ();
-		}
-
-		public Func<bool> ShouldDrawFunc { get; set; }
-		public Func<double> DrawFunc { get; set; }
-
-		void DrawTick (object sender, object e)
-		{
-			//
-			// Decide if we should draw
-			//
-			if (Paused) {
-				_drawCount = 0;
-				_drawTime = 0;
-				return;
-			}
-
-			var sd = ShouldDrawFunc;
-			if (sd != null) {
-				if (!sd ()) {
-					return;
-				}
-			}
-
-			//
-			// Draw
-			//
-			var d = DrawFunc;
-			if (d != null) {
-				var dt = d ();
-				_drawTime += dt;
-				_drawCount++;
-			}
-
-			//
-			// Throttle
-			//
-			if (_drawCount > 2 && (DateTime.Now - _lastThrottleTime) >= ThrottleInterval) {
-
-				_lastThrottleTime = DateTime.Now;
-
-				var maxfps = 1.0 / (_drawTime / _drawCount);
-				_drawTime = 0;
-				_drawCount = 0;
-
-				var fps = ClampUpdateFreq ((int)(maxfps * CpuUtilization));
-
-				if (Math.Abs (fps - _fps) > 1) {
-					_fps = fps;
-					Start ();
-				}
-			}
-		}
-
-		int ClampUpdateFreq (int fps)
-		{
-			return Math.Min (MaxFps, Math.Max (MinFps, fps));
-		}
-	}
-
 	public class Direct2DGraphics : IGraphics
 	{
 		const int MaxFontSize = 120;
@@ -180,20 +65,30 @@ namespace CrossGraphics
 			dc = DisposeLater (new RenderTarget (
 				d2dFactory,
 				surface,
-				new RenderTargetProperties (
-					RenderTargetType.Default,
-					new SharpDX.Direct2D1.PixelFormat (SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied),
-					d2dFactory.DesktopDpi.Width, d2dFactory.DesktopDpi.Height,
-					RenderTargetUsage.None,
-					FeatureLevel.Level_DEFAULT)));
+                new RenderTargetProperties(new PixelFormat(SharpDX.DXGI.Format.Unknown, AlphaMode.Premultiplied)))
+            );
 
 			Initialize ();
 		}
 
+        public Direct2DGraphics(IntPtr handle, int width, int height)
+            : this()
+        {
+            //surface = DisposeLater(SharpDX.DXGI.Surface.FromSwapChain(swapChain, 0));
+            dc = DisposeLater(new WindowRenderTarget(
+                d2dFactory,
+                new RenderTargetProperties(new PixelFormat(SharpDX.DXGI.Format.Unknown, AlphaMode.Premultiplied)),
+                new HwndRenderTargetProperties() { Hwnd = handle, PixelSize = new Size2(width, height), PresentOptions = PresentOptions.None }
+                )
+            );
+
+            Initialize();
+        }
+
 		public Direct2DGraphics (int width, int height)
 			: this ()
 		{
-			var wicFactory = new SharpDX.WIC.ImagingFactory2 ();
+			var wicFactory = new SharpDX.WIC.ImagingFactory();
 			bitmap = DisposeLater (new SharpDX.WIC.Bitmap (
 				wicFactory,
 				width, height,
@@ -357,14 +252,14 @@ namespace CrossGraphics
 		{
 			var rx = width / 2;
 			var ry = height / 2;
-			dc.FillEllipse (new Ellipse (new DrawingPointF (x + rx, y + ry), rx, ry), lastColor.GetBrush (dc));
+			dc.FillEllipse (new Ellipse (new Vector2 (x + rx, y + ry), rx, ry), lastColor.GetBrush (dc));
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
 			var rx = width / 2;
 			var ry = height / 2;
-			dc.DrawEllipse (new Ellipse (new DrawingPointF (x + rx, y + ry), rx, ry), lastColor.GetBrush (dc), w);
+            dc.DrawEllipse(new Ellipse(new Vector2(x + rx, y + ry), rx, ry), lastColor.GetBrush(dc), w);
 		}
 
 		public void BeginLines (bool rounded)
@@ -373,7 +268,7 @@ namespace CrossGraphics
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			dc.DrawLine (new DrawingPointF (sx, sy), new DrawingPointF (ex, ey), lastColor.GetBrush (dc), w, strokeStyle);
+            dc.DrawLine(new Vector2(sx, sy), new Vector2(ex, ey), lastColor.GetBrush(dc), w, strokeStyle);
 		}
 
 		public void EndLines ()
@@ -547,8 +442,8 @@ namespace CrossGraphics
 			if (g == null) {
 				var pg = new PathGeometry (factory);
 				using (var gs = pg.Open ()) {
-					gs.BeginFigure (new DrawingPointF (poly.Points[0].X, poly.Points[0].Y), FigureBegin.Filled);
-					gs.AddLines (poly.Points.Select (p => new DrawingPointF (p.X, p.Y)).ToArray ());
+                    gs.BeginFigure(new Vector2(poly.Points[0].X, poly.Points[0].Y), FigureBegin.Filled);
+					gs.AddLines (poly.Points.Select (p => new Vector2 (p.X, p.Y)).ToArray ());
 					gs.EndFigure (FigureEnd.Closed);
 					gs.Close ();
 				}
@@ -589,190 +484,6 @@ namespace CrossGraphics
 			}
 
 			return ci.Brush;
-		}
-	}
-
-	public class Direct2DCanvas : SwapChainBackgroundPanel, ICanvas
-	{
-		SharpDX.DXGI.SwapChain1 swapChain;
-		Direct2DGraphics g;
-		WindowsDrawTimer _drawTimer;
-
-		CanvasContent content;
-		public CanvasContent Content
-		{
-			get
-			{
-				return content;
-			}
-			set
-			{
-				if (content != value) {
-					if (content != null) {
-						content.NeedsDisplay -= OnNeedsDisplay;
-					}
-					content = value;
-					if (content != null) {
-						content.NeedsDisplay += OnNeedsDisplay;
-					}
-				}
-			}
-		}
-
-		public Direct2DCanvas ()
-		{
-			int width = 1024;
-			int height = 1024;
-
-			SharpDX.Direct3D11.Device defaultDevice = new SharpDX.Direct3D11.Device (
-				SharpDX.Direct3D.DriverType.Hardware,
-				SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport);
-
-			// Query the default device for the supported device and context interfaces.
-			var device = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device1> ();
-
-			// Query for the adapter and more advanced DXGI objects.
-			SharpDX.DXGI.Device2 dxgiDevice2 = device.QueryInterface<SharpDX.DXGI.Device2> ();
-			SharpDX.DXGI.Adapter dxgiAdapter = dxgiDevice2.Adapter;
-			SharpDX.DXGI.Factory2 dxgiFactory2 = dxgiAdapter.GetParent<SharpDX.DXGI.Factory2> ();
-
-			var swapChainDescription = new SharpDX.DXGI.SwapChainDescription1 {
-				Width = width,
-				Height = height,
-				Format = SharpDX.DXGI.Format.B8G8R8A8_UNorm,
-				Stereo = false,
-				Usage = SharpDX.DXGI.Usage.RenderTargetOutput,
-				BufferCount = 2,
-				Scaling = SharpDX.DXGI.Scaling.Stretch,
-				SwapEffect = SharpDX.DXGI.SwapEffect.FlipSequential,
-				Flags = SharpDX.DXGI.SwapChainFlags.None,
-			};
-			swapChainDescription.SampleDescription.Count = 1;
-			swapChainDescription.SampleDescription.Quality = 0;
-
-			swapChain = dxgiFactory2.CreateSwapChainForComposition (dxgiDevice2, ref swapChainDescription, null);
-			swapChain.BackgroundColor = new Color4 (1, 0, 0, 0);
-
-			var native = SharpDX.ComObject.QueryInterface<SharpDX.DXGI.ISwapChainBackgroundPanelNative> (this);
-			native.SwapChain = swapChain;
-
-			g = new Direct2DGraphics (swapChain);
-
-			_drawTimer = new WindowsDrawTimer {
-				Continuous = true,
-				ShouldDrawFunc = () =>
-					Content != null && ActualWidth > 0 && ActualHeight > 0,
-				DrawFunc = Draw,
-			};
-
-			Unloaded += HandleUnloaded;
-			Loaded += HandleLoaded;
-			LayoutUpdated += HandleLayoutUpdated;
-		}
-
-		double lastUpdateWidth = -1, lastUpdateHeight = -1;
-
-		void HandleLayoutUpdated (object sender, object e)
-		{
-			if (Content != null && (Math.Abs (lastUpdateWidth - ActualWidth) > 0.5 || Math.Abs (lastUpdateHeight - ActualHeight) > 0.5)) {
-				lastUpdateWidth = ActualWidth;
-				lastUpdateHeight = ActualHeight;
-
-				// TODO: Resize the SwapChain
-
-#if NETFX_CORE
-#pragma warning disable 4014
-				Dispatcher.RunAsync (Windows.UI.Core.CoreDispatcherPriority.Normal, delegate {
-					Content.SetNeedsDisplay ();
-				});
-#pragma warning restore 4014
-#endif
-			}
-		}
-
-		void HandleLoaded (object sender, RoutedEventArgs e)
-		{
-			//Debug.WriteLine("LOADED {0}", Delegate);
-			//TouchEnabled = true;
-			if (_drawTimer.Continuous) {
-				Start ();
-			}
-		}
-
-		void HandleUnloaded (object sender, RoutedEventArgs e)
-		{
-			//Debug.WriteLine("UNLOADED {0}", Delegate);
-			//TouchEnabled = false;
-			Stop ();
-		}
-
-		void OnNeedsDisplay (object sender, EventArgs e)
-		{
-			Draw ();
-		}
-
-		public void Start ()
-		{
-			_drawTimer.Start ();
-		}
-
-		public void Stop ()
-		{
-			_drawTimer.Stop ();
-		}
-
-		public Transform2D ContentTransform
-		{
-			get
-			{
-				return g.Transform;
-			}
-			set
-			{
-				g.Transform = value;
-				SetNeedsDisplay ();
-			}
-		}
-
-		void SetNeedsDisplay ()
-		{
-			Draw ();
-		}
-
-		double Draw ()
-		{
-			var del = Content;
-			if (del == null) return 0;
-
-			var startT = DateTime.Now;
-
-			g.BeginDrawing ();
-			g.BeginEntity (del);
-
-			//
-			// Draw
-			//
-			var fr = new System.Drawing.RectangleF (0, 0, (float)ActualWidth, (float)ActualHeight);
-			//if (_ppi != NativePointsPerInch) {
-			//	fr.Width /= _ppi / (float)NativePointsPerInch;
-			//	fr.Height /= _ppi / (float)NativePointsPerInch;
-			//}
-			del.Frame = fr;
-			try {
-				Console.WriteLine (g.Transform);
-				//g.Transform = transform;
-				g.Clear (Colors.Red);
-				del.Draw (g);
-			}
-			catch (Exception) {
-			}
-
-			g.EndDrawing ();
-
-			swapChain.Present (1, SharpDX.DXGI.PresentFlags.None);
-
-			var endT = DateTime.Now;
-			return (endT - startT).TotalSeconds;
 		}
 	}
 }
