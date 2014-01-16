@@ -223,7 +223,7 @@ namespace CrossGraphics
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
 			dc.FillRoundedRectangle (new RoundedRectangle {
-				Rect = new RectangleF (x, y, x + width, y + height),
+				Rect = new RectangleF (x, y, width, height),
 				RadiusX = radius,
 				RadiusY = radius,
 			}, lastColor.GetBrush (dc));
@@ -232,7 +232,7 @@ namespace CrossGraphics
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
 			dc.DrawRoundedRectangle (new RoundedRectangle {
-				Rect = new RectangleF (x, y, x + width, y + height),
+				Rect = new RectangleF (x, y, width, height),
 				RadiusX = radius,
 				RadiusY = radius,
 			}, lastColor.GetBrush (dc), w);
@@ -240,12 +240,12 @@ namespace CrossGraphics
 
 		public void FillRect (float x, float y, float width, float height)
 		{
-			dc.FillRectangle (new RectangleF (x, y, x + width, y + height), lastColor.GetBrush (dc));
+			dc.FillRectangle (new RectangleF (x, y, width, height), lastColor.GetBrush (dc));
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			dc.DrawRectangle (new RectangleF (x, y, x + width, y + height), lastColor.GetBrush (dc), w);
+			dc.DrawRectangle (new RectangleF (x, y, width, height), lastColor.GetBrush (dc), w);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
@@ -292,7 +292,7 @@ namespace CrossGraphics
 			dc.DrawText (
 				s,
 				textFormat,
-				new RectangleF (x, yy, x + 1000, yy + 1000),
+				new RectangleF (x, yy, 1000, 1000),
 				lastColor.GetBrush (dc));
 		}
 
@@ -303,7 +303,7 @@ namespace CrossGraphics
 			dc.DrawText (
 				s,
 				textFormat,
-				new RectangleF (x, yy, x + width, yy + height),
+				new RectangleF (x, yy, width, height),
 				lastColor.GetBrush (dc));
 		}
 
