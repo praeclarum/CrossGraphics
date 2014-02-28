@@ -37,8 +37,8 @@ namespace CrossGraphics.CoreGraphics
 #if !MONOMAC
 	public class UIKitGraphics : CrossGraphics.CoreGraphics.CoreGraphicsGraphics
 	{
-		public UIKitGraphics (CGContext c, bool highQuality)
-			: base (c, highQuality)
+		public UIKitGraphics (bool highQuality)
+			: base (UIGraphics.GetCurrentContext (), highQuality)
 		{
 		}
 	}
