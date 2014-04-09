@@ -184,6 +184,11 @@ namespace CrossGraphics.CoreGraphics
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
+			#if DEBUG
+			if (float.IsNaN (sx) || float.IsNaN (sy) || float.IsNaN (ex) || float.IsNaN (ey) || float.IsNaN (w)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawLine");
+			}
+			#endif
 			if (_linesBegun) {
 				
 				_lineWidth = w;
