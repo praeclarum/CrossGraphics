@@ -324,6 +324,8 @@ namespace CrossGraphics
 			Alpha = alpha;
 		}
 
+		public int Intensity { get { return (Red + Green + Blue) / 3; } }
+
 		public Color GetInvertedColor()
 		{
 			return new Color (255 - Red, 255 - Green, 255 - Blue, Alpha);
