@@ -111,12 +111,13 @@ namespace CrossGraphics.CoreGraphics
 		public void DrawPolygon (Polygon poly, float w)
 		{
 			_c.SetLineWidth (w);
+			_c.SetLineJoin (CGLineJoin.Round);
 			_c.MoveTo (poly.Points[0].X, poly.Points[0].Y);
 			for (var i = 1; i < poly.Points.Count; i++) {
 				var p = poly.Points[i];
 				_c.AddLineToPoint (p.X, p.Y);
 			}
-			_c.AddLineToPoint (poly.Points[0].X, poly.Points[0].Y);
+			_c.ClosePath ();
 			_c.StrokePath ();
 		}
 
