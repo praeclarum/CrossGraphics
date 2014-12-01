@@ -20,5 +20,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+  <key>UIAppFonts</key>
+  <array>
+    <string>BILLY ARGEL TRIAL___.otf</string>
+  </array>
 </dict>
 </plist>

@@ -243,32 +243,41 @@ namespace CrossGraphics.CoreGraphics
 				SelectFont ();
 			}
 		}
-		
-		void SelectFont ()
-		{
-			var f = _lastFont;
-			var name = "Helvetica";
-			if (f.FontFamily == "Monospace") {
-				if (f.IsBold) {
-					name = "Courier-Bold";
-				}
-				else {
-					name = "Courier";
-				}
-			}
-			else if (f.FontFamily == "DBLCDTempBlack") {
+
+        void SelectFont()
+        {
+            var f = _lastFont;
+            var name = "Helvetica";
+            if (f.FontFamily == "Monospace" || f.FontFamily == "SystemFont")
+            {
+                if (f.IsBold)
+                {
+                    name = "Courier-Bold";
+                }
+                else
+                {
+                    name = "Courier";
+                }
+            }
+            else if (f.FontFamily == "DBLCDTempBlack")
+            {
 #if MONOMAC
 				name = "Courier-Bold";
 #else
-				name = f.FontFamily;
+                name = f.FontFamily;
 #endif
-			}
-			else if (f.IsBold) {
-				name = "Helvetica-Bold";
-			}
-			_c.SelectFont (name, f.Size, CGTextEncoding.MacRoman);
-			_c.TextMatrix = _textMatrix;
-		}
+            }
+            else if (!string.IsNullOrEmpty(f.FontFamily))
+            {
+                name = f.FontFamily;
+            }
+            else if (f.IsBold)
+            {
+                name = "Helvetica-Bold";
+            }
+            _c.SelectFont(name, f.Size, CGTextEncoding.MacRoman);
+            _c.TextMatrix = _textMatrix;
+        }
 		
 		static Dictionary<string, byte[]> _stringFixups = new Dictionary<string, byte[]>();
 		

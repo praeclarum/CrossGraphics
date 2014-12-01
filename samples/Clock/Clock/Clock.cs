@@ -48,7 +48,7 @@ namespace Clock
 			g.DrawString ("Cross Graphics", center.X - textWidth / 2, center.Y + 0.25f * r);
 
             //Custom Font Test
-            var customFont = Font.FromName("BILLY ARGEL TRIAL___.otf", "BILLY ARGEL FONT Regular", 30);
+            var customFont = Font.FromName("BILLY ARGEL TRIAL___.otf", "BILLY ARGEL FONT", 30);
             g.SetFont(customFont);
             g.SetColor(new Color(255, 0, 0));
             var myString = "Custom Font Test";

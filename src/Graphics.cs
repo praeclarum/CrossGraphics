@@ -343,6 +343,22 @@ namespace CrossGraphics
 			Alpha = alpha;
 		}
 
+        public Color(float red, float green, float blue)
+        {
+            Red = (int)(red * 255);
+            Green = (int)(green * 255);
+            Blue = (int)(blue * 255);
+            Alpha = 255;
+        }
+
+        public Color(float red, float green, float blue, float alpha)
+        {
+            Red = (int)(red * 255);
+            Green = (int)(green * 255);
+            Blue = (int)(blue * 255);
+            Alpha = (int)(alpha * 255);
+        }
+
 		public int Intensity { get { return (Red + Green + Blue) / 3; } }
 
 		public Color GetInvertedColor()
