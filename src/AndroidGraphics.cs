@@ -21,6 +21,7 @@
 //
 using System;
 using Android.Graphics;
+using Android.Content;
 
 
 namespace CrossGraphics.Android
@@ -30,6 +31,7 @@ namespace CrossGraphics.Android
 		Canvas _c;
 		ColPaints _paints;
 		Font _font;
+        static Context _context;
 
 		public Canvas Canvas { get { return _c; } }
 
@@ -40,10 +42,11 @@ namespace CrossGraphics.Android
 			public Font Font;
 		}
 
-		public AndroidGraphics (Canvas canvas)
+        public AndroidGraphics(Canvas canvas, Context context)
 		{
 			_c = canvas;
 			_font = null;
+            _context = context;
 			SetColor (Colors.Black);
 		}
 
@@ -226,12 +229,24 @@ namespace CrossGraphics.Android
 		{
 			var fi = f.Tag as AndroidFontInfo;
 			if (fi == null) {
-				var tf = f.IsBold ? Typeface.DefaultBold : Typeface.Default;
-				fi = new AndroidFontInfo {
-					Typeface = tf,
-				};
-				f.Tag = fi;
-			}
+                try
+                {
+                    fi = new AndroidFontInfo
+                    {
+                        Typeface = Typeface.CreateFromAsset(_context.Assets, f.FontFilename),
+                    };
+                }
+                catch (Exception ex)
+                {
+                    //throw new NotSupportedException ("Font must be included in the Assets folder and the full filename including file extension must be provided.");
+                    var tf = f.IsBold ? Typeface.DefaultBold : Typeface.Default;
+                    fi = new AndroidFontInfo
+                    {
+                        Typeface = tf,
+                    };
+                }
+                f.Tag = fi;
+            }
 			return fi;
 		}
 

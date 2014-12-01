@@ -184,7 +184,9 @@ namespace CrossGraphics
 	public class Font
 	{
 		public string FontFamily { get; private set; }
-		
+
+        public string FontFilename { get; private set; }
+
 		public FontOptions Options { get; private set; }
 
 		public int Size { get; private set; }
@@ -193,9 +195,10 @@ namespace CrossGraphics
 		
 		public bool IsBold { get { return (Options & FontOptions.Bold) != 0; } }
 
-		public Font (string fontFamily, FontOptions options, int size)
+		public Font (string fontFileName, string fontFamily, FontOptions options, int size)
 		{
-			FontFamily = fontFamily;
+            FontFilename = fontFileName;
+            FontFamily = fontFamily;
 			Options = options;
 			Size = size;
 		}
@@ -207,12 +210,12 @@ namespace CrossGraphics
 
 		public static Font BoldSystemFontOfSize (int size) {
 			if (size >= _boldSystemFonts.Length) {
-				return new Font ("SystemFont", FontOptions.Bold, size);
+				return new Font ("", "SystemFont", FontOptions.Bold, size);
 			}
 			else {
 				var f = _boldSystemFonts[size];
 				if (f == null) {
-					f = new Font ("SystemFont", FontOptions.Bold, size);
+					f = new Font ("", "SystemFont", FontOptions.Bold, size);
 					_boldSystemFonts[size] = f;
 				}
 				return f;
@@ -220,12 +223,12 @@ namespace CrossGraphics
 		}
 		public static Font SystemFontOfSize (int size) {
 			if (size >= _systemFonts.Length) {
-				return new Font ("SystemFont", FontOptions.None, size);
+				return new Font ("", "SystemFont", FontOptions.None, size);
 			}
 			else {
 				var f = _systemFonts[size];
 				if (f == null) {
-					f = new Font ("SystemFont", FontOptions.None, size);
+					f = new Font ("", "SystemFont", FontOptions.None, size);
 					_systemFonts[size] = f;
 				}
 				return f;
@@ -233,12 +236,12 @@ namespace CrossGraphics
 		}
 		public static Font UserFixedPitchFontOfSize (int size) {
 			if (size >= _userFixedPitchFonts.Length) {
-				return new Font ("Monospace", FontOptions.None, size);
+				return new Font ("", "Monospace", FontOptions.None, size);
 			}
 			else {
 				var f = _userFixedPitchFonts[size];
 				if (f == null) {
-					f = new Font ("Monospace", FontOptions.None, size);
+					f = new Font ("", "Monospace", FontOptions.None, size);
 					_userFixedPitchFonts[size] = f;
 				}
 				return f;
@@ -246,20 +249,36 @@ namespace CrossGraphics
 		}
 		public static Font BoldUserFixedPitchFontOfSize (int size) {
 			if (size >= _boldUserFixedPitchFonts.Length) {
-				return new Font ("Monospace", FontOptions.Bold, size);
+				return new Font ("", "Monospace", FontOptions.Bold, size);
 			}
 			else {
 				var f = _boldUserFixedPitchFonts[size];
 				if (f == null) {
-					f = new Font ("Monospace", FontOptions.Bold, size);
+					f = new Font ("", "Monospace", FontOptions.Bold, size);
 					_boldUserFixedPitchFonts[size] = f;
 				}
 				return f;
 			}
 		}
-		
-		public static Font FromName (string name, int size) {
-			return new Font (name, FontOptions.None, size);
+
+
+        //Customs Fonts
+        //iOS:
+        //You have to modify your info.plist and add the entry 'Fonts provided by application' <key>UIAppFonts</key> for your custom fonts and copy the fonts to your Bundle as BundleResource
+        //Not all fonts seem to work and I couldn't find out why
+        //
+        //Android:
+        //Copy the fonts to your Assets folder as AndroidAsset; remember to use the full filename to load the font like Font.FromName("UniversLTStd-LightCn.otf", "Univers LT Std", 18);
+        //
+        //Windows Phone/Store:
+        //According to
+        //http://stackoverflow.com/questions/14085818/custom-font-usage-in-windows-phone-8
+        //you have to set the real font name not only the filename for windows phone like Font.FromName("UniversLTStd-LightCn.otf", "Univers LT Std", 18);
+        //The fonts should be copied inside a 'Fonts' folder. The custom fonts should be as type 'Content'
+
+        public static Font FromName(string fontFileName, string name, int size)
+        {
+            return new Font(fontFileName, name, FontOptions.None, size);
 		}
 
 		public override string ToString()

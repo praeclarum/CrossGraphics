@@ -42,7 +42,7 @@ namespace Clock.Android
 			{
 				base.Draw (canvas);
 
-				var g = new AndroidGraphics (canvas);
+				var g = new AndroidGraphics (canvas, Context);
 
 				_clock.Width = Width;
 				_clock.Height = Height;
