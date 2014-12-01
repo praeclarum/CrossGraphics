@@ -1081,76 +1081,93 @@ namespace CrossGraphics
 			}
 		}
 
-		public void DrawString(string str, float x, float y, float width = 0, float height = 0, LineBreakMode lineBreak = LineBreakMode.None, TextAlignment align = TextAlignment.Left)
-		{
-			var s = GetNextShape(TypeId.Text);
-			var e = (TextBlock)s.Element;
-			//var b = s.Element as Border;
-			//var e = b.Child as TextBlock;
-			//if (e == null) {
-			//    e = new TextBlock();
-			//    b.Child = e;
-			//}
+        public void DrawString(string str, float x, float y, float width = 0, float height = 0, LineBreakMode lineBreak = LineBreakMode.None, TextAlignment align = TextAlignment.Left)
+        {
+            var s = GetNextShape(TypeId.Text);
+            var e = (TextBlock)s.Element;
+            //var b = s.Element as Border;
+            //var e = b.Child as TextBlock;
+            //if (e == null) {
+            //    e = new TextBlock();
+            //    b.Child = e;
+            //}
 
-			if (s.TextAlignment != align) {
-				switch (align) {
-					case TextAlignment.Center:
-						e.TextAlignment = NativeTextAlignment.Center;
-						e.Width = width;
-						e.Height = height;
-						break;
-					default:
-						e.TextAlignment = NativeTextAlignment.Left;
-						break;
-				}
-				s.TextAlignment = align;
-			}
+            if (s.TextAlignment != align)
+            {
+                switch (align)
+                {
+                    case TextAlignment.Center:
+                        e.TextAlignment = NativeTextAlignment.Center;
+                        e.Width = width;
+                        e.Height = height;
+                        break;
+                    default:
+                        e.TextAlignment = NativeTextAlignment.Left;
+                        break;
+                }
+                s.TextAlignment = align;
+            }
 
-			if (s.X != x) {
-				s.X = x;
-				Canvas.SetLeft(e, x);
-			}
-			if (s.Y != y) {
-				s.Y = y;
-				Canvas.SetTop(e, y);
-			}
-			if (s.Text != str) {
-				s.Text = str;
-				e.Text = str;                
-				//b.Background = new SolidColorBrush(System.Windows.Media.Colors.Red);
-			}
-			if (s.Color != _currentColor) {
-				s.Color = _currentColor;
-				e.Foreground = _currentColor.GetBrush();
-			}
-			if (s.Font != CurrentFont) {
-				s.Font = CurrentFont;
-				if (CurrentFont.FontFamily == "Monospace") {
-					e.FontFamily = XamlFontMetrics.Monospace;
-				}
-				else {
-					e.FontFamily = XamlFontMetrics.SystemFont;
-				}
-				if (CurrentFont.IsBold) {
-					e.FontWeight = FontWeights.Bold;
-				}
-				else {
-					e.FontWeight = FontWeights.Normal;
-				}
-				e.Padding = new Thickness(0);
-				e.RenderTransform = new TranslateTransform() {
-					X = 0,
+            if (s.X != x)
+            {
+                s.X = x;
+                Canvas.SetLeft(e, x);
+            }
+            if (s.Y != y)
+            {
+                s.Y = y;
+                Canvas.SetTop(e, y);
+            }
+            if (s.Text != str)
+            {
+                s.Text = str;
+                e.Text = str;
+                //b.Background = new SolidColorBrush(System.Windows.Media.Colors.Red);
+            }
+            if (s.Color != _currentColor)
+            {
+                s.Color = _currentColor;
+                e.Foreground = _currentColor.GetBrush();
+            }
+            if (s.Font != CurrentFont)
+            {
+                s.Font = CurrentFont;
+                if (CurrentFont.FontFamily == "Monospace")
+                {
+                    e.FontFamily = XamlFontMetrics.Monospace;
+                }
+                else if (string.IsNullOrEmpty(CurrentFont.FontFamily) == false)
+                {
+                    e.FontFamily = new NativeFontFamily("/Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.FontFamily);
+                    //e.FontFamily = new FontFamily("/Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.FontFamily);
+                }
+                else
+                {
+                    e.FontFamily = XamlFontMetrics.SystemFont;
+                }
+                if (CurrentFont.IsBold)
+                {
+                    e.FontWeight = FontWeights.Bold;
+                }
+                else
+                {
+                    e.FontWeight = FontWeights.Normal;
+                }
+                e.Padding = new Thickness(0);
+                e.RenderTransform = new TranslateTransform()
+                {
+                    X = 0,
 #if NETFX_CORE
 					Y = -0.08 * CurrentFont.Size,
 #else
-					Y = -0.333 * CurrentFont.Size,
+                    Y = -0.333 * CurrentFont.Size,
 #endif
-				};
-				e.FontSize = CurrentFont.Size;
-				//e.Height = CurrentFont.Size;
-			}
-		}
-	}
+                };
+                e.FontSize = CurrentFont.Size;
+                //e.Height = CurrentFont.Size;
+            }
+        }
+    }
 
 	public static partial class ColorEx
 	{

@@ -1,34 +1,33 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
+using Microsoft.Phone.Controls;
 using CrossGraphics;
 
-namespace Clock.Silverlight
+namespace Clock.WP8
 {
-	public partial class MainPage : UserControl
+	public partial class MainPage : PhoneApplicationPage
 	{
 		Clock _clock;
-        XamlGraphics _graphics;
+		XamlGraphics _graphics;
 
 		public MainPage ()
 		{
 			InitializeComponent ();
+
 			_clock = new Clock ();
 		}
 
-		private void UserControl_Loaded (object sender, RoutedEventArgs e)
+		private void PhoneApplicationPage_Loaded (object sender, RoutedEventArgs e)
 		{
-			_graphics = new XamlGraphics (LayoutRoot);
+			//
+			// Initialize the graphics context
+			//
+            _graphics = new XamlGraphics(LayoutRoot);
 
+			//
+			// Create a timer to refresh the clock
+			//
 			var timer = new DispatcherTimer {
 				Interval = TimeSpan.FromSeconds (1),
 			};
