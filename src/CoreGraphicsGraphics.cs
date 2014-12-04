@@ -59,7 +59,10 @@ namespace CrossGraphics.CoreGraphics
 			//		Console.WriteLine ("  " + ff);
 			//	}
 			//}
-			
+
+			//float scale = UIScreen.MainScreen.Scale; // [[UIScreen mainScreen] scale];
+			//UIGraphics.GetCurrentContext ().ScaleCTM (scale, scale);
+
 			_textMatrix = CGAffineTransform.MakeScale (1, -1);
 		}
 
@@ -309,9 +312,9 @@ namespace CrossGraphics.CoreGraphics
 			_c.ClipToRect (new RectangleF (x, y, width, height));
 		}
 		
-		public void DrawString (string s, float x, float y)
+		public double[] DrawString (string s, float x, float y)
 		{			
-			if (_lastFont == null) return;
+			if (_lastFont == null) return new double[]{ 0, 0};
 			var fm = GetFontMetrics ();
 			var fix = FixupString (s);
 			
@@ -321,11 +324,13 @@ namespace CrossGraphics.CoreGraphics
 			else {
 				_c.ShowTextAtPoint (x, y + fm.Height, fix);
 			}
-		}
+            //return new double[] { (double)fm.StringWidth(s), (double)fm.Height };
+            return new double[] { 0, 0 };
+        }
 
-		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+        public double[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			if (_lastFont == null) return;
+            if (_lastFont == null) return new double[] { 0, 0 }; ;
 			var fm = GetFontMetrics ();
 			var fix = FixupString (s);
 			var xx = x;
@@ -343,7 +348,9 @@ namespace CrossGraphics.CoreGraphics
 			else {
 				_c.ShowTextAtPoint (xx, yy + fm.Height, fix);
 			}
-		}
+            //return new double[] { (double)fm.StringWidth(s), (double)fm.Height };
+            return new double[] { 0, 0 };
+        }
 
 		public IFontMetrics GetFontMetrics ()
 		{
@@ -514,9 +521,9 @@ namespace CrossGraphics.CoreGraphics
 		public void MeasureText (CGContext c, Font f)
 		{
 //			Console.WriteLine ("MEASURE {0}", f);
-			
-			c.SetTextDrawingMode (CGTextDrawingMode.Invisible);
-			c.TextPosition = new PointF(0, 0);
+
+            c.SetTextDrawingMode(CGTextDrawingMode.Invisible);
+            c.TextPosition = new PointF(0, 0);
 			c.ShowText ("MM");
 			
 			var mmWidth = c.TextPosition.X;

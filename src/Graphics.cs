@@ -63,9 +63,9 @@ namespace CrossGraphics
 
 		void DrawImage(IImage img, float x, float y, float width, float height);
 
-		void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align);
+        double[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align);
 
-		void DrawString(string s, float x, float y);
+        double[] DrawString(string s, float x, float y);
 		
 		void SaveState();
 		
@@ -85,6 +85,7 @@ namespace CrossGraphics
 	public enum LineBreakMode {
 		None,
 		Clip,
+        Wrap,
 		WordWrap,
 	}
 
@@ -97,21 +98,21 @@ namespace CrossGraphics
 
 	public static class GraphicsEx
 	{
-        public static void DrawString (this IGraphics g, string s, PointF p)
+        public static double[] DrawString(this IGraphics g, string s, PointF p)
         {
-            g.DrawString(s, p.X, p.Y);
+            return g.DrawString(s, p.X, p.Y);
         }
 
-		public static void DrawString(this IGraphics g, string s, PointF p, Font f)
+        public static double[] DrawString(this IGraphics g, string s, PointF p, Font f)
 		{
 			g.SetFont (f);
-			g.DrawString (s, p.X, p.Y);
+			return g.DrawString (s, p.X, p.Y);
 		}
 
-		public static void DrawString(this IGraphics g, string s, RectangleF p, Font f, LineBreakMode lineBreak, TextAlignment align)
+        public static double[] DrawString(this IGraphics g, string s, RectangleF p, Font f, LineBreakMode lineBreak, TextAlignment align)
 		{
 			g.SetFont (f);
-			g.DrawString (s, p.Left, p.Top, p.Width, p.Height, lineBreak, align);
+			return g.DrawString (s, p.Left, p.Top, p.Width, p.Height, lineBreak, align);
 		}
 
 		public static void DrawLine(this IGraphics g, PointF s, PointF e, float w)

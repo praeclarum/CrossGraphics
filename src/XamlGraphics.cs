@@ -80,6 +80,7 @@ namespace CrossGraphics
 		{
 			if (canvas == null) throw new ArgumentNullException ("canvas");
 			_canvas = canvas;
+            
 			_states.Push(new State());
 		}
 
@@ -243,9 +244,9 @@ namespace CrossGraphics
 			_eshape.DrawImage (img, x, y, width, height);
 		}
 
-		public void DrawString (string s, float x, float y)
+        public double[] DrawString(string s, float x, float y)
 		{
-			_eshape.DrawString (s, x, y);
+			return _eshape.DrawString (s, x, y);
 		}
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
@@ -258,9 +259,9 @@ namespace CrossGraphics
 			_eshape.DrawArc (cx, cy, radius, startAngle, endAngle, w);
 		}
 
-		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+        public double[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			_eshape.DrawString (s, x, y, width, height, lineBreak, align);
+            return _eshape.DrawString(s, x, y, width, height, lineBreak, align);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -430,8 +431,9 @@ namespace CrossGraphics
 			public float X, Y, Width, Height;
 			public float Thickness, Radius;
 			public string Text;
-			public TextAlignment TextAlignment;
-			public int Count;
+            public TextAlignment TextAlignment;
+            public LineBreakMode LineBreakMode;
+            public int Count;
 			public SilverlightImage Image;
 			public DrawOp DrawOp;
 			public override string ToString ()
@@ -1081,7 +1083,7 @@ namespace CrossGraphics
 			}
 		}
 
-        public void DrawString(string str, float x, float y, float width = 0, float height = 0, LineBreakMode lineBreak = LineBreakMode.None, TextAlignment align = TextAlignment.Left)
+        public double[] DrawString(string str, float x, float y, float width = 0, float height = 0, LineBreakMode lineBreak = LineBreakMode.None, TextAlignment align = TextAlignment.Left)
         {
             var s = GetNextShape(TypeId.Text);
             var e = (TextBlock)s.Element;
@@ -1091,6 +1093,32 @@ namespace CrossGraphics
             //    e = new TextBlock();
             //    b.Child = e;
             //}
+            e.TextWrapping = TextWrapping.WrapWholeWords;
+            if (width != 0)
+            {
+                e.Width = width;
+            }
+            if (height != 0)
+            {
+                e.Height = height;
+            }
+
+            if (s.LineBreakMode != lineBreak)
+            {
+                switch (lineBreak)
+                {
+                    case LineBreakMode.WordWrap:
+                        e.TextWrapping = TextWrapping.WrapWholeWords;
+                        break;
+                    case LineBreakMode.Wrap:
+                        e.TextWrapping = TextWrapping.Wrap;
+                        break;
+                    default:
+                        e.TextWrapping = TextWrapping.NoWrap;
+                        break;
+                }
+                s.TextAlignment = align;
+            }
 
             if (s.TextAlignment != align)
             {
@@ -1166,7 +1194,12 @@ namespace CrossGraphics
                 e.FontSize = CurrentFont.Size;
                 //e.Height = CurrentFont.Size;
             }
+
+            e.Measure(new Size(1, 1));
+            return new double[] { e.ActualWidth, e.ActualHeight };
         }
+
+
     }
 
 	public static partial class ColorEx

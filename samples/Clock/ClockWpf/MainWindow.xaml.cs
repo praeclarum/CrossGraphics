@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Threading;
-using CrossGraphics.SilverlightGraphics;
+using CrossGraphics;
 
 namespace ClockWpf
 {
 	public partial class MainWindow : Window
 	{
 		Clock.Clock _clock;
-		SilverlightGraphics _graphics;
+		XamlGraphics _graphics;
 
 		public MainWindow ()
 		{
@@ -18,7 +18,7 @@ namespace ClockWpf
 
 		private void Window_Loaded (object sender, RoutedEventArgs e)
 		{
-			_graphics = new SilverlightGraphics (LayoutRoot);
+            _graphics = new XamlGraphics(LayoutRoot);
 
 			var timer = new DispatcherTimer {
 				Interval = TimeSpan.FromSeconds (1),

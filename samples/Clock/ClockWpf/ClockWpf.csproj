@@ -62,11 +62,11 @@
     <Compile Include="..\..\..\src\Graphics.cs">
       <Link>Graphics.cs</Link>
     </Compile>
-    <Compile Include="..\..\..\src\SilverlightGraphics.cs">
-      <Link>SilverlightGraphics.cs</Link>
-    </Compile>
     <Compile Include="..\..\..\src\System.Drawing.cs">
       <Link>System.Drawing.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\src\XamlGraphics.cs">
+      <Link>XamlGraphics.cs</Link>
     </Compile>
     <Compile Include="..\Clock\Clock.cs">
       <Link>Clock.cs</Link>
@@ -103,6 +103,9 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <AppDesigner Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Fonts\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

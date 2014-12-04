@@ -14,7 +14,11 @@ namespace Clock
 		readonly Color BackColor = new Color (0xDD, 0xDD, 0xDD);
 		readonly Color FaceColor = new Color (0xCC, 0xCC, 0xCC);
 		readonly Color BorderColor = new Color (0x66, 0x66, 0x66);
-		readonly Font LabelFont = Font.SystemFontOfSize (16);
+		readonly Color RedColor = new Color (0xFF, 0x0, 0x0);
+        readonly Font LabelFont = Font.SystemFontOfSize (16);
+        
+        //Custom Font Test
+        readonly Font CustomFont = Font.FromName("BILLY ARGEL TRIAL___.otf", "BILLY ARGEL FONT", 30);
 
 		public void Draw (IGraphics g)
 		{
@@ -48,9 +52,8 @@ namespace Clock
 			g.DrawString ("Cross Graphics", center.X - textWidth / 2, center.Y + 0.25f * r);
 
             //Custom Font Test
-            var customFont = Font.FromName("BILLY ARGEL TRIAL___.otf", "BILLY ARGEL FONT", 30);
-            g.SetFont(customFont);
-            g.SetColor(new Color(255, 0, 0));
+            g.SetFont(CustomFont);
+            g.SetColor(RedColor);
             var myString = "Custom Font Test";
             textWidth = g.GetFontMetrics().StringWidth(myString);
             g.DrawString(myString, center.X - textWidth / 2, center.Y - 0.25f * r);
