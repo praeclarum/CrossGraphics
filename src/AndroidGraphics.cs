@@ -22,6 +22,7 @@
 using System;
 using Android.Graphics;
 using Android.Content;
+using System.Collections.Generic;
 
 
 namespace CrossGraphics.Android
@@ -218,12 +219,6 @@ namespace CrossGraphics.Android
 					_paints.Fill);
 			}
 		}
-		
-		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
-		{
-			if (string.IsNullOrWhiteSpace (s)) return;
-			DrawString (s, x, y);
-		}
 
 		static AndroidFontInfo GetFontInfo (Font f)
 		{
@@ -272,14 +267,109 @@ namespace CrossGraphics.Android
 			}
 		}
 
-		public void DrawString (string s, float x, float y)
+        public double[] DrawString(string s, float x, float y)
 		{
-			if (string.IsNullOrWhiteSpace (s)) return;
-
-			SetFontOnPaints ();
-			var fm = GetFontMetrics ();
-			_c.DrawText (s, x, y + fm.Ascent - fm.Descent, _paints.Fill);
+            return DrawString(s, x, y, 0.0f, 0.0f, LineBreakMode.None, TextAlignment.Left);
 		}
+
+        public double[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return new double[] { };
+            SetFontOnPaints();
+            var fm = GetFontMetrics();
+            var sParts = new List<string>();
+            string sPart = "";
+            float stringWidth = 0.0f;
+            switch (lineBreak)
+            {
+                case LineBreakMode.WordWrap:
+                    var wordParts = s.Split(new string[]{" "}, StringSplitOptions.None);
+                    stringWidth = 0.0f;
+                    sPart = "";
+                    for (int i = 0; i < wordParts.Length; i++)
+			        {
+			            var item = wordParts[i];
+                        stringWidth = fm.StringWidth(sPart + item + " ");
+                        if (stringWidth > width && sPart.Length > 0)
+	                    {
+                            sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
+		                    sParts.Add(sPart);
+                            sPart = "";
+                        }
+                        sPart += item + " ";
+                    }
+                    if (sPart.Length > 0)
+                    {
+                        sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
+                        sParts.Add(sPart);
+                    }
+                    break;
+
+                case LineBreakMode.Wrap:
+                    //Cut the string if the width is reached
+                    var charArray = s.ToCharArray();
+                    sPart = "";
+                    stringWidth = 0.0f;
+                    for (int i = 0; i < charArray.Length; i++)
+			        {
+			            var item = charArray[i];
+                        stringWidth = fm.StringWidth(sPart + item);
+                        if (stringWidth > width && sPart.Length > 0)
+	                    {
+                            sParts.Add(sPart);
+                            sPart = "";
+                        }
+                        sPart += item;
+			        }
+                    if (sPart.Length > 0)
+                    {
+                        sParts.Add(sPart);
+                    }
+                break;
+
+                default:
+                    sParts.Add(s);
+                    break;
+            }
+
+            switch (align)
+            {
+                case TextAlignment.Right:
+                    y += fm.Ascent - fm.Descent;
+                    foreach (var item in sParts)
+                    {
+                        stringWidth = fm.StringWidth(item);
+                        _c.DrawText(item, x + width - stringWidth, y, _paints.Fill);
+                        y += fm.Ascent + fm.Descent;
+                    }
+                    break;
+
+                case TextAlignment.Center:
+                    y += fm.Ascent - fm.Descent;
+                    foreach (var item in sParts)
+                    {
+                        stringWidth = fm.StringWidth(item);
+                        _c.DrawText(item, x + width * 0.5f - stringWidth * 0.5f, y, _paints.Fill);
+                        y += fm.Ascent + fm.Descent;
+                    }
+                    break;
+
+                default:
+                    y += fm.Ascent - fm.Descent;
+                    foreach (var item in sParts)
+                    {
+                        stringWidth = fm.StringWidth(item);
+                        _c.DrawText(item, x, y, _paints.Fill);
+                        y += fm.Ascent + fm.Descent;
+                    }
+                    break;
+
+            }
+
+            JK.JKTools.JKLog("fm.Ascent: " + fm.Ascent + ", fm.Descent: " + fm.Descent + ", fm.Height: " + fm.Height);
+
+            return new double[] { };
+        }
 
 		public IFontMetrics GetFontMetrics ()
 		{

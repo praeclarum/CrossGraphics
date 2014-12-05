@@ -5,6 +5,7 @@ using Android.Content;
 using Android.OS;
 using Android.Views;
 using CrossGraphics.Android;
+using Android.Util;
 
 namespace Clock.Android
 {
@@ -33,10 +34,25 @@ namespace Clock.Android
 		{
 			Clock _clock = new Clock ();
 
-			public ClockView (Context context)
-				: base (context)
+			public ClockView (Context context) : base (context)
 			{
 			}
+
+			public ClockView (Context context, IAttributeSet attrs) : base (context, attrs)
+			{
+
+			}
+
+			public ClockView (Context context, IAttributeSet attrs, int defStyle) : base (context, attrs, defStyle)
+			{
+
+			}
+
+
+        //protected View(IntPtr javaReference, JniHandleOwnership transfer);
+        //[Register(".ctor", "(Landroid/content/Context;Landroid/util/AttributeSet;I)V", "")]
+
+
 
 			public override void Draw (global::Android.Graphics.Canvas canvas)
 			{

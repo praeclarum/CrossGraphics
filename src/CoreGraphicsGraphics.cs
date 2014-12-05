@@ -343,11 +343,11 @@ namespace CrossGraphics.CoreGraphics
 			}
 			
 			if (fix == null) {
-				_c.ShowTextAtPoint (xx, yy + fm.Height, s);
-			}
+                _c.ShowTextAtPoint(xx, yy + fm.Height, s);
+            }
 			else {
-				_c.ShowTextAtPoint (xx, yy + fm.Height, fix);
-			}
+                _c.ShowTextAtPoint(xx, yy + fm.Height, fix);
+            }
             //return new double[] { (double)fm.StringWidth(s), (double)fm.Height };
             return new double[] { 0, 0 };
         }
@@ -523,11 +523,14 @@ namespace CrossGraphics.CoreGraphics
 //			Console.WriteLine ("MEASURE {0}", f);
 
             c.SetTextDrawingMode(CGTextDrawingMode.Invisible);
+            
             c.TextPosition = new PointF(0, 0);
 			c.ShowText ("MM");
+
+            var mmWidth = c.TextPosition.X;
 			
-			var mmWidth = c.TextPosition.X;
-			
+           
+
 			_height = f.Size - 5;
 			
 			Widths = new float[0x80];
