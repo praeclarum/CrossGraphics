@@ -556,5 +556,17 @@ namespace CrossGraphics
 			return r;
 		}
 	}
+
+
+    public class CacheObjectDrawString
+    {
+        public bool DeleteTag { get; set; }
+        public string Key { get; set; }
+        public List<string> StringLines { get; set; }
+        public LineBreakMode LineBreak { get; set; }
+        public TextAlignment Alignment { get; set; }
+    }
+
+
 }
 

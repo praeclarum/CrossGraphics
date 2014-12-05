@@ -36,6 +36,8 @@ namespace CrossGraphics.Android
 
 		public Canvas Canvas { get { return _c; } }
 
+        private static Dictionary<string, CacheObjectDrawString> CacheObjectDrawStringDict = new Dictionary<string, CacheObjectDrawString>();
+
 		class ColPaints
 		{
 			public Paint Fill;
@@ -275,100 +277,130 @@ namespace CrossGraphics.Android
         public double[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
         {
             if (string.IsNullOrWhiteSpace(s)) return new double[] { };
+            float maxWidth = 0.0f;
+            var cacheObjectKey = s + "_" + x + "_" + y + "_" + width + "_" + height + "_" + lineBreak + "_" + align;
+            CacheObjectDrawString cacheObject = null;
+            CacheObjectDrawStringDict.TryGetValue(cacheObjectKey, out cacheObject);
+            if (cacheObject == null)
+            {
+                cacheObject = new CacheObjectDrawString();
+                cacheObject.DeleteTag = false;
+                cacheObject.Key = cacheObjectKey;
+                cacheObject.StringLines = new List<string>() { s };
+                CacheObjectDrawStringDict[cacheObjectKey] = cacheObject;
+            }
             SetFontOnPaints();
             var fm = GetFontMetrics();
-            var sParts = new List<string>();
             string sPart = "";
             float stringWidth = 0.0f;
-            switch (lineBreak)
+            if (cacheObject.LineBreak != lineBreak)
             {
-                case LineBreakMode.WordWrap:
-                    var wordParts = s.Split(new string[]{" "}, StringSplitOptions.None);
-                    stringWidth = 0.0f;
-                    sPart = "";
-                    for (int i = 0; i < wordParts.Length; i++)
-			        {
-			            var item = wordParts[i];
-                        stringWidth = fm.StringWidth(sPart + item + " ");
-                        if (stringWidth > width && sPart.Length > 0)
-	                    {
+                cacheObject.StringLines = new List<string>();
+                cacheObject.LineBreak = lineBreak;
+                switch (lineBreak)
+                {
+                    case LineBreakMode.WordWrap:
+                        var wordParts = s.Split(new string[] { " " }, StringSplitOptions.None);
+                        stringWidth = 0.0f;
+                        sPart = "";
+                        for (int i = 0; i < wordParts.Length; i++)
+                        {
+                            var item = wordParts[i];
+                            stringWidth = fm.StringWidth(sPart + item + " ");
+                            if (stringWidth > width && sPart.Length > 0)
+                            {
+                                sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
+                                cacheObject.StringLines.Add(sPart);
+                                sPart = "";
+                            }
+                            sPart += item + " ";
+                        }
+                        if (sPart.Length > 0)
+                        {
                             sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
-		                    sParts.Add(sPart);
-                            sPart = "";
+                            cacheObject.StringLines.Add(sPart);
                         }
-                        sPart += item + " ";
-                    }
-                    if (sPart.Length > 0)
-                    {
-                        sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
-                        sParts.Add(sPart);
-                    }
-                    break;
+                        break;
 
-                case LineBreakMode.Wrap:
-                    //Cut the string if the width is reached
-                    var charArray = s.ToCharArray();
-                    sPart = "";
-                    stringWidth = 0.0f;
-                    for (int i = 0; i < charArray.Length; i++)
-			        {
-			            var item = charArray[i];
-                        stringWidth = fm.StringWidth(sPart + item);
-                        if (stringWidth > width && sPart.Length > 0)
-	                    {
-                            sParts.Add(sPart);
-                            sPart = "";
+                    case LineBreakMode.Wrap:
+                        //Cut the string if the width is reached
+                        var charArray = s.ToCharArray();
+                        sPart = "";
+                        stringWidth = 0.0f;
+                        for (int i = 0; i < charArray.Length; i++)
+                        {
+                            var item = charArray[i];
+                            stringWidth = fm.StringWidth(sPart + item);
+                            if (stringWidth > width && sPart.Length > 0)
+                            {
+                                cacheObject.StringLines.Add(sPart);
+                                sPart = "";
+                            }
+                            sPart += item;
                         }
-                        sPart += item;
-			        }
-                    if (sPart.Length > 0)
-                    {
-                        sParts.Add(sPart);
-                    }
-                break;
+                        if (sPart.Length > 0)
+                        {
+                            cacheObject.StringLines.Add(sPart);
+                        }
+                        break;
 
-                default:
-                    sParts.Add(s);
-                    break;
+                    default:
+                        cacheObject.StringLines.Add(s);
+                        break;
+                }
+                cacheObject.StringLines = cacheObject.StringLines;
             }
+
 
             switch (align)
             {
                 case TextAlignment.Right:
-                    y += fm.Ascent - fm.Descent;
-                    foreach (var item in sParts)
+                    //y += fm.Ascent - fm.Descent;
+                    y += fm.Ascent;
+                    foreach (var item in cacheObject.StringLines)
                     {
                         stringWidth = fm.StringWidth(item);
+                        if (stringWidth > maxWidth)
+                        {
+                            maxWidth = stringWidth;
+                        }
                         _c.DrawText(item, x + width - stringWidth, y, _paints.Fill);
                         y += fm.Ascent + fm.Descent;
                     }
                     break;
 
                 case TextAlignment.Center:
-                    y += fm.Ascent - fm.Descent;
-                    foreach (var item in sParts)
+                    //y += fm.Ascent - fm.Descent;
+                    y += fm.Ascent;
+                    foreach (var item in cacheObject.StringLines)
                     {
                         stringWidth = fm.StringWidth(item);
+                        if (stringWidth > maxWidth)
+                        {
+                            maxWidth = stringWidth;
+                        }
                         _c.DrawText(item, x + width * 0.5f - stringWidth * 0.5f, y, _paints.Fill);
                         y += fm.Ascent + fm.Descent;
                     }
                     break;
 
                 default:
-                    y += fm.Ascent - fm.Descent;
-                    foreach (var item in sParts)
+                    //y += fm.Ascent - fm.Descent;
+                    y += fm.Ascent;
+                    foreach (var item in cacheObject.StringLines)
                     {
                         stringWidth = fm.StringWidth(item);
+                        if (stringWidth > maxWidth)
+                        {
+                            maxWidth = stringWidth;
+                        }
                         _c.DrawText(item, x, y, _paints.Fill);
                         y += fm.Ascent + fm.Descent;
                     }
                     break;
 
             }
-
-            JK.JKTools.JKLog("fm.Ascent: " + fm.Ascent + ", fm.Descent: " + fm.Descent + ", fm.Height: " + fm.Height);
-
-            return new double[] { };
+            return new double[] { maxWidth, (fm.Ascent + fm.Descent) * cacheObject.StringLines.Count };
         }
 
 		public IFontMetrics GetFontMetrics ()
@@ -489,4 +521,6 @@ namespace CrossGraphics.Android
 
 		public int Descent { get; private set; }
 	}
+
+
 }

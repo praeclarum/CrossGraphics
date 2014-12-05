@@ -1093,7 +1093,7 @@ namespace CrossGraphics
             //    e = new TextBlock();
             //    b.Child = e;
             //}
-            e.TextWrapping = TextWrapping.WrapWholeWords;
+
             if (width != 0)
             {
                 e.Width = width;
