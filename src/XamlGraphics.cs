@@ -1094,6 +1094,13 @@ namespace CrossGraphics
             //    b.Child = e;
             //}
 
+            if (s.Text != str)
+            {
+                s.Text = str;
+                e.Text = str;
+                //b.Background = new SolidColorBrush(System.Windows.Media.Colors.Red);
+            }
+
             if (width != 0)
             {
                 e.Width = width;
@@ -1145,12 +1152,6 @@ namespace CrossGraphics
             {
                 s.Y = y;
                 Canvas.SetTop(e, y);
-            }
-            if (s.Text != str)
-            {
-                s.Text = str;
-                e.Text = str;
-                //b.Background = new SolidColorBrush(System.Windows.Media.Colors.Red);
             }
             if (s.Color != _currentColor)
             {

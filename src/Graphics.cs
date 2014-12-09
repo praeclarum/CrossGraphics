@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using Android.Content.Res;
 
 namespace CrossGraphics
 {
@@ -279,6 +280,7 @@ namespace CrossGraphics
 
         public static Font FromName(string fontFileName, string name, int size)
         {
+			size = (int)(size * Resources.System.DisplayMetrics.ScaledDensity);
             return new Font(fontFileName, name, FontOptions.None, size);
 		}
 

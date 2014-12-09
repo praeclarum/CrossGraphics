@@ -23,6 +23,7 @@ using System;
 using Android.Graphics;
 using Android.Content;
 using System.Collections.Generic;
+using Android.Content.Res;
 
 
 namespace CrossGraphics.Android
@@ -33,6 +34,7 @@ namespace CrossGraphics.Android
 		ColPaints _paints;
 		Font _font;
         static Context _context;
+		float _scaledDensity = Resources.System.DisplayMetrics.ScaledDensity;
 
 		public Canvas Canvas { get { return _c; } }
 
@@ -56,6 +58,22 @@ namespace CrossGraphics.Android
 		public void BeginEntity (object entity)
 		{
 		}
+
+//		private float _dpScaleFactor = -1.0f;
+//		public float _scaledDensity
+//		{
+//			get
+//			{
+//				if (_dpScaleFactor < 0.0f) {
+//					_dpScaleFactor = Resources.System.DisplayMetrics.ScaledDensity;
+//				}
+//				return _dpScaleFactor;
+//			}
+//			set
+//			{
+//				_dpScaleFactor = value;
+//			}
+//		}
 
 		public void SetFont (Font font)
 		{
@@ -119,33 +137,62 @@ namespace CrossGraphics.Android
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
+			radius *= _scaledDensity;
 			_c.DrawRoundRect (new RectF (x, y, x + width, y + height), radius, radius, _paints.Fill);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
+			radius *= _scaledDensity;
+			w *= _scaledDensity;
 			_paints.Stroke.StrokeWidth = w;
 			_c.DrawRoundRect (new RectF (x, y, x + width, y + height), radius, radius, _paints.Stroke);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
 			_c.DrawRect (new RectF (x, y, x + width, y + height), _paints.Fill);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
+			w *= _scaledDensity;
 			_paints.Stroke.StrokeWidth = w;
 			_c.DrawRect (new RectF (x, y, x + width, y + height), _paints.Stroke);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
 			_c.DrawOval (new RectF (x, y, x + width, y + width), _paints.Fill);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
+			w *= _scaledDensity;
 			_paints.Stroke.StrokeWidth = w;
 			_c.DrawOval (new RectF (x, y, x + width, y + width), _paints.Stroke);
 		}
@@ -154,6 +201,9 @@ namespace CrossGraphics.Android
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
+			cx *= _scaledDensity;
+			cy *= _scaledDensity;
+			radius *= _scaledDensity;
 			var sa = -startAngle * RadiansToDegrees;
 			var ea = -endAngle * RadiansToDegrees;
 			_c.DrawArc (new RectF (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Fill);
@@ -161,6 +211,10 @@ namespace CrossGraphics.Android
 		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
+			cx *= _scaledDensity;
+			cy *= _scaledDensity;
+			radius *= _scaledDensity;
+			w *= _scaledDensity;
 			var sa = -startAngle * RadiansToDegrees;
 			var ea = -endAngle * RadiansToDegrees;
 			_paints.Stroke.StrokeWidth = w;
@@ -183,6 +237,11 @@ namespace CrossGraphics.Android
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
+			sx *= _scaledDensity;
+			sy *= _scaledDensity;
+			ex *= _scaledDensity;
+			ey *= _scaledDensity;
+			w *= _scaledDensity;
 			if (_inLines) {
 				if (_linesCount == 0) {
 					_linesPath.MoveTo (sx, sy);
@@ -211,6 +270,10 @@ namespace CrossGraphics.Android
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
 			var dimg = img as AndroidImage;
 			if (dimg != null) {
 				SetColor (Colors.White);
@@ -277,6 +340,12 @@ namespace CrossGraphics.Android
         public double[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
         {
             if (string.IsNullOrWhiteSpace(s)) return new double[] { };
+
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
+
             float maxWidth = 0.0f;
             var cacheObjectKey = s + "_" + x + "_" + y + "_" + width + "_" + height + "_" + lineBreak + "_" + align;
             CacheObjectDrawString cacheObject = null;
@@ -400,7 +469,7 @@ namespace CrossGraphics.Android
                     break;
 
             }
-            return new double[] { maxWidth, (fm.Ascent + fm.Descent) * cacheObject.StringLines.Count };
+			return new double[] { maxWidth / _scaledDensity, ((fm.Ascent + fm.Descent) * cacheObject.StringLines.Count)/_scaledDensity };
         }
 
 		public IFontMetrics GetFontMetrics ()
@@ -512,7 +581,7 @@ namespace CrossGraphics.Android
 				}
 			}
 
-			return (int)(a + 0.5f);
+			return (int)((a + 0.5f) / Resources.System.DisplayMetrics.ScaledDensity);
 		}
 
 		public int Height { get; private set; }
