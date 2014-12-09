@@ -272,15 +272,15 @@ namespace CrossGraphics.CoreGraphics
                 name = f.FontFamily;
 #endif
             }
-            else if (!string.IsNullOrEmpty(f.FontFamily))
+			else if (!string.IsNullOrEmpty(f.FontNameiOS))
             {
-                name = f.FontFamily;
+				name = f.FontNameiOS;
             }
             else if (f.IsBold)
             {
                 name = "Helvetica-Bold";
             }
-            _c.SelectFont(name, f.Size, CGTextEncoding.MacRoman);
+			_c.SelectFont(name, f.Size, CGTextEncoding.MacRoman);
             _c.TextMatrix = _textMatrix;
         }
 		

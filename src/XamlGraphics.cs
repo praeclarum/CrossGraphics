@@ -1093,6 +1093,9 @@ namespace CrossGraphics
             //    e = new TextBlock();
             //    b.Child = e;
             //}
+            
+            //y correction
+            y -= 3.0f;
 
             if (s.Text != str)
             {
@@ -1114,31 +1117,50 @@ namespace CrossGraphics
             {
                 switch (lineBreak)
                 {
-                    case LineBreakMode.WordWrap:
+                    #if WINDOWS_PHONE
+                        case LineBreakMode.WordWrap:
+                        e.TextWrapping = TextWrapping.Wrap;
+                        break;
+
+                    #else
+                        case LineBreakMode.WordWrap:
                         e.TextWrapping = TextWrapping.WrapWholeWords;
                         break;
+
+                    #endif
+
                     case LineBreakMode.Wrap:
                         e.TextWrapping = TextWrapping.Wrap;
                         break;
+
                     default:
                         e.TextWrapping = TextWrapping.NoWrap;
                         break;
+
                 }
-                s.TextAlignment = align;
+                s.LineBreakMode = lineBreak;
             }
 
             if (s.TextAlignment != align)
             {
                 switch (align)
                 {
+                    case TextAlignment.Right:
+                        e.TextAlignment = NativeTextAlignment.Right;
+                        e.Width = width;
+                        e.Height = height;
+                        break;
+
                     case TextAlignment.Center:
                         e.TextAlignment = NativeTextAlignment.Center;
                         e.Width = width;
                         e.Height = height;
                         break;
+
                     default:
                         e.TextAlignment = NativeTextAlignment.Left;
                         break;
+
                 }
                 s.TextAlignment = align;
             }
@@ -1167,7 +1189,7 @@ namespace CrossGraphics
                 }
                 else if (string.IsNullOrEmpty(CurrentFont.FontFamily) == false)
                 {
-                    e.FontFamily = new NativeFontFamily("/Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.FontFamily);
+                    e.FontFamily = new NativeFontFamily("/Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.FontNameWindows);
                     //e.FontFamily = new FontFamily("/Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.FontFamily);
                 }
                 else
@@ -1183,15 +1205,16 @@ namespace CrossGraphics
                     e.FontWeight = FontWeights.Normal;
                 }
                 e.Padding = new Thickness(0);
-                e.RenderTransform = new TranslateTransform()
-                {
-                    X = 0,
-#if NETFX_CORE
-					Y = -0.08 * CurrentFont.Size,
-#else
-                    Y = -0.333 * CurrentFont.Size,
-#endif
-                };
+                //e.RenderTransform = new TranslateTransform()
+                //{
+                //    X = 0,
+                //    #if NETFX_CORE
+                //    //Y = -0.08 * CurrentFont.Size,
+                //    //Y = -0.18 * CurrentFont.Size,
+                //    #else
+                //    //Y = -0.333 * CurrentFont.Size,
+                //    #endif
+                //};
                 e.FontSize = CurrentFont.Size;
                 //e.Height = CurrentFont.Size;
             }

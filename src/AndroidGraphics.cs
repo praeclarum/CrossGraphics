@@ -293,7 +293,7 @@ namespace CrossGraphics.Android
                 {
                     fi = new AndroidFontInfo
                     {
-                        Typeface = Typeface.CreateFromAsset(_context.Assets, f.FontFilename),
+						Typeface = Typeface.CreateFromAsset(_context.Assets, f.FontFilename),
                     };
                 }
                 catch (Exception ex)
@@ -315,7 +315,7 @@ namespace CrossGraphics.Android
 			var fi = GetFontInfo (f);
 
 			p.SetTypeface (fi.Typeface);
-			p.TextSize = f.Size;
+			p.TextSize = (int)(f.Size * Resources.System.DisplayMetrics.ScaledDensity);
 
 			if (fi.FontMetrics == null) {
 				fi.FontMetrics = new AndroidFontMetrics (p);
@@ -375,7 +375,7 @@ namespace CrossGraphics.Android
                         for (int i = 0; i < wordParts.Length; i++)
                         {
                             var item = wordParts[i];
-                            stringWidth = fm.StringWidth(sPart + item + " ");
+							stringWidth = fm.StringWidth(sPart + item + " ") * _scaledDensity;
                             if (stringWidth > width && sPart.Length > 0)
                             {
                                 sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
@@ -399,7 +399,7 @@ namespace CrossGraphics.Android
                         for (int i = 0; i < charArray.Length; i++)
                         {
                             var item = charArray[i];
-                            stringWidth = fm.StringWidth(sPart + item);
+							stringWidth = fm.StringWidth(sPart + item) * _scaledDensity;
                             if (stringWidth > width && sPart.Length > 0)
                             {
                                 cacheObject.StringLines.Add(sPart);
@@ -428,7 +428,7 @@ namespace CrossGraphics.Android
                     y += fm.Ascent;
                     foreach (var item in cacheObject.StringLines)
                     {
-                        stringWidth = fm.StringWidth(item);
+						stringWidth = fm.StringWidth(item) * _scaledDensity;
                         if (stringWidth > maxWidth)
                         {
                             maxWidth = stringWidth;
@@ -443,7 +443,7 @@ namespace CrossGraphics.Android
                     y += fm.Ascent;
                     foreach (var item in cacheObject.StringLines)
                     {
-                        stringWidth = fm.StringWidth(item);
+						stringWidth = fm.StringWidth(item) * _scaledDensity;
                         if (stringWidth > maxWidth)
                         {
                             maxWidth = stringWidth;
@@ -458,7 +458,7 @@ namespace CrossGraphics.Android
                     y += fm.Ascent;
                     foreach (var item in cacheObject.StringLines)
                     {
-                        stringWidth = fm.StringWidth(item);
+						stringWidth = fm.StringWidth(item) * _scaledDensity;
                         if (stringWidth > maxWidth)
                         {
                             maxWidth = stringWidth;
