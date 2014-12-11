@@ -323,14 +323,14 @@ namespace CrossGraphics.CoreGraphics
 			_c.ClipToRect (new RectangleF (x, y, width, height));
 		}
 		
-		public double[] DrawString (string s, float x, float y)
+		public float[] DrawString (string s, float x, float y)
 		{			
             return DrawString(s, x, y, 0.0f, 0.0f, LineBreakMode.None, TextAlignment.Left);
         }
 
-        public double[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+        public float[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-            if (_lastFont == null) return new double[] { 0, 0 };
+            if (_lastFont == null) return new float[] { 0, 0 };
             float maxWidth = 0.0f;
             var cacheObjectKey = s + "_" + x + "_" + y + "_" + width + "_" + height + "_" + lineBreak + "_" + align;
             CacheObjectDrawString cacheObject = null;
@@ -341,6 +341,8 @@ namespace CrossGraphics.CoreGraphics
                 cacheObject.DeleteTag = false;
                 cacheObject.Key = cacheObjectKey;
                 //s = FixupString(s);
+                cacheObject.StringLinesiOSDict = new Dictionary<string,byte[]>();
+                cacheObject.StringLinesiOSDict[s] = FixupString(s);
                 cacheObject.StringLines = new List<string>() { s };
                 CacheObjectDrawStringDict[cacheObjectKey] = cacheObject;
             }
@@ -365,6 +367,7 @@ namespace CrossGraphics.CoreGraphics
                             {
                                 sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
                                 cacheObject.StringLines.Add(sPart);
+                                cacheObject.StringLinesiOSDict[sPart] = FixupString(sPart);
                                 sPart = "";
                             }
                             sPart += item + " ";
@@ -373,6 +376,7 @@ namespace CrossGraphics.CoreGraphics
                         {
                             sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
                             cacheObject.StringLines.Add(sPart);
+                            cacheObject.StringLinesiOSDict[sPart] = FixupString(sPart);
                         }
                         break;
 
@@ -388,6 +392,7 @@ namespace CrossGraphics.CoreGraphics
                             if (stringWidth > width && sPart.Length > 0)
                             {
                                 cacheObject.StringLines.Add(sPart);
+                                cacheObject.StringLinesiOSDict[sPart] = FixupString(sPart);
                                 sPart = "";
                             }
                             sPart += item;
@@ -395,6 +400,7 @@ namespace CrossGraphics.CoreGraphics
                         if (sPart.Length > 0)
                         {
                             cacheObject.StringLines.Add(sPart);
+                            cacheObject.StringLinesiOSDict[sPart] = FixupString(sPart);
                         }
                         break;
 
@@ -402,7 +408,6 @@ namespace CrossGraphics.CoreGraphics
                         cacheObject.StringLines.Add(s);
                         break;
                 }
-                cacheObject.StringLines = cacheObject.StringLines;
             }
 
             switch (align)
@@ -418,8 +423,8 @@ namespace CrossGraphics.CoreGraphics
                             maxWidth = stringWidth;
                         }
                         //_c.DrawText(item, x + width - stringWidth, y, _paints.Fill);
-                        _c.ShowTextAtPoint(x + width - stringWidth, y, FixupString(item));
-
+                        _c.ShowTextAtPoint(x + width - stringWidth, y, cacheObject.StringLinesiOSDict[item]);
+                        JK.JKTools.JKLog("item: " + item + ", x: " + x + ", width: " + width + ", stringWidth: " + stringWidth + ", result: " + (x + width - stringWidth));
                         y += fm.Ascent + fm.Descent;
                     }
                     break;
@@ -457,7 +462,7 @@ namespace CrossGraphics.CoreGraphics
                     break;
 
             }
-            return new double[] { maxWidth, (fm.Ascent + fm.Descent) * cacheObject.StringLines.Count };
+            return new float[] { maxWidth, (fm.Ascent + fm.Descent) * cacheObject.StringLines.Count };
 
             //alt:
             //var fm = GetFontMetrics ();
@@ -654,20 +659,19 @@ namespace CrossGraphics.CoreGraphics
             c.SetTextDrawingMode(CGTextDrawingMode.Invisible);
             
             c.TextPosition = new PointF(0, 0);
-			c.ShowText ("MM");
+            c.ShowText("MM");
 
             var mmWidth = c.TextPosition.X;
-			
-           
 
-			_height = f.Size - 5;
+            //_height = f.Size - 5;
+            _height = f.Size;
 			
 			Widths = new float[0x80];
 
 			for (var i = ' '; i < 127; i++) {
 
-				var s = "M" + ((char)i).ToString() + "M";
-				
+                var s = "M" + ((char)i).ToString() + "M";
+                				
 				c.TextPosition = new PointF(0, 0);
 				c.ShowText (s);
 				
@@ -716,16 +720,23 @@ namespace CrossGraphics.CoreGraphics
 		public int Height
 		{
 			get {
-				return _height;
-			}
+                return _height;
+            }
 		}
 
-		public int Ascent
+        private int _ascent = 0;
+        public int Ascent
 		{
-			get {
-				return Height;
-			}
-		}
+            get
+            {
+                if (_ascent == 0)
+                {
+                    //Dirty fix to equalize Windows, Android, iOS
+                    _ascent = (int)(Height * 0.85f);
+                }
+                return _ascent;
+            }
+        }
 
         private int _descent = 0;
 		public int Descent
@@ -733,8 +744,8 @@ namespace CrossGraphics.CoreGraphics
 			get {
                 if (_descent == 0)
                 {
-                    //Dirty fix
-                    _descent = (int)(Height * 0.1f);
+                    //Dirty fix to equalize Windows, Android, iOS
+                    _descent = (int)(Height * 0.3f);
                 }
 				return _descent;
 			}

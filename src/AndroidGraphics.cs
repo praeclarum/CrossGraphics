@@ -332,14 +332,14 @@ namespace CrossGraphics.Android
 			}
 		}
 
-        public double[] DrawString(string s, float x, float y)
+		public float[] DrawString(string s, float x, float y)
 		{
             return DrawString(s, x, y, 0.0f, 0.0f, LineBreakMode.None, TextAlignment.Left);
 		}
 
-        public double[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+		public float[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
         {
-            if (string.IsNullOrWhiteSpace(s)) return new double[] { };
+			if (string.IsNullOrWhiteSpace(s)) return new float[] { };
 
 			x *= _scaledDensity;
 			y *= _scaledDensity;
@@ -469,7 +469,7 @@ namespace CrossGraphics.Android
                     break;
 
             }
-			return new double[] { maxWidth / _scaledDensity, ((fm.Ascent + fm.Descent) * cacheObject.StringLines.Count)/_scaledDensity };
+			return new float[] { maxWidth / _scaledDensity, ((fm.Ascent + fm.Descent) * cacheObject.StringLines.Count)/_scaledDensity };
         }
 
 		public IFontMetrics GetFontMetrics ()
@@ -559,8 +559,11 @@ namespace CrossGraphics.Android
 		{
 			_widths = new float[NumWidths];
 			paint.GetTextWidths (_chars, 0, NumWidths, _widths);
-			Ascent = (int)(Math.Abs (paint.Ascent ()) + 0.5f);
-			Descent = (int)(paint.Descent ()/2 + 0.5f);
+			//Ascent = (int)(Math.Abs (paint.Ascent ()) + 0.5f); //zu weit oben
+            //Ascent = (int)(Math.Abs(paint.Ascent()) + 4.5f); //zu weit unten
+            Ascent = (int)(Math.Abs(paint.Ascent()) + 2.5f);
+			//Descent = (int)(paint.Descent() / 2 + 0.5f);
+			Descent = (int)(paint.Descent() / 2 + 5.5f);
 			Height = Ascent;
 		}
 
@@ -577,7 +580,8 @@ namespace CrossGraphics.Android
 					a += _widths[s[i]];
 				}
 				else {
-					a += _widths[' '];
+					//a += _widths[' '];
+					a += _widths['x'];
 				}
 			}
 

@@ -244,7 +244,7 @@ namespace CrossGraphics
 			_eshape.DrawImage (img, x, y, width, height);
 		}
 
-        public double[] DrawString(string s, float x, float y)
+        public float[] DrawString(string s, float x, float y)
 		{
 			return _eshape.DrawString (s, x, y);
 		}
@@ -259,7 +259,7 @@ namespace CrossGraphics
 			_eshape.DrawArc (cx, cy, radius, startAngle, endAngle, w);
 		}
 
-        public double[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+        public float[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
             return _eshape.DrawString(s, x, y, width, height, lineBreak, align);
 		}
@@ -963,7 +963,24 @@ namespace CrossGraphics
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			if (polyline != null) {
+            JK.JKTools.JKLog("sy: " + sy.ToString());
+
+            //according to http://diveintohtml5.info/canvas.html
+            //to avoid getting lines 2 pixels wide while they should be only 1 pixel wide
+            if (sx == ex)
+            {
+                sx = ((int)(sx) + 0.5f);
+                ex = ((int)(ex) + 0.5f);
+            }
+            if (sy == ey)
+            {
+                sy = ((int)(sy) + 0.5f);
+                ey = ((int)(ey) + 0.5f);
+                JK.JKTools.JKLog("Den haben wir korrigiert sy ey " + sy.ToString());
+            }
+
+            if (polyline != null)
+            {
 
 				var n = polylinePoints.Count;
 
@@ -1083,7 +1100,7 @@ namespace CrossGraphics
 			}
 		}
 
-        public double[] DrawString(string str, float x, float y, float width = 0, float height = 0, LineBreakMode lineBreak = LineBreakMode.None, TextAlignment align = TextAlignment.Left)
+        public float[] DrawString(string str, float x, float y, float width = 0, float height = 0, LineBreakMode lineBreak = LineBreakMode.None, TextAlignment align = TextAlignment.Left)
         {
             var s = GetNextShape(TypeId.Text);
             var e = (TextBlock)s.Element;
@@ -1095,7 +1112,7 @@ namespace CrossGraphics
             //}
             
             //y correction
-            y -= 3.0f;
+            //y -= 3.0f;
 
             if (s.Text != str)
             {
@@ -1205,22 +1222,22 @@ namespace CrossGraphics
                     e.FontWeight = FontWeights.Normal;
                 }
                 e.Padding = new Thickness(0);
-                //e.RenderTransform = new TranslateTransform()
-                //{
-                //    X = 0,
-                //    #if NETFX_CORE
-                //    //Y = -0.08 * CurrentFont.Size,
-                //    //Y = -0.18 * CurrentFont.Size,
-                //    #else
-                //    //Y = -0.333 * CurrentFont.Size,
-                //    #endif
-                //};
+                e.RenderTransform = new TranslateTransform()
+                {
+                    X = 0,
+#if NETFX_CORE
+                    Y = -0.08 * CurrentFont.Size,
+                    //Y = -0.18 * CurrentFont.Size, //zu weit oben
+#else
+                    //Y = -0.333 * CurrentFont.Size,
+#endif
+                };
                 e.FontSize = CurrentFont.Size;
                 //e.Height = CurrentFont.Size;
             }
 
             e.Measure(new Size(1, 1));
-            return new double[] { e.ActualWidth, e.ActualHeight };
+            return new float[] { (float)e.ActualWidth, (float)e.ActualHeight };
         }
 
 

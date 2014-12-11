@@ -63,9 +63,9 @@ namespace CrossGraphics
 
 		void DrawImage(IImage img, float x, float y, float width, float height);
 
-        double[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align);
+        float[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align);
 
-        double[] DrawString(string s, float x, float y);
+        float[] DrawString(string s, float x, float y);
 		
 		void SaveState();
 		
@@ -98,18 +98,18 @@ namespace CrossGraphics
 
 	public static class GraphicsEx
 	{
-        public static double[] DrawString(this IGraphics g, string s, PointF p)
+        public static float[] DrawString(this IGraphics g, string s, PointF p)
         {
             return g.DrawString(s, p.X, p.Y);
         }
 
-        public static double[] DrawString(this IGraphics g, string s, PointF p, Font f)
+        public static float[] DrawString(this IGraphics g, string s, PointF p, Font f)
 		{
 			g.SetFont (f);
 			return g.DrawString (s, p.X, p.Y);
 		}
 
-        public static double[] DrawString(this IGraphics g, string s, RectangleF p, Font f, LineBreakMode lineBreak, TextAlignment align)
+        public static float[] DrawString(this IGraphics g, string s, RectangleF p, Font f, LineBreakMode lineBreak, TextAlignment align)
 		{
 			g.SetFont (f);
 			return g.DrawString (s, p.Left, p.Top, p.Width, p.Height, lineBreak, align);
@@ -583,6 +583,7 @@ namespace CrossGraphics
         public List<string> StringLines { get; set; }
         public LineBreakMode LineBreak { get; set; }
         public TextAlignment Alignment { get; set; }
+        public Dictionary<string, byte[]> StringLinesiOSDict { get; set; }
     }
 
 
