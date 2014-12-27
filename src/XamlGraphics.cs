@@ -963,8 +963,6 @@ namespace CrossGraphics
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-            JK.JKTools.JKLog("sy: " + sy.ToString());
-
             //according to http://diveintohtml5.info/canvas.html
             //to avoid getting lines 2 pixels wide while they should be only 1 pixel wide
             if (sx == ex)
@@ -976,7 +974,6 @@ namespace CrossGraphics
             {
                 sy = ((int)(sy) + 0.5f);
                 ey = ((int)(ey) + 0.5f);
-                JK.JKTools.JKLog("Den haben wir korrigiert sy ey " + sy.ToString());
             }
 
             if (polyline != null)

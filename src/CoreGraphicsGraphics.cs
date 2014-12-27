@@ -424,7 +424,6 @@ namespace CrossGraphics.CoreGraphics
                         }
                         //_c.DrawText(item, x + width - stringWidth, y, _paints.Fill);
                         _c.ShowTextAtPoint(x + width - stringWidth, y, cacheObject.StringLinesiOSDict[item]);
-                        JK.JKTools.JKLog("item: " + item + ", x: " + x + ", width: " + width + ", stringWidth: " + stringWidth + ", result: " + (x + width - stringWidth));
                         y += fm.Ascent + fm.Descent;
                     }
                     break;
