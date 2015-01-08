@@ -123,12 +123,20 @@ namespace CrossGraphics.CoreGraphics
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height) || float.IsNaN (radius)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillRoundedRect");
+				return;
+			}
 			_c.AddRoundedRect (new RectangleF (x, y, width, height), radius);
 			_c.FillPath ();
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height) || float.IsNaN (radius) || float.IsNaN (w)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawRoundedRect");
+				return;
+			}
 			_c.SetLineWidth (w);
 			_c.AddRoundedRect (new RectangleF (x, y, width, height), radius);
 			_c.StrokePath ();
@@ -136,28 +144,48 @@ namespace CrossGraphics.CoreGraphics
 
 		public void FillRect (float x, float y, float width, float height)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillRect");
+				return;
+			}
 			_c.FillRect (new RectangleF (x, y, width, height));
 		}
 
 		public void FillOval (float x, float y, float width, float height)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillOval");
+				return;
+			}
 			_c.FillEllipseInRect (new RectangleF (x, y, width, height));
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height) || float.IsNaN (w)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawOval");
+				return;
+			}
 			_c.SetLineWidth (w);
 			_c.StrokeEllipseInRect (new RectangleF (x, y, width, height));
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height) || float.IsNaN (w)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawRect");
+				return;
+			}
 			_c.SetLineWidth (w);
 			_c.StrokeRect (new RectangleF (x, y, width, height));
 		}
 		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
+			if (float.IsNaN (cx) || float.IsNaN (cy) || float.IsNaN (radius) || float.IsNaN (startAngle) || float.IsNaN (endAngle) || float.IsNaN (w)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawArc");
+				return;
+			}
 			_c.SetLineWidth (w);
 			_c.AddArc (cx, cy, radius, -startAngle, -endAngle, true);
 			_c.StrokePath ();
@@ -165,6 +193,10 @@ namespace CrossGraphics.CoreGraphics
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
+			if (float.IsNaN (cx) || float.IsNaN (cy) || float.IsNaN (radius) || float.IsNaN (startAngle) || float.IsNaN (endAngle)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillArc");
+				return;
+			}
 			_c.AddArc (cx, cy, radius, -startAngle, -endAngle, true);
 			_c.FillPath ();
 		}
@@ -185,11 +217,10 @@ namespace CrossGraphics.CoreGraphics
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			#if DEBUG
 			if (float.IsNaN (sx) || float.IsNaN (sy) || float.IsNaN (ex) || float.IsNaN (ey) || float.IsNaN (w)) {
 				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawLine");
+				return;
 			}
-			#endif
 			if (_linesBegun) {
 				
 				_lineWidth = w;
