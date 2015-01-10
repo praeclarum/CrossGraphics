@@ -48,6 +48,8 @@ namespace CrossGraphics.CoreGraphics
 	{
 		CGContext _c;
 
+        private static Dictionary<string, CacheObjectDrawString> CacheObjectDrawStringDict = new Dictionary<string, CacheObjectDrawString>();
+
 		//bool _highQuality = false;
 
 		static CoreGraphicsGraphics ()
@@ -59,7 +61,10 @@ namespace CrossGraphics.CoreGraphics
 			//		Console.WriteLine ("  " + ff);
 			//	}
 			//}
-			
+
+			//float scale = UIScreen.MainScreen.Scale; // [[UIScreen mainScreen] scale];
+			//UIGraphics.GetCurrentContext ().ScaleCTM (scale, scale);
+
 			_textMatrix = CGAffineTransform.MakeScale (1, -1);
 		}
 
@@ -274,56 +279,74 @@ namespace CrossGraphics.CoreGraphics
 				SelectFont ();
 			}
 		}
-		
-		void SelectFont ()
-		{
-			var f = _lastFont;
-			var name = "Helvetica";
-			if (f.FontFamily == "Monospace") {
-				if (f.IsBold) {
-					name = "Courier-Bold";
-				}
-				else {
-					name = "Courier";
-				}
-			}
-			else if (f.FontFamily == "DBLCDTempBlack") {
+
+        void SelectFont()
+        {
+            var f = _lastFont;
+            var name = "Helvetica";
+            if (f.FontFamily == "Monospace" || f.FontFamily == "SystemFont")
+            {
+                if (f.IsBold)
+                {
+                    name = "Courier-Bold";
+                }
+                else
+                {
+                    name = "Courier";
+                }
+            }
+            else if (f.FontFamily == "DBLCDTempBlack")
+            {
 #if MONOMAC
 				name = "Courier-Bold";
 #else
-				name = f.FontFamily;
+                name = f.FontFamily;
 #endif
-			}
-			else if (f.IsBold) {
-				name = "Helvetica-Bold";
-			}
-			_c.SelectFont (name, f.Size, CGTextEncoding.MacRoman);
-			_c.TextMatrix = _textMatrix;
-		}
+            }
+			else if (!string.IsNullOrEmpty(f.FontFamily))
+            {
+				name = f.FontFamily;
+            }
+            else if (f.IsBold)
+            {
+                name = "Helvetica-Bold";
+            }
+			_c.SelectFont(name, f.Size, CGTextEncoding.MacRoman);
+            _c.TextMatrix = _textMatrix;
+        }
 		
 		static Dictionary<string, byte[]> _stringFixups = new Dictionary<string, byte[]>();
-		
-		byte[] FixupString (string s)
-		{
-			byte[] fix;
-			if (_stringFixups.TryGetValue (s, out fix)) {
-				return fix;
-			}
-			else {
-				var n = s.Length;
-				var bad = false;
-				for (var i = 0; i < n && !bad; i++) {
-					bad = ((int)s[i] > 127);
-				}
-				if (bad) {
-					fix = MacRomanEncoding.GetBytes (s.Replace ("\u03A9", "Ohm"));
-					_stringFixups [s] = fix;
-					return fix;
-				}
-				else {
-					return null;
-				}
-			}
+
+        byte[] FixupString(string s)
+        {
+            byte[] fix;
+            if (_stringFixups.TryGetValue(s, out fix))
+            {
+                return fix;
+            }
+            else
+            {
+                fix = MacRomanEncoding.GetBytes(s.Replace("\u03A9", "Ohm"));
+                _stringFixups[s] = fix;
+                return fix;
+
+                //var n = s.Length;
+                //var bad = false;
+                //for (var i = 0; i < n && !bad; i++)
+                //{
+                //    bad = ((int)s[i] > 127);
+                //}
+                //if (bad)
+                //{
+                //    fix = MacRomanEncoding.GetBytes(s.Replace("\u03A9", "Ohm"));
+                //    _stringFixups[s] = fix;
+                //    return fix;
+                //}
+                //else
+                //{
+                //    return null;
+                //}
+            }
 		}
 		
 		public void SetClippingRect (float x, float y, float width, float height)
@@ -331,41 +354,167 @@ namespace CrossGraphics.CoreGraphics
 			_c.ClipToRect (new RectangleF (x, y, width, height));
 		}
 		
-		public void DrawString (string s, float x, float y)
+		public float[] DrawString (string s, float x, float y)
 		{			
-			if (_lastFont == null) return;
-			var fm = GetFontMetrics ();
-			var fix = FixupString (s);
-			
-			if (fix == null) {
-				_c.ShowTextAtPoint (x, y + fm.Height, s);
-			}
-			else {
-				_c.ShowTextAtPoint (x, y + fm.Height, fix);
-			}
-		}
+            return DrawString(s, x, y, 0.0f, 0.0f, LineBreakMode.None, TextAlignment.Left);
+        }
 
-		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+        public float[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			if (_lastFont == null) return;
-			var fm = GetFontMetrics ();
-			var fix = FixupString (s);
-			var xx = x;
-			var yy = y;
-			if (align == TextAlignment.Center) {
-				xx = (x + width / 2) - (fm.StringWidth (s) / 2);
-			}
-			else if (align == TextAlignment.Right) {
-				xx = (x + width) - fm.StringWidth (s);
-			}
+            if (_lastFont == null) return new float[] { 0, 0 };
+            float maxWidth = 0.0f;
+            var cacheObjectKey = s + "_" + x + "_" + y + "_" + width + "_" + height + "_" + lineBreak + "_" + align;
+            CacheObjectDrawString cacheObject = null;
+            CacheObjectDrawStringDict.TryGetValue(cacheObjectKey, out cacheObject);
+            if (cacheObject == null)
+            {
+                cacheObject = new CacheObjectDrawString();
+                cacheObject.DeleteTag = false;
+                cacheObject.Key = cacheObjectKey;
+                //s = FixupString(s);
+                cacheObject.StringLinesiOSDict = new Dictionary<string,byte[]>();
+                cacheObject.StringLinesiOSDict[s] = FixupString(s);
+                cacheObject.StringLines = new List<string>() { s };
+                CacheObjectDrawStringDict[cacheObjectKey] = cacheObject;
+            }
+            var fm = GetFontMetrics();
+            string sPart = "";
+            float stringWidth = 0.0f;
+            if (cacheObject.LineBreak != lineBreak)
+            {
+                cacheObject.StringLines = new List<string>();
+                cacheObject.LineBreak = lineBreak;
+                switch (lineBreak)
+                {
+                    case LineBreakMode.WordWrap:
+                        var wordParts = s.Split(new string[] { " " }, StringSplitOptions.None);
+                        stringWidth = 0.0f;
+                        sPart = "";
+                        for (int i = 0; i < wordParts.Length; i++)
+                        {
+                            var item = wordParts[i];
+                            stringWidth = fm.StringWidth(sPart + item + " ");
+                            if (stringWidth > width && sPart.Length > 0)
+                            {
+                                sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
+                                cacheObject.StringLines.Add(sPart);
+                                cacheObject.StringLinesiOSDict[sPart] = FixupString(sPart);
+                                sPart = "";
+                            }
+                            sPart += item + " ";
+                        }
+                        if (sPart.Length > 0)
+                        {
+                            sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
+                            cacheObject.StringLines.Add(sPart);
+                            cacheObject.StringLinesiOSDict[sPart] = FixupString(sPart);
+                        }
+                        break;
+
+                    case LineBreakMode.Wrap:
+                        //Cut the string if the width is reached
+                        var charArray = s.ToCharArray();
+                        sPart = "";
+                        stringWidth = 0.0f;
+                        for (int i = 0; i < charArray.Length; i++)
+                        {
+                            var item = charArray[i];
+                            stringWidth = fm.StringWidth(sPart + item);
+                            if (stringWidth > width && sPart.Length > 0)
+                            {
+                                cacheObject.StringLines.Add(sPart);
+                                cacheObject.StringLinesiOSDict[sPart] = FixupString(sPart);
+                                sPart = "";
+                            }
+                            sPart += item;
+                        }
+                        if (sPart.Length > 0)
+                        {
+                            cacheObject.StringLines.Add(sPart);
+                            cacheObject.StringLinesiOSDict[sPart] = FixupString(sPart);
+                        }
+                        break;
+
+                    default:
+                        cacheObject.StringLines.Add(s);
+                        break;
+                }
+            }
+
+            switch (align)
+            {
+                case TextAlignment.Right:
+                    //y += fm.Ascent - fm.Descent;
+                    y += fm.Ascent;
+                    foreach (var item in cacheObject.StringLines)
+                    {
+                        stringWidth = fm.StringWidth(item);
+                        if (stringWidth > maxWidth)
+                        {
+                            maxWidth = stringWidth;
+                        }
+                        //_c.DrawText(item, x + width - stringWidth, y, _paints.Fill);
+                        _c.ShowTextAtPoint(x + width - stringWidth, y, cacheObject.StringLinesiOSDict[item]);
+                        y += fm.Ascent + fm.Descent;
+                    }
+                    break;
+
+                case TextAlignment.Center:
+                    //y += fm.Ascent - fm.Descent;
+                    y += fm.Ascent;
+                    foreach (var item in cacheObject.StringLines)
+                    {
+                        stringWidth = fm.StringWidth(item);
+                        if (stringWidth > maxWidth)
+                        {
+                            maxWidth = stringWidth;
+                        }
+                        //_c.DrawText(item, x + width * 0.5f - stringWidth * 0.5f, y, _paints.Fill);
+                        _c.ShowTextAtPoint(x + width * 0.5f - stringWidth * 0.5f, y, FixupString(item));
+                        y += fm.Ascent + fm.Descent;
+                    }
+                    break;
+
+                default:
+                    //y += fm.Ascent - fm.Descent;
+                    y += fm.Ascent;
+                    foreach (var item in cacheObject.StringLines)
+                    {
+                        stringWidth = fm.StringWidth(item);
+                        if (stringWidth > maxWidth)
+                        {
+                            maxWidth = stringWidth;
+                        }
+                        //_c.DrawText(item, x, y, _paints.Fill);
+                        _c.ShowTextAtPoint(x, y, FixupString(item));
+                        y += fm.Ascent + fm.Descent;
+                    }
+                    break;
+
+            }
+            return new float[] { maxWidth, (fm.Ascent + fm.Descent) * cacheObject.StringLines.Count };
+
+            //alt:
+            //var fm = GetFontMetrics ();
+            //var fix = FixupString (s);
+            //var xx = x;
+            //var yy = y;
+            //if (align == TextAlignment.Center) {
+            //    xx = (x + width / 2) - (fm.StringWidth (s) / 2);
+            //}
+            //else if (align == TextAlignment.Right) {
+            //    xx = (x + width) - fm.StringWidth (s);
+            //}
 			
-			if (fix == null) {
-				_c.ShowTextAtPoint (xx, yy + fm.Height, s);
-			}
-			else {
-				_c.ShowTextAtPoint (xx, yy + fm.Height, fix);
-			}
-		}
+            //if (fix == null) {
+            //    _c.ShowTextAtPoint(xx, yy + fm.Height, s);
+            //}
+            //else {
+            //    _c.ShowTextAtPoint(xx, yy + fm.Height, fix);
+            //}
+            ////return new double[] { (double)fm.StringWidth(s), (double)fm.Height };
+            //return new double[] { 0, 0 };
+        }
 
 		public IFontMetrics GetFontMetrics ()
 		{
@@ -381,7 +530,7 @@ namespace CrossGraphics.CoreGraphics
 			if (fm.Widths == null) {
 				fm.MeasureText (_c, _lastFont);
 			}
-			
+
 			return fm;
 		}
 
@@ -535,41 +684,46 @@ namespace CrossGraphics.CoreGraphics
 
 		public void MeasureText (CGContext c, Font f)
 		{
-//			Console.WriteLine ("MEASURE {0}", f);
-			
-			c.SetTextDrawingMode (CGTextDrawingMode.Invisible);
-			c.TextPosition = new PointF(0, 0);
-			c.ShowText ("MM");
-			
-			var mmWidth = c.TextPosition.X;
-			
-			_height = f.Size - 5;
+			Console.WriteLine ("MEASURE {0}", f);
+
+            c.SetTextDrawingMode(CGTextDrawingMode.Invisible);
+            
+            c.TextPosition = new PointF(0, 0);
+            c.ShowText("MM");
+            
+            
+
+            var mmWidth = c.TextPosition.X;
+
+            //_height = f.Size - 5;
+            _height = f.Size;
 			
 			Widths = new float[0x80];
 
 			for (var i = ' '; i < 127; i++) {
 
-				var s = "M" + ((char)i).ToString() + "M";
-				
+                var s = "M" + ((char)i).ToString() + "M";
+                				
 				c.TextPosition = new PointF(0, 0);
 				c.ShowText (s);
 				
 				var sz = c.TextPosition.X - mmWidth;
 				
 				if (sz < 0.1f) {
-					Widths = null;
+				    Widths = null;
+                    throw new NotSupportedException("Font Error - CrossGraohics please check custom font name.");
 					return;
 				}
-				
+
 				Widths[i] = sz;
 			}
 			
 			c.SetTextDrawingMode (CGTextDrawingMode.Fill);
 		}
 
-		public CoreGraphicsFontMetrics ()
-		{
-		}
+        //public CoreGraphicsFontMetrics ()
+        //{
+        //}
 		
 		public int StringWidth (string str, int startIndex, int length)
 		{
@@ -599,21 +753,34 @@ namespace CrossGraphics.CoreGraphics
 		public int Height
 		{
 			get {
-				return _height;
-			}
+                return _height;
+            }
 		}
 
-		public int Ascent
+        private int _ascent = 0;
+        public int Ascent
 		{
-			get {
-				return Height;
-			}
-		}
+            get
+            {
+                if (_ascent == 0)
+                {
+                    //Dirty fix to equalize Windows, Android, iOS
+                    _ascent = (int)(Height * 0.85f);
+                }
+                return _ascent;
+            }
+        }
 
+        private int _descent = 0;
 		public int Descent
 		{
 			get {
-				return 0;
+                if (_descent == 0)
+                {
+                    //Dirty fix to equalize Windows, Android, iOS
+                    _descent = (int)(Height * 0.3f);
+                }
+				return _descent;
 			}
 		}
 	}

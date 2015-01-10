@@ -63,9 +63,9 @@ namespace CrossGraphics
 
 		void DrawImage(IImage img, float x, float y, float width, float height);
 
-		void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align);
+        float[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align);
 
-		void DrawString(string s, float x, float y);
+        float[] DrawString(string s, float x, float y);
 		
 		void SaveState();
 		
@@ -85,6 +85,7 @@ namespace CrossGraphics
 	public enum LineBreakMode {
 		None,
 		Clip,
+        Wrap,
 		WordWrap,
 	}
 
@@ -97,21 +98,21 @@ namespace CrossGraphics
 
 	public static class GraphicsEx
 	{
-        public static void DrawString (this IGraphics g, string s, PointF p)
+        public static float[] DrawString(this IGraphics g, string s, PointF p)
         {
-            g.DrawString(s, p.X, p.Y);
+            return g.DrawString(s, p.X, p.Y);
         }
 
-		public static void DrawString(this IGraphics g, string s, PointF p, Font f)
+        public static float[] DrawString(this IGraphics g, string s, PointF p, Font f)
 		{
 			g.SetFont (f);
-			g.DrawString (s, p.X, p.Y);
+			return g.DrawString (s, p.X, p.Y);
 		}
 
-		public static void DrawString(this IGraphics g, string s, RectangleF p, Font f, LineBreakMode lineBreak, TextAlignment align)
+        public static float[] DrawString(this IGraphics g, string s, RectangleF p, Font f, LineBreakMode lineBreak, TextAlignment align)
 		{
 			g.SetFont (f);
-			g.DrawString (s, p.Left, p.Top, p.Width, p.Height, lineBreak, align);
+			return g.DrawString (s, p.Left, p.Top, p.Width, p.Height, lineBreak, align);
 		}
 
 		public static void DrawLine(this IGraphics g, PointF s, PointF e, float w)
@@ -184,7 +185,9 @@ namespace CrossGraphics
 	public class Font
 	{
 		public string FontFamily { get; private set; }
-		
+
+		public string FontFilename { get; private set; }
+
 		public FontOptions Options { get; private set; }
 
 		public int Size { get; private set; }
@@ -196,10 +199,19 @@ namespace CrossGraphics
 		public Font (string fontFamily, FontOptions options, int size)
 		{
 			FontFamily = fontFamily;
+			FontFilename = "";
 			Options = options;
 			Size = size;
 		}
-		
+
+		public Font (string fontFamily, string fontFilename, FontOptions options, int size)
+		{
+			FontFamily = fontFamily;
+			FontFilename = fontFilename;
+			Options = options;
+			Size = size;
+		}
+
 		static Font[] _boldSystemFonts = new Font[0];
 		static Font[] _systemFonts = new Font[0];
 		static Font[] _userFixedPitchFonts = new Font[0];
@@ -257,9 +269,24 @@ namespace CrossGraphics
 				return f;
 			}
 		}
-		
-		public static Font FromName (string name, int size) {
-			return new Font (name, FontOptions.None, size);
+
+
+        //Customs Fonts
+        //iOS:
+        //You have to modify your info.plist and add the entry 'Fonts provided by application' <key>UIAppFonts</key> for your custom fonts and copy the fonts to your Bundle as BundleResource
+        //
+        //Android:
+        //Copy the fonts to your Assets folder as AndroidAsset; remember to use the full filename to load the font like Font.FromName("UniversLTStd-LightCn", "UniversLTStd-LightCn.otf", "Univers LT Std", 18);
+        //
+        //Windows Phone/Store:
+        //According to
+        //http://stackoverflow.com/questions/14085818/custom-font-usage-in-windows-phone-8
+        //you have to set the font family name not only the filename
+        //The fonts should be copied inside a 'Fonts' folder. The custom fonts should be as type 'Content'
+
+		public static Font FromName(string fontFamily, string fontFilename, int size)
+        {
+			return new Font(fontFamily, fontFilename, FontOptions.None, size);
 		}
 
 		public override string ToString()
@@ -323,6 +350,22 @@ namespace CrossGraphics
 			Blue = blue;
 			Alpha = alpha;
 		}
+
+        public Color(float red, float green, float blue)
+        {
+            Red = (int)(red * 255);
+            Green = (int)(green * 255);
+            Blue = (int)(blue * 255);
+            Alpha = 255;
+        }
+
+        public Color(float red, float green, float blue, float alpha)
+        {
+            Red = (int)(red * 255);
+            Green = (int)(green * 255);
+            Blue = (int)(blue * 255);
+            Alpha = (int)(alpha * 255);
+        }
 
 		public int Intensity { get { return (Red + Green + Blue) / 3; } }
 
@@ -520,5 +563,18 @@ namespace CrossGraphics
 			return r;
 		}
 	}
+
+
+    public class CacheObjectDrawString
+    {
+        public bool DeleteTag { get; set; }
+        public string Key { get; set; }
+        public List<string> StringLines { get; set; }
+        public LineBreakMode LineBreak { get; set; }
+        public TextAlignment Alignment { get; set; }
+        public Dictionary<string, byte[]> StringLinesiOSDict { get; set; }
+    }
+
+
 }
 

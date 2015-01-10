@@ -80,6 +80,7 @@ namespace CrossGraphics
 		{
 			if (canvas == null) throw new ArgumentNullException ("canvas");
 			_canvas = canvas;
+            
 			_states.Push(new State());
 		}
 
@@ -243,9 +244,9 @@ namespace CrossGraphics
 			_eshape.DrawImage (img, x, y, width, height);
 		}
 
-		public void DrawString (string s, float x, float y)
+        public float[] DrawString(string s, float x, float y)
 		{
-			_eshape.DrawString (s, x, y);
+			return _eshape.DrawString (s, x, y);
 		}
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
@@ -258,9 +259,9 @@ namespace CrossGraphics
 			_eshape.DrawArc (cx, cy, radius, startAngle, endAngle, w);
 		}
 
-		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+        public float[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			_eshape.DrawString (s, x, y, width, height, lineBreak, align);
+            return _eshape.DrawString(s, x, y, width, height, lineBreak, align);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -430,8 +431,9 @@ namespace CrossGraphics
 			public float X, Y, Width, Height;
 			public float Thickness, Radius;
 			public string Text;
-			public TextAlignment TextAlignment;
-			public int Count;
+            public TextAlignment TextAlignment;
+            public LineBreakMode LineBreakMode;
+            public int Count;
 			public SilverlightImage Image;
 			public DrawOp DrawOp;
 			public override string ToString ()
@@ -961,7 +963,21 @@ namespace CrossGraphics
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			if (polyline != null) {
+            //according to http://diveintohtml5.info/canvas.html
+            //to avoid getting lines 2 pixels wide while they should be only 1 pixel wide
+            if (sx == ex)
+            {
+                sx = ((int)(sx) + 0.5f);
+                ex = ((int)(ex) + 0.5f);
+            }
+            if (sy == ey)
+            {
+                sy = ((int)(sy) + 0.5f);
+                ey = ((int)(ey) + 0.5f);
+            }
+
+            if (polyline != null)
+            {
 
 				var n = polylinePoints.Count;
 
@@ -1081,76 +1097,147 @@ namespace CrossGraphics
 			}
 		}
 
-		public void DrawString(string str, float x, float y, float width = 0, float height = 0, LineBreakMode lineBreak = LineBreakMode.None, TextAlignment align = TextAlignment.Left)
-		{
-			var s = GetNextShape(TypeId.Text);
-			var e = (TextBlock)s.Element;
-			//var b = s.Element as Border;
-			//var e = b.Child as TextBlock;
-			//if (e == null) {
-			//    e = new TextBlock();
-			//    b.Child = e;
-			//}
+        public float[] DrawString(string str, float x, float y, float width = 0, float height = 0, LineBreakMode lineBreak = LineBreakMode.None, TextAlignment align = TextAlignment.Left)
+        {
+            var s = GetNextShape(TypeId.Text);
+            var e = (TextBlock)s.Element;
+            //var b = s.Element as Border;
+            //var e = b.Child as TextBlock;
+            //if (e == null) {
+            //    e = new TextBlock();
+            //    b.Child = e;
+            //}
+            
+            //y correction
+            //y -= 3.0f;
 
-			if (s.TextAlignment != align) {
-				switch (align) {
-					case TextAlignment.Center:
-						e.TextAlignment = NativeTextAlignment.Center;
-						e.Width = width;
-						e.Height = height;
-						break;
-					default:
-						e.TextAlignment = NativeTextAlignment.Left;
-						break;
-				}
-				s.TextAlignment = align;
-			}
+            if (s.Text != str)
+            {
+                s.Text = str;
+                e.Text = str;
+                //b.Background = new SolidColorBrush(System.Windows.Media.Colors.Red);
+            }
 
-			if (s.X != x) {
-				s.X = x;
-				Canvas.SetLeft(e, x);
-			}
-			if (s.Y != y) {
-				s.Y = y;
-				Canvas.SetTop(e, y);
-			}
-			if (s.Text != str) {
-				s.Text = str;
-				e.Text = str;                
-				//b.Background = new SolidColorBrush(System.Windows.Media.Colors.Red);
-			}
-			if (s.Color != _currentColor) {
-				s.Color = _currentColor;
-				e.Foreground = _currentColor.GetBrush();
-			}
-			if (s.Font != CurrentFont) {
-				s.Font = CurrentFont;
-				if (CurrentFont.FontFamily == "Monospace") {
-					e.FontFamily = XamlFontMetrics.Monospace;
-				}
-				else {
-					e.FontFamily = XamlFontMetrics.SystemFont;
-				}
-				if (CurrentFont.IsBold) {
-					e.FontWeight = FontWeights.Bold;
-				}
-				else {
-					e.FontWeight = FontWeights.Normal;
-				}
-				e.Padding = new Thickness(0);
-				e.RenderTransform = new TranslateTransform() {
-					X = 0,
+            if (width != 0)
+            {
+                e.Width = width;
+            }
+            if (height != 0)
+            {
+                e.Height = height;
+            }
+
+            if (s.LineBreakMode != lineBreak)
+            {
+                switch (lineBreak)
+                {
+                    #if WINDOWS_PHONE
+                        case LineBreakMode.WordWrap:
+                        e.TextWrapping = TextWrapping.Wrap;
+                        break;
+
+                    #else
+                        case LineBreakMode.WordWrap:
+                        e.TextWrapping = TextWrapping.WrapWholeWords;
+                        break;
+
+                    #endif
+
+                    case LineBreakMode.Wrap:
+                        e.TextWrapping = TextWrapping.Wrap;
+                        break;
+
+                    default:
+                        e.TextWrapping = TextWrapping.NoWrap;
+                        break;
+
+                }
+                s.LineBreakMode = lineBreak;
+            }
+
+            if (s.TextAlignment != align)
+            {
+                switch (align)
+                {
+                    case TextAlignment.Right:
+                        e.TextAlignment = NativeTextAlignment.Right;
+                        e.Width = width;
+                        e.Height = height;
+                        break;
+
+                    case TextAlignment.Center:
+                        e.TextAlignment = NativeTextAlignment.Center;
+                        e.Width = width;
+                        e.Height = height;
+                        break;
+
+                    default:
+                        e.TextAlignment = NativeTextAlignment.Left;
+                        break;
+
+                }
+                s.TextAlignment = align;
+            }
+
+            if (s.X != x)
+            {
+                s.X = x;
+                Canvas.SetLeft(e, x);
+            }
+            if (s.Y != y)
+            {
+                s.Y = y;
+                Canvas.SetTop(e, y);
+            }
+            if (s.Color != _currentColor)
+            {
+                s.Color = _currentColor;
+                e.Foreground = _currentColor.GetBrush();
+            }
+            if (s.Font != CurrentFont)
+            {
+                s.Font = CurrentFont;
+                if (CurrentFont.FontFamily == "Monospace")
+                {
+                    e.FontFamily = XamlFontMetrics.Monospace;
+                }
+                else if (string.IsNullOrEmpty(CurrentFont.FontFamily) == false)
+                {
+                    e.FontFamily = new NativeFontFamily("/Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.FontFamily);
+                }
+                else
+                {
+                    e.FontFamily = XamlFontMetrics.SystemFont;
+                }
+                if (CurrentFont.IsBold)
+                {
+                    e.FontWeight = FontWeights.Bold;
+                }
+                else
+                {
+                    e.FontWeight = FontWeights.Normal;
+                }
+                e.Padding = new Thickness(0);
+                e.RenderTransform = new TranslateTransform()
+                {
+                    X = 0,
 #if NETFX_CORE
-					Y = -0.08 * CurrentFont.Size,
+                    Y = -0.08 * CurrentFont.Size,
+                    //Y = -0.18 * CurrentFont.Size, //zu weit oben
 #else
-					Y = -0.333 * CurrentFont.Size,
+                    //Y = -0.333 * CurrentFont.Size,
 #endif
-				};
-				e.FontSize = CurrentFont.Size;
-				//e.Height = CurrentFont.Size;
-			}
-		}
-	}
+                };
+                e.FontSize = CurrentFont.Size;
+                //e.Height = CurrentFont.Size;
+            }
+
+            e.Measure(new Size(1, 1));
+            return new float[] { (float)e.ActualWidth, (float)e.ActualHeight };
+        }
+
+
+    }
 
 	public static partial class ColorEx
 	{

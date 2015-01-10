@@ -9,15 +9,15 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
-using CrossGraphics.SilverlightGraphics;
 using System.Windows.Threading;
+using CrossGraphics;
 
 namespace Clock.Silverlight
 {
 	public partial class MainPage : UserControl
 	{
 		Clock _clock;
-		SilverlightGraphics _graphics;
+        XamlGraphics _graphics;
 
 		public MainPage ()
 		{
@@ -27,7 +27,7 @@ namespace Clock.Silverlight
 
 		private void UserControl_Loaded (object sender, RoutedEventArgs e)
 		{
-			_graphics = new SilverlightGraphics (LayoutRoot);
+			_graphics = new XamlGraphics (LayoutRoot);
 
 			var timer = new DispatcherTimer {
 				Interval = TimeSpan.FromSeconds (1),

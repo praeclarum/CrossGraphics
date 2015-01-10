@@ -21,6 +21,9 @@
 //
 using System;
 using Android.Graphics;
+using Android.Content;
+using System.Collections.Generic;
+using Android.Content.Res;
 
 
 namespace CrossGraphics.Android
@@ -30,8 +33,12 @@ namespace CrossGraphics.Android
 		Canvas _c;
 		ColPaints _paints;
 		Font _font;
+        static Context _context;
+		float _scaledDensity = Resources.System.DisplayMetrics.ScaledDensity;
 
 		public Canvas Canvas { get { return _c; } }
+
+        private static Dictionary<string, CacheObjectDrawString> CacheObjectDrawStringDict = new Dictionary<string, CacheObjectDrawString>();
 
 		class ColPaints
 		{
@@ -40,16 +47,33 @@ namespace CrossGraphics.Android
 			public Font Font;
 		}
 
-		public AndroidGraphics (Canvas canvas)
+        public AndroidGraphics(Canvas canvas, Context context)
 		{
 			_c = canvas;
 			_font = null;
+            _context = context;
 			SetColor (Colors.Black);
 		}
 
 		public void BeginEntity (object entity)
 		{
 		}
+
+//		private float _dpScaleFactor = -1.0f;
+//		public float _scaledDensity
+//		{
+//			get
+//			{
+//				if (_dpScaleFactor < 0.0f) {
+//					_dpScaleFactor = Resources.System.DisplayMetrics.ScaledDensity;
+//				}
+//				return _dpScaleFactor;
+//			}
+//			set
+//			{
+//				_dpScaleFactor = value;
+//			}
+//		}
 
 		public void SetFont (Font font)
 		{
@@ -113,33 +137,62 @@ namespace CrossGraphics.Android
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
+			radius *= _scaledDensity;
 			_c.DrawRoundRect (new RectF (x, y, x + width, y + height), radius, radius, _paints.Fill);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
+			radius *= _scaledDensity;
+			w *= _scaledDensity;
 			_paints.Stroke.StrokeWidth = w;
 			_c.DrawRoundRect (new RectF (x, y, x + width, y + height), radius, radius, _paints.Stroke);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
 			_c.DrawRect (new RectF (x, y, x + width, y + height), _paints.Fill);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
+			w *= _scaledDensity;
 			_paints.Stroke.StrokeWidth = w;
 			_c.DrawRect (new RectF (x, y, x + width, y + height), _paints.Stroke);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
 			_c.DrawOval (new RectF (x, y, x + width, y + width), _paints.Fill);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
+			w *= _scaledDensity;
 			_paints.Stroke.StrokeWidth = w;
 			_c.DrawOval (new RectF (x, y, x + width, y + width), _paints.Stroke);
 		}
@@ -148,6 +201,9 @@ namespace CrossGraphics.Android
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
+			cx *= _scaledDensity;
+			cy *= _scaledDensity;
+			radius *= _scaledDensity;
 			var sa = -startAngle * RadiansToDegrees;
 			var ea = -endAngle * RadiansToDegrees;
 			_c.DrawArc (new RectF (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Fill);
@@ -155,6 +211,10 @@ namespace CrossGraphics.Android
 		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
+			cx *= _scaledDensity;
+			cy *= _scaledDensity;
+			radius *= _scaledDensity;
+			w *= _scaledDensity;
 			var sa = -startAngle * RadiansToDegrees;
 			var ea = -endAngle * RadiansToDegrees;
 			_paints.Stroke.StrokeWidth = w;
@@ -177,6 +237,11 @@ namespace CrossGraphics.Android
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
+			sx *= _scaledDensity;
+			sy *= _scaledDensity;
+			ex *= _scaledDensity;
+			ey *= _scaledDensity;
+			w *= _scaledDensity;
 			if (_inLines) {
 				if (_linesCount == 0) {
 					_linesPath.MoveTo (sx, sy);
@@ -205,6 +270,10 @@ namespace CrossGraphics.Android
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
 		{
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
 			var dimg = img as AndroidImage;
 			if (dimg != null) {
 				SetColor (Colors.White);
@@ -215,23 +284,29 @@ namespace CrossGraphics.Android
 					_paints.Fill);
 			}
 		}
-		
-		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
-		{
-			if (string.IsNullOrWhiteSpace (s)) return;
-			DrawString (s, x, y);
-		}
 
 		static AndroidFontInfo GetFontInfo (Font f)
 		{
 			var fi = f.Tag as AndroidFontInfo;
 			if (fi == null) {
-				var tf = f.IsBold ? Typeface.DefaultBold : Typeface.Default;
-				fi = new AndroidFontInfo {
-					Typeface = tf,
-				};
-				f.Tag = fi;
-			}
+                try
+                {
+                    fi = new AndroidFontInfo
+                    {
+						Typeface = Typeface.CreateFromAsset(_context.Assets, f.FontFilename),
+                    };
+                }
+                catch (Exception ex)
+                {
+                    //throw new NotSupportedException ("Font must be included in the Assets folder and the full filename including file extension must be provided.");
+                    var tf = f.IsBold ? Typeface.DefaultBold : Typeface.Default;
+                    fi = new AndroidFontInfo
+                    {
+                        Typeface = tf,
+                    };
+                }
+                f.Tag = fi;
+            }
 			return fi;
 		}
 
@@ -240,7 +315,7 @@ namespace CrossGraphics.Android
 			var fi = GetFontInfo (f);
 
 			p.SetTypeface (fi.Typeface);
-			p.TextSize = f.Size;
+			p.TextSize = (int)(f.Size * Resources.System.DisplayMetrics.ScaledDensity);
 
 			if (fi.FontMetrics == null) {
 				fi.FontMetrics = new AndroidFontMetrics (p);
@@ -257,14 +332,145 @@ namespace CrossGraphics.Android
 			}
 		}
 
-		public void DrawString (string s, float x, float y)
+		public float[] DrawString(string s, float x, float y)
 		{
-			if (string.IsNullOrWhiteSpace (s)) return;
-
-			SetFontOnPaints ();
-			var fm = GetFontMetrics ();
-			_c.DrawText (s, x, y + fm.Ascent - fm.Descent, _paints.Fill);
+            return DrawString(s, x, y, 0.0f, 0.0f, LineBreakMode.None, TextAlignment.Left);
 		}
+
+		public float[] DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
+        {
+			if (string.IsNullOrWhiteSpace(s)) return new float[] { };
+
+			x *= _scaledDensity;
+			y *= _scaledDensity;
+			width *= _scaledDensity;
+			height *= _scaledDensity;
+
+            float maxWidth = 0.0f;
+            var cacheObjectKey = s + "_" + x + "_" + y + "_" + width + "_" + height + "_" + lineBreak + "_" + align;
+            CacheObjectDrawString cacheObject = null;
+            CacheObjectDrawStringDict.TryGetValue(cacheObjectKey, out cacheObject);
+            if (cacheObject == null)
+            {
+                cacheObject = new CacheObjectDrawString();
+                cacheObject.DeleteTag = false;
+                cacheObject.Key = cacheObjectKey;
+                cacheObject.StringLines = new List<string>() { s };
+                CacheObjectDrawStringDict[cacheObjectKey] = cacheObject;
+            }
+            SetFontOnPaints();
+            var fm = GetFontMetrics();
+            string sPart = "";
+            float stringWidth = 0.0f;
+            if (cacheObject.LineBreak != lineBreak)
+            {
+                cacheObject.StringLines = new List<string>();
+                cacheObject.LineBreak = lineBreak;
+                switch (lineBreak)
+                {
+                    case LineBreakMode.WordWrap:
+                        var wordParts = s.Split(new string[] { " " }, StringSplitOptions.None);
+                        stringWidth = 0.0f;
+                        sPart = "";
+                        for (int i = 0; i < wordParts.Length; i++)
+                        {
+                            var item = wordParts[i];
+							stringWidth = fm.StringWidth(sPart + item + " ") * _scaledDensity;
+                            if (stringWidth > width && sPart.Length > 0)
+                            {
+                                sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
+                                cacheObject.StringLines.Add(sPart);
+                                sPart = "";
+                            }
+                            sPart += item + " ";
+                        }
+                        if (sPart.Length > 0)
+                        {
+                            sPart = sPart.Remove(sPart.Length - 1); //Remove space at the end
+                            cacheObject.StringLines.Add(sPart);
+                        }
+                        break;
+
+                    case LineBreakMode.Wrap:
+                        //Cut the string if the width is reached
+                        var charArray = s.ToCharArray();
+                        sPart = "";
+                        stringWidth = 0.0f;
+                        for (int i = 0; i < charArray.Length; i++)
+                        {
+                            var item = charArray[i];
+							stringWidth = fm.StringWidth(sPart + item) * _scaledDensity;
+                            if (stringWidth > width && sPart.Length > 0)
+                            {
+                                cacheObject.StringLines.Add(sPart);
+                                sPart = "";
+                            }
+                            sPart += item;
+                        }
+                        if (sPart.Length > 0)
+                        {
+                            cacheObject.StringLines.Add(sPart);
+                        }
+                        break;
+
+                    default:
+                        cacheObject.StringLines.Add(s);
+                        break;
+                }
+                cacheObject.StringLines = cacheObject.StringLines;
+            }
+
+
+            switch (align)
+            {
+                case TextAlignment.Right:
+                    //y += fm.Ascent - fm.Descent;
+                    y += fm.Ascent;
+                    foreach (var item in cacheObject.StringLines)
+                    {
+						stringWidth = fm.StringWidth(item) * _scaledDensity;
+                        if (stringWidth > maxWidth)
+                        {
+                            maxWidth = stringWidth;
+                        }
+                        _c.DrawText(item, x + width - stringWidth, y, _paints.Fill);
+                        y += fm.Ascent + fm.Descent;
+                    }
+                    break;
+
+                case TextAlignment.Center:
+                    //y += fm.Ascent - fm.Descent;
+                    y += fm.Ascent;
+                    foreach (var item in cacheObject.StringLines)
+                    {
+						stringWidth = fm.StringWidth(item) * _scaledDensity;
+                        if (stringWidth > maxWidth)
+                        {
+                            maxWidth = stringWidth;
+                        }
+                        _c.DrawText(item, x + width * 0.5f - stringWidth * 0.5f, y, _paints.Fill);
+                        y += fm.Ascent + fm.Descent;
+                    }
+                    break;
+
+                default:
+                    //y += fm.Ascent - fm.Descent;
+                    y += fm.Ascent;
+                    foreach (var item in cacheObject.StringLines)
+                    {
+						stringWidth = fm.StringWidth(item) * _scaledDensity;
+                        if (stringWidth > maxWidth)
+                        {
+                            maxWidth = stringWidth;
+                        }
+                        _c.DrawText(item, x, y, _paints.Fill);
+                        y += fm.Ascent + fm.Descent;
+                    }
+                    break;
+
+            }
+			return new float[] { maxWidth / _scaledDensity, ((fm.Ascent + fm.Descent) * cacheObject.StringLines.Count)/_scaledDensity };
+        }
 
 		public IFontMetrics GetFontMetrics ()
 		{
@@ -353,8 +559,11 @@ namespace CrossGraphics.Android
 		{
 			_widths = new float[NumWidths];
 			paint.GetTextWidths (_chars, 0, NumWidths, _widths);
-			Ascent = (int)(Math.Abs (paint.Ascent ()) + 0.5f);
-			Descent = (int)(paint.Descent ()/2 + 0.5f);
+			//Ascent = (int)(Math.Abs (paint.Ascent ()) + 0.5f); //zu weit oben
+            //Ascent = (int)(Math.Abs(paint.Ascent()) + 4.5f); //zu weit unten
+            Ascent = (int)(Math.Abs(paint.Ascent()) + 2.5f);
+			//Descent = (int)(paint.Descent() / 2 + 0.5f);
+			Descent = (int)(paint.Descent() / 2 + 5.5f);
 			Height = Ascent;
 		}
 
@@ -371,11 +580,12 @@ namespace CrossGraphics.Android
 					a += _widths[s[i]];
 				}
 				else {
-					a += _widths[' '];
+					//a += _widths[' '];
+					a += _widths['x'];
 				}
 			}
 
-			return (int)(a + 0.5f);
+			return (int)((a + 0.5f) / Resources.System.DisplayMetrics.ScaledDensity);
 		}
 
 		public int Height { get; private set; }
@@ -384,4 +594,6 @@ namespace CrossGraphics.Android
 
 		public int Descent { get; private set; }
 	}
+
+
 }
