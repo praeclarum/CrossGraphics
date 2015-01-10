@@ -1203,8 +1203,7 @@ namespace CrossGraphics
                 }
                 else if (string.IsNullOrEmpty(CurrentFont.FontFamily) == false)
                 {
-                    e.FontFamily = new NativeFontFamily("/Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.FontNameWindows);
-                    //e.FontFamily = new FontFamily("/Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.FontFamily);
+                    e.FontFamily = new NativeFontFamily("/Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.FontFamily);
                 }
                 else
                 {

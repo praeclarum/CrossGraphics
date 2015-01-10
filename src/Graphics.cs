@@ -188,10 +188,6 @@ namespace CrossGraphics
 
 		public string FontFilename { get; private set; }
 
-		public string FontNameiOS { get; private set; }
-
-		public string FontNameWindows { get; private set; }
-
 		public FontOptions Options { get; private set; }
 
 		public int Size { get; private set; }
@@ -204,18 +200,14 @@ namespace CrossGraphics
 		{
 			FontFamily = fontFamily;
 			FontFilename = "";
-			FontNameiOS = "";
-			FontNameWindows = "";
 			Options = options;
 			Size = size;
 		}
 
-		public Font (string fontFamily, string fontFilename, string fontNameiOS, string fontNameWindows, FontOptions options, int size)
+		public Font (string fontFamily, string fontFilename, FontOptions options, int size)
 		{
 			FontFamily = fontFamily;
 			FontFilename = fontFilename;
-			FontNameiOS = fontNameiOS;
-			FontNameWindows = fontNameWindows;
 			Options = options;
 			Size = size;
 		}
@@ -282,22 +274,19 @@ namespace CrossGraphics
         //Customs Fonts
         //iOS:
         //You have to modify your info.plist and add the entry 'Fonts provided by application' <key>UIAppFonts</key> for your custom fonts and copy the fonts to your Bundle as BundleResource
-		//You can get the complete fontNameiOS from Macs font managemet software
-        //Not all fonts seem to work and I couldn't find out why
         //
         //Android:
-        //Copy the fonts to your Assets folder as AndroidAsset; remember to use the full filename to load the font like Font.FromName("UniversLTStd-LightCn.otf", "Univers LT Std", 18);
+        //Copy the fonts to your Assets folder as AndroidAsset; remember to use the full filename to load the font like Font.FromName("UniversLTStd-LightCn", "UniversLTStd-LightCn.otf", "Univers LT Std", 18);
         //
         //Windows Phone/Store:
         //According to
         //http://stackoverflow.com/questions/14085818/custom-font-usage-in-windows-phone-8
-        //you have to set the real font name not only the filename for windows phone like Font.FromName("UniversLTStd-LightCn.otf", "Univers LT Std", 18);
+        //you have to set the font family name not only the filename
         //The fonts should be copied inside a 'Fonts' folder. The custom fonts should be as type 'Content'
-		//You can get the fontNameWindows from a Windows PCs font management software
 
-		public static Font FromName(string fontFamily, string fontFilename, string fontNameiOS, string fontNameWindows, int size)
+		public static Font FromName(string fontFamily, string fontFilename, int size)
         {
-			return new Font(fontFamily, fontFilename, fontNameiOS, fontNameWindows, FontOptions.None, size);
+			return new Font(fontFamily, fontFilename, FontOptions.None, size);
 		}
 
 		public override string ToString()

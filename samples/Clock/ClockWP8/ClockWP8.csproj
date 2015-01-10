@@ -10,7 +10,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Clock.WP8</RootNamespace>
-    <AssemblyName>ClockWP7</AssemblyName>
+    <AssemblyName>ClockWP8</AssemblyName>
     <TargetFrameworkVersion>v8.1</TargetFrameworkVersion>
     <SilverlightVersion>
     </SilverlightVersion>

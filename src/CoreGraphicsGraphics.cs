@@ -272,9 +272,9 @@ namespace CrossGraphics.CoreGraphics
                 name = f.FontFamily;
 #endif
             }
-			else if (!string.IsNullOrEmpty(f.FontNameiOS))
+			else if (!string.IsNullOrEmpty(f.FontFamily))
             {
-				name = f.FontNameiOS;
+				name = f.FontFamily;
             }
             else if (f.IsBold)
             {
@@ -653,12 +653,14 @@ namespace CrossGraphics.CoreGraphics
 
 		public void MeasureText (CGContext c, Font f)
 		{
-//			Console.WriteLine ("MEASURE {0}", f);
+			Console.WriteLine ("MEASURE {0}", f);
 
             c.SetTextDrawingMode(CGTextDrawingMode.Invisible);
             
             c.TextPosition = new PointF(0, 0);
             c.ShowText("MM");
+            
+            
 
             var mmWidth = c.TextPosition.X;
 
@@ -677,19 +679,20 @@ namespace CrossGraphics.CoreGraphics
 				var sz = c.TextPosition.X - mmWidth;
 				
 				if (sz < 0.1f) {
-					Widths = null;
+				    Widths = null;
+                    throw new NotSupportedException("Font Error - CrossGraohics please check custom font name.");
 					return;
 				}
-				
+
 				Widths[i] = sz;
 			}
 			
 			c.SetTextDrawingMode (CGTextDrawingMode.Fill);
 		}
 
-		public CoreGraphicsFontMetrics ()
-		{
-		}
+        //public CoreGraphicsFontMetrics ()
+        //{
+        //}
 		
 		public int StringWidth (string str, int startIndex, int length)
 		{
