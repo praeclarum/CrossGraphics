@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010-2014 Frank A. Krueger
+// Copyright (c) 2010-2015 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,14 @@ using System.Collections.Generic;
 using MonoMac.CoreGraphics;
 using MonoMac.AppKit;
 #else
-using MonoTouch.CoreGraphics;
-using MonoTouch.UIKit;
+using CoreGraphics;
+using UIKit;
+#endif
+
+#if UNIFIED
+using NativePoint = CoreGraphics.CGPoint;
+#else
+using NativePoint = System.Drawing.PointF;
 #endif
 
 
@@ -551,7 +557,7 @@ namespace CrossGraphics.CoreGraphics
 
 				var s = "M" + ((char)i).ToString() + "M";
 				
-				c.TextPosition = new PointF(0, 0);
+				c.TextPosition = NativePoint.Empty;
 				c.ShowText (s);
 				
 				var sz = c.TextPosition.X - mmWidth;
@@ -561,7 +567,7 @@ namespace CrossGraphics.CoreGraphics
 					return;
 				}
 				
-				Widths[i] = sz;
+				Widths[i] = (float)sz;
 			}
 			
 			c.SetTextDrawingMode (CGTextDrawingMode.Fill);
@@ -621,9 +627,9 @@ namespace CrossGraphics.CoreGraphics
 	public static class CGContextEx
 	{
 #if !MONOMAC
-		[System.Runtime.InteropServices.DllImport (MonoTouch.Constants.CoreGraphicsLibrary)]
-		extern static void CGContextShowTextAtPoint(IntPtr c, float x, float y, byte[] bytes, int size_t_length);
-		public static void ShowTextAtPoint (this CGContext c, float x, float y, byte[] bytes)
+		[System.Runtime.InteropServices.DllImport (ObjCRuntime.Constants.CoreGraphicsLibrary)]
+		extern static void CGContextShowTextAtPoint(IntPtr c, nfloat x, nfloat y, byte[] bytes, nint size_t_length);
+		public static void ShowTextAtPoint (this CGContext c, nfloat x, nfloat y, byte[] bytes)
 		{
 			if (bytes == null)
 				throw new ArgumentNullException ("bytes");
