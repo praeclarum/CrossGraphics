@@ -506,10 +506,14 @@ namespace CrossGraphics
 		{
 			return new RectangleF (r.X, r.Y, r.Width, r.Height);
 		}
-		#if UNIFIED
+		#if MONOTOUCH
 		public static RectangleF ToRectangleF (this CoreGraphics.CGRect r)
 		{
 			return new RectangleF ((float)r.X, (float)r.Y, (float)r.Width, (float)r.Height);
+		}
+		public static PointF ToPointF (this CoreGraphics.CGPoint r)
+		{
+			return new PointF ((float)r.X, (float)r.Y);
 		}
 		#endif
 
