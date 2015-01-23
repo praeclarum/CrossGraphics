@@ -492,26 +492,8 @@ namespace CrossGraphics
 
 	public static class PointEx
 	{
-		#if UNIFIED
-		public static PointF ToPointF (this CoreGraphics.CGPoint r)
-		{
-			return new PointF ((float)r.X, (float)r.Y);
-		}
-		#endif
-	}
-
-	public static class RectangleEx
-	{
-		public static RectangleF ToRectangleF (this System.Drawing.Rectangle r)
-		{
-			return new RectangleF (r.X, r.Y, r.Width, r.Height);
-		}
-		#if MONOTOUCH
-		public static RectangleF ToRectangleF (this CoreGraphics.CGRect r)
-		{
-			return new RectangleF ((float)r.X, (float)r.Y, (float)r.Width, (float)r.Height);
-		}
-		public static PointF ToPointF (this CoreGraphics.CGPoint r)
+		#if __UNIFIED__
+		public static PointF ToPointF (this global::CoreGraphics.CGPoint r)
 		{
 			return new PointF ((float)r.X, (float)r.Y);
 		}
@@ -520,14 +502,28 @@ namespace CrossGraphics
 		public static System.Drawing.Point GetCenter (this System.Drawing.Rectangle r)
 		{
 			return new System.Drawing.Point (r.Left + r.Width / 2,
-										r.Top + r.Height / 2);
+				r.Top + r.Height / 2);
 		}
 
 		public static System.Drawing.PointF GetCenter (this System.Drawing.RectangleF r)
 		{
 			return new System.Drawing.PointF (r.X + r.Width / 2.0f,
-										r.Y + r.Height / 2.0f);
+				r.Y + r.Height / 2.0f);
 		}
+	}
+
+	public static class RectangleEx
+	{
+		public static RectangleF ToRectangleF (this System.Drawing.Rectangle r)
+		{
+			return new RectangleF (r.X, r.Y, r.Width, r.Height);
+		}
+		#if __UNIFIED__
+		public static RectangleF ToRectangleF (this global::CoreGraphics.CGRect r)
+		{
+			return new RectangleF ((float)r.X, (float)r.Y, (float)r.Width, (float)r.Height);
+		}
+		#endif
 
 		public static List<RectangleF> GetIntersections (this List<RectangleF> boxes, RectangleF box)
 		{

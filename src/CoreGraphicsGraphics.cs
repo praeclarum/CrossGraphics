@@ -23,19 +23,14 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 
-#if MONOMAC
-using MonoMac.CoreGraphics;
-using MonoMac.AppKit;
-#else
 using CoreGraphics;
+#if MONOMAC
+using AppKit;
+#else
 using UIKit;
 #endif
 
-#if UNIFIED
 using NativePoint = CoreGraphics.CGPoint;
-#else
-using NativePoint = System.Drawing.PointF;
-#endif
 
 
 namespace CrossGraphics.CoreGraphics
@@ -89,13 +84,8 @@ namespace CrossGraphics.CoreGraphics
 		public void SetColor (Color c)
 		{
 			var cgcol = c.GetCGColor ();
-#if MONOMAC
-			_c.SetFillColorWithColor (cgcol);
-			_c.SetStrokeColorWithColor (cgcol);
-#else
 			_c.SetFillColor (cgcol);
 			_c.SetStrokeColor (cgcol);
-#endif
 		}
 
 		public void Clear (Color color)
@@ -426,8 +416,8 @@ namespace CrossGraphics.CoreGraphics
 		{
 #if MONOMAC
 			var img = new NSImage ("Images/" + filename);
-			var rect = new RectangleF (PointF.Empty, img.Size);
-			return new UIKitImage (img.AsCGImage (ref rect, NSGraphicsContext.CurrentContext, new MonoMac.Foundation.NSDictionary ()));
+			var rect = new CGRect (CGPoint.Empty, img.Size);
+			return new UIKitImage (img.AsCGImage (ref rect, NSGraphicsContext.CurrentContext, new Foundation.NSDictionary ()));
 #else
 			return new UIKitImage (UIImage.FromFile ("Images/" + filename).CGImage);
 #endif
