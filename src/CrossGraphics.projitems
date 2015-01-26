@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>{71631E2A-1D77-4CFB-BC0C-BBAB3BDB771B}</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>CrossGraphics</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Canvas.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Graphics.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NullGraphics.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SvgGraphics.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WmfGraphics.cs" />
+  </ItemGroup>
+</Project>
