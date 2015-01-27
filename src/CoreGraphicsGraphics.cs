@@ -123,6 +123,7 @@ namespace CrossGraphics.CoreGraphics
 				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillRoundedRect");
 				return;
 			}
+
 			_c.AddRoundedRect (new RectangleF (x, y, width, height), radius);
 			_c.FillPath ();
 		}
@@ -629,22 +630,38 @@ namespace CrossGraphics.CoreGraphics
 
 		public static void AddRoundedRect (this CGContext c, RectangleF b, float r)
 		{
-			c.MoveTo (b.Left, b.Top + r);
-			c.AddLineToPoint (b.Left, b.Bottom - r);
+			var x = b.X;
+			var y = b.Y;
+			var w = b.Width;
+			var h = b.Height;
+			if (w < 0) {
+				x += w;
+				w = Math.Abs (w);
+			}
+			if (h < 0) {
+				y += h;
+				h = Math.Abs (h);
+			}
+
+			var ri = x + w;
+			var bo = y + h;
+
+			c.MoveTo (x, y + r);
+			c.AddLineToPoint (x, bo - r);
 			
-			c.AddArc (b.Left + r, b.Bottom - r, r, (float)(Math.PI), (float)(Math.PI / 2), true);
+			c.AddArc (x + r, bo - r, r, (float)(Math.PI), (float)(Math.PI / 2), true);
 			
-			c.AddLineToPoint (b.Right - r, b.Bottom);
+			c.AddLineToPoint (ri - r, bo);
 			
-			c.AddArc (b.Right - r, b.Bottom - r, r, (float)(-3 * Math.PI / 2), (float)(0), true);
+			c.AddArc (ri - r, bo - r, r, (float)(-3 * Math.PI / 2), (float)(0), true);
 			
-			c.AddLineToPoint (b.Right, b.Top + r);
+			c.AddLineToPoint (ri, y + r);
 			
-			c.AddArc (b.Right - r, b.Top + r, r, (float)(0), (float)(-Math.PI / 2), true);
+			c.AddArc (ri - r, y + r, r, (float)(0), (float)(-Math.PI / 2), true);
 			
-			c.AddLineToPoint (b.Left + r, b.Top);
+			c.AddLineToPoint (x + r, y);
 			
-			c.AddArc (b.Left + r, b.Top + r, r, (float)(-Math.PI / 2), (float)(Math.PI), true);
+			c.AddArc (x + r, y + r, r, (float)(-Math.PI / 2), (float)(Math.PI), true);
 		}
 
 		public static void AddBottomRoundedRect (this CGContext c, RectangleF b, float r)
