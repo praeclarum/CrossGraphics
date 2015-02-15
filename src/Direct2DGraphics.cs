@@ -33,7 +33,7 @@ namespace CrossGraphics
 		Direct2DGraphicsFontMetrics[] _fontMetrics;
 		int _fontSize = 10;
 
-		Color lastColor;
+        SolidColorBrush lastBrush;
 
 		Factory d2dFactory;
 		SharpDX.DirectWrite.Factory dwFactory;
@@ -119,7 +119,7 @@ namespace CrossGraphics
 				Transform = Matrix3x2.Identity,
 			});
 
-			lastColor = Colors.Black;
+            lastBrush = new SolidColorBrush(dc, Color4.Black);
 
 			SetFont (Font.SystemFontOfSize (16));
 		}
@@ -160,6 +160,11 @@ namespace CrossGraphics
 				textFormat.Dispose ();
 				textFormat = null;
 			}
+            if (lastBrush != null)
+            {
+                lastBrush.Dispose();
+                lastBrush = null;
+            }
 		}
 
 		public byte[] GetPixels ()
@@ -205,19 +210,24 @@ namespace CrossGraphics
 
 		public void SetColor (Color c)
 		{
-			lastColor = c;
+            var color4 = new Color4(c.RedValue, c.GreenValue, c.BlueValue, c.AlphaValue);
+            if (lastBrush.Color != color4)
+            {
+                lastBrush.Dispose();
+                lastBrush = new SolidColorBrush(dc, color4);
+            }
 		}
 
 		public void FillPolygon (Polygon poly)
 		{
 			var g = poly.GetGeometry (d2dFactory);
-			dc.FillGeometry (g, lastColor.GetBrush (dc));
+			dc.FillGeometry (g, lastBrush);
 		}
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
 			var g = poly.GetGeometry (d2dFactory);
-			dc.DrawGeometry (g, lastColor.GetBrush (dc), w);
+            dc.DrawGeometry(g, lastBrush, w);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
@@ -226,7 +236,7 @@ namespace CrossGraphics
 				Rect = new RectangleF (x, y, width, height),
 				RadiusX = radius,
 				RadiusY = radius,
-			}, lastColor.GetBrush (dc));
+            }, lastBrush);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
@@ -235,31 +245,31 @@ namespace CrossGraphics
 				Rect = new RectangleF (x, y, width, height),
 				RadiusX = radius,
 				RadiusY = radius,
-			}, lastColor.GetBrush (dc), w);
+            }, lastBrush, w);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
 		{
-			dc.FillRectangle (new RectangleF (x, y, width, height), lastColor.GetBrush (dc));
+            dc.FillRectangle(new RectangleF(x, y, width, height), lastBrush);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			dc.DrawRectangle (new RectangleF (x, y, width, height), lastColor.GetBrush (dc), w);
+            dc.DrawRectangle(new RectangleF(x, y, width, height), lastBrush, w);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
 		{
 			var rx = width / 2;
 			var ry = height / 2;
-			dc.FillEllipse (new Ellipse (new Vector2 (x + rx, y + ry), rx, ry), lastColor.GetBrush (dc));
+            dc.FillEllipse(new Ellipse(new Vector2(x + rx, y + ry), rx, ry), lastBrush);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
 			var rx = width / 2;
 			var ry = height / 2;
-            dc.DrawEllipse(new Ellipse(new Vector2(x + rx, y + ry), rx, ry), lastColor.GetBrush(dc), w);
+            dc.DrawEllipse(new Ellipse(new Vector2(x + rx, y + ry), rx, ry), lastBrush, w);
 		}
 
 		public void BeginLines (bool rounded)
@@ -268,7 +278,7 @@ namespace CrossGraphics
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-            dc.DrawLine(new Vector2(sx, sy), new Vector2(ex, ey), lastColor.GetBrush(dc), w, strokeStyle);
+            dc.DrawLine(new Vector2(sx, sy), new Vector2(ex, ey), lastBrush, w, strokeStyle);
 		}
 
 		public void EndLines ()
@@ -293,7 +303,7 @@ namespace CrossGraphics
 				s,
 				textFormat,
 				new RectangleF (x, yy, 1000, 1000),
-				lastColor.GetBrush (dc));
+                lastBrush);
 		}
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
@@ -304,7 +314,7 @@ namespace CrossGraphics
 				s,
 				textFormat,
 				new RectangleF (x, yy, width, height),
-				lastColor.GetBrush (dc));
+                lastBrush);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -452,38 +462,6 @@ namespace CrossGraphics
 				//poly.Tag = g;
 			}
 			return g;
-		}
-	}
-
-	public static partial class ColorEx
-	{
-		class ColorInfo
-		{
-			public RenderTarget Target;
-			public SolidColorBrush Brush;
-		}
-
-		public static SolidColorBrush GetBrush (this Color color, RenderTarget renderTarget)
-		{
-			var ci = color.Tag as ColorInfo;
-
-			if (ci != null) {
-				if (ci.Target != renderTarget) {
-					ci = null;
-				}
-			}
-
-			if (ci == null) {
-				ci = new ColorInfo {
-					Target = renderTarget,
-					Brush = new SolidColorBrush (
-						renderTarget,
-						new Color4 (color.RedValue, color.GreenValue, color.BlueValue, color.AlphaValue)),
-				};
-				color.Tag = ci;
-			}
-
-			return ci.Brush;
 		}
 	}
 }
