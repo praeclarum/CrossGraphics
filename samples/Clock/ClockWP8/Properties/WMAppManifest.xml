@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Deployment xmlns="http://schemas.microsoft.com/windowsphone/2014/deployment" AppPlatformVersion="8.1">
   <DefaultLanguage xmlns="" code="" />
-  <App xmlns="" ProductID="{59acca57-bbf4-4eda-8d92-f3d6dd19dd9e}" Title="ClockWP7" RuntimeType="Silverlight" Version="1.0.0.0" Genre="apps.normal" Author="ClockWP7 author" Description="Sample description" Publisher="ClockWP7" PublisherID="{5ad5d4d5-8962-4ef1-8f4d-86dee9173db3}">
+  <App xmlns="" ProductID="{59acca57-bbf4-4eda-8d92-f3d6dd19dd9e}" Title="ClockWP8" RuntimeType="Silverlight" Version="1.0.0.0" Genre="apps.normal" Author="ClockWP7 author" Description="Sample description" Publisher="ClockWP7" PublisherID="{5ad5d4d5-8962-4ef1-8f4d-86dee9173db3}">
     <IconPath IsRelative="true" IsResource="false">ApplicationIcon.png</IconPath>
     <Capabilities>
       <Capability Name="ID_CAP_GAMERSERVICES" />
@@ -30,11 +30,15 @@
           <SmallImageURI IsResource="false" IsRelative="true">Background.png</SmallImageURI>
           <Count>0</Count>
           <BackgroundImageURI IsResource="false" IsRelative="true">Background.png</BackgroundImageURI>
-          <Title>ClockWP7</Title>
-          <BackContent></BackContent>
-          <BackBackgroundImageURI></BackBackgroundImageURI>
-          <BackTitle></BackTitle>
-          <DeviceLockImageURI></DeviceLockImageURI>
+          <Title>ClockWP8</Title>
+          <BackContent>
+          </BackContent>
+          <BackBackgroundImageURI>
+          </BackBackgroundImageURI>
+          <BackTitle>
+          </BackTitle>
+          <DeviceLockImageURI>
+          </DeviceLockImageURI>
           <HasLarge>false</HasLarge>
         </TemplateFlip>
       </PrimaryToken>

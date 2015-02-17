@@ -306,10 +306,18 @@ namespace CrossGraphics
 
 		public XamlFontMetrics (Font f)
 		{
-			var ff = SystemFont;
-			if (f.FontFamily == "Monospace") {
+            NativeFontFamily ff = null;
+            if (string.IsNullOrEmpty(f.FontFamily) == false && string.IsNullOrEmpty(f.WindowsFontFamily) == false)
+            {
+                ff = new NativeFontFamily("Fonts/" + f.FontFilename + "#" + f.WindowsFontFamily);
+            }
+            if (f.FontFamily == "Monospace") {
 				ff = Monospace;
 			}
+            if (ff == null)
+            {
+                ff = SystemFont;
+            }
 
 			var bold = f.IsBold;
 
@@ -1201,9 +1209,9 @@ namespace CrossGraphics
                 {
                     e.FontFamily = XamlFontMetrics.Monospace;
                 }
-                else if (string.IsNullOrEmpty(CurrentFont.FontFamily) == false)
+                else if (string.IsNullOrEmpty(CurrentFont.FontFilename) == false && string.IsNullOrEmpty(CurrentFont.WindowsFontFamily) == false)
                 {
-                    e.FontFamily = new NativeFontFamily("/Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.FontFamily);
+                    e.FontFamily = new NativeFontFamily("Fonts/" + CurrentFont.FontFilename + "#" + CurrentFont.WindowsFontFamily);
                 }
                 else
                 {

@@ -18,7 +18,7 @@ namespace Clock
         readonly Font LabelFont = Font.SystemFontOfSize (16);
         
         //Custom Font Test
-		readonly Font CustomFont = Font.FromName("BILLY ARGEL FONT", "BILLY ARGEL TRIAL___.otf", 30);
+		readonly Font CustomFont = Font.FromName("BILLY ARGEL FONT", "BILLY ARGEL TRIAL___.otf", "BILLY ARGEL FONT", 30);
 
 		public void Draw (IGraphics g)
 		{

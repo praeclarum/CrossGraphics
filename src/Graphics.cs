@@ -186,9 +186,11 @@ namespace CrossGraphics
 	{
 		public string FontFamily { get; private set; }
 
-		public string FontFilename { get; private set; }
+        public string FontFilename { get; private set; }
 
-		public FontOptions Options { get; private set; }
+        public string WindowsFontFamily { get; private set; }
+
+        public FontOptions Options { get; private set; }
 
 		public int Size { get; private set; }
 
@@ -204,10 +206,11 @@ namespace CrossGraphics
 			Size = size;
 		}
 
-		public Font (string fontFamily, string fontFilename, FontOptions options, int size)
+        public Font(string fontFamily, string fontFilename, string windowsFontFamily, FontOptions options, int size)
 		{
 			FontFamily = fontFamily;
 			FontFilename = fontFilename;
+            WindowsFontFamily = windowsFontFamily;
 			Options = options;
 			Size = size;
 		}
@@ -284,9 +287,9 @@ namespace CrossGraphics
         //you have to set the font family name not only the filename
         //The fonts should be copied inside a 'Fonts' folder. The custom fonts should be as type 'Content'
 
-		public static Font FromName(string fontFamily, string fontFilename, int size)
+        public static Font FromName(string fontFamily, string fontFilename, string windowsFontFamily, int size)
         {
-			return new Font(fontFamily, fontFilename, FontOptions.None, size);
+            return new Font(fontFamily, fontFilename, windowsFontFamily, FontOptions.None, size);
 		}
 
 		public override string ToString()

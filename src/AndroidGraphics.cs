@@ -326,6 +326,9 @@ namespace CrossGraphics.Android
 		{
 			var f = _paints.Font;
 			if (f == null || f != _font) {
+				if (_font == null) {
+					throw new NotSupportedException ("Warning AndroidGraphics SetFontOnPaints _font should not be null.");
+				}
 				f = _font;
 				_paints.Font = f;
 				ApplyFontToPaint (f, _paints.Fill);
