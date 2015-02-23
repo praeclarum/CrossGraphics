@@ -540,7 +540,7 @@ namespace CrossGraphics.CoreGraphics
 			
 			var mmWidth = c.TextPosition.X;
 			
-			_height = f.Size - 5;
+			_height = (int)(f.Size * (11.0f / 16.0f));
 			
 			Widths = new float[0x80];
 

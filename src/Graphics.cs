@@ -206,6 +206,8 @@ namespace CrossGraphics
 		static Font[] _boldUserFixedPitchFonts = new Font[0];
 
 		public static Font BoldSystemFontOfSize (int size) {
+			if (size <= 0)
+				return BoldSystemFontOfSize (1);
 			if (size >= _boldSystemFonts.Length) {
 				return new Font ("SystemFont", FontOptions.Bold, size);
 			}
