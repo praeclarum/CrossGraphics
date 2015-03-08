@@ -42,7 +42,6 @@ namespace CrossGraphics
 
 		StrokeStyle strokeStyle;
         Font font;
-		DW.TextFormat textFormat;
 
 		class State
 		{
@@ -115,8 +114,6 @@ namespace CrossGraphics
 			states = new Stack<State> ();
 
             lastBrush = new SolidColorBrush(dc, Color4.Black);
-
-			SetFont (Font.SystemFontOfSize (16));
 		}
 
 		~Direct2DGraphics ()
@@ -156,10 +153,6 @@ namespace CrossGraphics
 			toDispose.Clear ();
 			toDispose = null;
 
-			if (textFormat != null) {
-				textFormat.Dispose ();
-				textFormat = null;
-			}
             if (lastBrush != null)
             {
                 lastBrush.Dispose();
@@ -184,6 +177,16 @@ namespace CrossGraphics
 			return bytes;
 		}
 
+        public SharpDX.Direct2D1.Factory D2DFactory
+        {
+            get { return this.d2dFactory; }
+        }
+
+        public SharpDX.DirectWrite.Factory DwFactory
+        {
+            get { return this.dwFactory; }
+        }
+
 		public void BeginDrawing ()
 		{
 			dc.BeginDraw ();
@@ -203,9 +206,18 @@ namespace CrossGraphics
 		{
             if (font != f)
             {
-                if (textFormat != null)
-                    textFormat.Dispose();
-                textFormat = f.GetTextFormat(dwFactory);
+                var textFormat = f.Tag as DW.TextFormat;
+                if (textFormat == null)
+                {
+                    textFormat = DisposeLater(
+                        new SharpDX.DirectWrite.TextFormat(
+                            dwFactory,
+                            f.FontFamily,
+                            f.IsBold ? DW.FontWeight.Bold : DW.FontWeight.Normal,
+                            DW.FontStyle.Normal,
+                            d2dFactory.PixelsToDipsY(f.Size)));
+                    f.Tag = textFormat;
+                }
                 font = f;
             }
 		}
@@ -338,59 +350,69 @@ namespace CrossGraphics
 
 		public void DrawString (string s, float x, float y)
 		{
-			dc.DrawText (
-				s,
-				textFormat,
-				new RectangleF (x, y, float.MaxValue, float.MaxValue),
-                lastBrush);
+            if (this.font != null)
+            {
+                var textFormat = this.font.Tag as DW.TextFormat;
+                dc.DrawText(
+                    s,
+                    textFormat,
+                    new RectangleF(x, y, float.MaxValue, float.MaxValue),
+                    lastBrush);
+            }
 		}
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-            using (var layout = new SharpDX.DirectWrite.TextLayout(dwFactory, s, textFormat, width, height))
+            if (this.font != null)
             {
-                DrawTextOptions drawTextOptions;
-                switch (lineBreak)
+                var textFormat = this.font.Tag as DW.TextFormat;
+                using (var layout = new SharpDX.DirectWrite.TextLayout(dwFactory, s, textFormat, width, height))
                 {
-                    case LineBreakMode.None:
-                        drawTextOptions = DrawTextOptions.None;
-                        break;
-                    case LineBreakMode.Clip:
-                        drawTextOptions = DrawTextOptions.Clip;
-                        break;
-                    case LineBreakMode.WordWrap:
-                        drawTextOptions = DrawTextOptions.None;
-                        layout.WordWrapping = SharpDX.DirectWrite.WordWrapping.Wrap;
-                        break;
-                    default:
-                        drawTextOptions = DrawTextOptions.None;
-                        break;
+                    DrawTextOptions drawTextOptions;
+                    switch (lineBreak)
+                    {
+                        case LineBreakMode.None:
+                            drawTextOptions = DrawTextOptions.None;
+                            break;
+                        case LineBreakMode.Clip:
+                            drawTextOptions = DrawTextOptions.Clip;
+                            break;
+                        case LineBreakMode.WordWrap:
+                            drawTextOptions = DrawTextOptions.None;
+                            layout.WordWrapping = SharpDX.DirectWrite.WordWrapping.Wrap;
+                            break;
+                        default:
+                            drawTextOptions = DrawTextOptions.None;
+                            break;
+                    }
+                    switch (align)
+                    {
+                        case TextAlignment.Left:
+                            layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
+                            break;
+                        case TextAlignment.Center:
+                            layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
+                            break;
+                        case TextAlignment.Right:
+                            layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Trailing;
+                            break;
+                        case TextAlignment.Justified:
+                            // Needs Windows 8
+                            break;
+                        default:
+                            break;
+                    }
+
+                    dc.DrawTextLayout(new Vector2(x, y), layout, lastBrush, drawTextOptions);
                 }
-                switch (align)
-                {
-                    case TextAlignment.Left:
-                        layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
-                        break;
-                    case TextAlignment.Center:
-                        layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-                        break;
-                    case TextAlignment.Right:
-                        layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Trailing;
-                        break;
-                    case TextAlignment.Justified:
-                        // Needs Windows 8
-                        break;
-                    default:
-                        break;
-                }
-                
-                dc.DrawTextLayout(new Vector2(x, y), layout, lastBrush, drawTextOptions);
             }
 		}
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			return new Direct2DGraphicsFontMetrics(dwFactory, font);
+            if (this.font != null)
+			    return new Direct2DGraphicsFontMetrics(this, font);
+            return null;
 		}
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
@@ -464,18 +486,18 @@ namespace CrossGraphics
 
 	class Direct2DGraphicsFontMetrics : IFontMetrics
 	{
+        Direct2DGraphics graphics;
 		Font font;
-        DW.Factory factory;
 
-		public Direct2DGraphicsFontMetrics (SharpDX.DirectWrite.Factory dw, Font font)
+        public Direct2DGraphicsFontMetrics(Direct2DGraphics graphics, Font font)
 		{
-            this.factory = dw;
+            this.graphics = graphics;
             this.font = font;
 		}
 
         private DW.TextLayout GetTextLayout(string str, DW.TextFormat format)
         {
-            return new DW.TextLayout(this.factory, str, format, float.MaxValue, float.MaxValue);   
+            return new DW.TextLayout(this.graphics.DwFactory, str, format, float.MaxValue, float.MaxValue);   
         }
 
 		public int StringWidth (string str, int startIndex, int length)
@@ -483,8 +505,8 @@ namespace CrossGraphics
             if (str == null) return 0;
             var end = startIndex + length;
             if (end <= 0) return 0;
-            using (var format = this.font.GetTextFormat(this.factory))
-            using (var layout = GetTextLayout(str.Substring(startIndex, length), format))
+            var textFormat = this.font.Tag as DW.TextFormat;
+            using (var layout = GetTextLayout(str.Substring(startIndex, length), textFormat))
                 return (int)layout.Metrics.Width;
 		}
 
@@ -534,16 +556,24 @@ namespace CrossGraphics
 		}
 	}
 
-    public static class FontEx
+    public static class DwFactoryEx
     {
-        public static DW.TextFormat GetTextFormat(this Font font, DW.Factory factory)
+        public static float PixelsToDipsX(this SharpDX.Direct2D1.Factory factory, int x)
         {
-            return new SharpDX.DirectWrite.TextFormat(
-                factory,
-                font.FontFamily,
-                font.IsBold ? DW.FontWeight.Bold : DW.FontWeight.Normal,
-                DW.FontStyle.Normal,
-                font.Size);
+            var scale = factory.DesktopDpi.Width / 96.0f;
+            return (float)(x) / scale;
+        }
+
+        public static float PixelsToDipsY(this SharpDX.Direct2D1.Factory factory, int y)
+        {
+            var scale = factory.DesktopDpi.Height / 96.0f;
+            return (float)(y) / scale;
+        }
+
+        public static int PointsToPixel(this SharpDX.Direct2D1.Factory factory, float points)
+        {
+            var scale = factory.DesktopDpi.Height / 72.0f;
+            return (int)(points * scale);
         }
     }
 }
