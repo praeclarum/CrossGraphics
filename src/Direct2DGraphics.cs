@@ -222,14 +222,18 @@ namespace CrossGraphics
 
 		public void FillPolygon (Polygon poly)
 		{
-			var g = poly.GetGeometry (d2dFactory);
-			dc.FillGeometry (g, lastBrush);
+            using (var g = poly.GetGeometry(d2dFactory))
+            {
+                dc.FillGeometry(g, lastBrush);
+            }
 		}
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
-			var g = poly.GetGeometry (d2dFactory);
-            dc.DrawGeometry(g, lastBrush, w);
+            using (var g = poly.GetGeometry(d2dFactory))
+            {
+                dc.DrawGeometry(g, lastBrush, w);
+            }
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
