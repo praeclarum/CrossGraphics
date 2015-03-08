@@ -24,15 +24,12 @@ using System.Collections.Generic;
 using System.Linq;
 using SharpDX.Direct2D1;
 using SharpDX;
+using DW = SharpDX.DirectWrite;
 
 namespace CrossGraphics
 {
 	public class Direct2DGraphics : IGraphics
 	{
-		const int MaxFontSize = 120;
-		Direct2DGraphicsFontMetrics[] _fontMetrics;
-		int _fontSize = 10;
-
         SolidColorBrush lastBrush;
 
 		Factory d2dFactory;
@@ -44,7 +41,8 @@ namespace CrossGraphics
 		SharpDX.WIC.Bitmap bitmap;
 
 		StrokeStyle strokeStyle;
-		SharpDX.DirectWrite.TextFormat textFormat;
+        Font font;
+		DW.TextFormat textFormat;
 
 		class State
 		{
@@ -122,6 +120,8 @@ namespace CrossGraphics
             lastBrush = new SolidColorBrush(dc, Color4.Black);
 
 			SetFont (Font.SystemFontOfSize (16));
+
+            dc.TextAntialiasMode = TextAntialiasMode.Cleartype;
 		}
 
 		~Direct2DGraphics ()
@@ -201,11 +201,13 @@ namespace CrossGraphics
 
 		public void SetFont (Font f)
 		{
-			if (textFormat != null) {
-				textFormat.Dispose ();
-			}
-			textFormat = new SharpDX.DirectWrite.TextFormat (dwFactory, "Segoe", f.Size);
-			_fontSize = f.Size;
+            if (font != f)
+            {
+                if (textFormat != null)
+                    textFormat.Dispose();
+                textFormat = f.GetTextFormat(dwFactory);
+                font = f;
+            }
 		}
 
 		public void SetColor (Color c)
@@ -287,46 +289,104 @@ namespace CrossGraphics
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
+            using (var g = CreateArc(cx, cx, radius, startAngle, endAngle, FigureBegin.Filled, FigureEnd.Closed))
+            {
+                dc.FillGeometry(g, lastBrush);
+            }
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
+            using (var g = CreateArc(cx, cx, radius, startAngle, endAngle, FigureBegin.Hollow, FigureEnd.Closed))
+            {
+                dc.DrawGeometry(g, lastBrush, w);
+            }
 		}
 
-		const float FontOffsetScale = 0.25f;
+        private PathGeometry CreateArc(float cx, float cy, float radius, float startAngle, float endAngle, FigureBegin begin, FigureEnd end)
+        {
+            var geometry = new PathGeometry(d2dFactory);
+            using (var sink = geometry.Open())
+            {
+                var sa = -startAngle;
+                var ea = -endAngle;
+
+                sink.BeginFigure(
+                    new Vector2(
+                        cx + radius * (float)Math.Cos(sa),
+                        cy + radius * (float)Math.Sin(sa)),
+                    begin);
+
+                var segment = new ArcSegment()
+                {
+                    Point = new Vector2(
+                        cx + radius * (float)Math.Cos(ea),
+                        cy + radius * (float)Math.Sin(ea)),
+                    Size = new Size2F(radius, radius),
+                    SweepDirection = SweepDirection.CounterClockwise
+                };
+                sink.AddArc(segment);
+                sink.EndFigure(end);
+                sink.Close();
+            }
+            return geometry;
+        }
 
 		public void DrawString (string s, float x, float y)
 		{
-			var yy = y - FontOffsetScale * _fontSize;
-
 			dc.DrawText (
 				s,
 				textFormat,
-				new RectangleF (x, yy, 1000, 1000),
+				new RectangleF (x, y, float.MaxValue, float.MaxValue),
                 lastBrush);
 		}
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			var yy = y - FontOffsetScale * _fontSize;
-
-			dc.DrawText (
-				s,
-				textFormat,
-				new RectangleF (x, yy, width, height),
-                lastBrush);
+            using (var layout = new SharpDX.DirectWrite.TextLayout(dwFactory, s, textFormat, width, height))
+            {
+                DrawTextOptions drawTextOptions;
+                switch (lineBreak)
+                {
+                    case LineBreakMode.None:
+                        drawTextOptions = DrawTextOptions.None;
+                        break;
+                    case LineBreakMode.Clip:
+                        drawTextOptions = DrawTextOptions.Clip;
+                        break;
+                    case LineBreakMode.WordWrap:
+                        drawTextOptions = DrawTextOptions.None;
+                        layout.WordWrapping = SharpDX.DirectWrite.WordWrapping.Wrap;
+                        break;
+                    default:
+                        drawTextOptions = DrawTextOptions.None;
+                        break;
+                }
+                switch (align)
+                {
+                    case TextAlignment.Left:
+                        layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
+                        break;
+                    case TextAlignment.Center:
+                        layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
+                        break;
+                    case TextAlignment.Right:
+                        layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Trailing;
+                        break;
+                    case TextAlignment.Justified:
+                        // Needs Windows 8
+                        break;
+                    default:
+                        break;
+                }
+                
+                dc.DrawTextLayout(new Vector2(x, y), layout, lastBrush, drawTextOptions);
+            }
 		}
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			if (_fontMetrics == null) {
-				_fontMetrics = new Direct2DGraphicsFontMetrics[MaxFontSize + 1];
-			}
-			var i = Math.Min (_fontMetrics.Length, _fontSize);
-			if (_fontMetrics[i] == null) {
-				_fontMetrics[i] = new Direct2DGraphicsFontMetrics (i);
-			}
-			return _fontMetrics[i];
+			return new Direct2DGraphicsFontMetrics(dwFactory, font);
 		}
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
@@ -405,25 +465,35 @@ namespace CrossGraphics
 
 	class Direct2DGraphicsFontMetrics : IFontMetrics
 	{
-		int _height;
-		int _charWidth;
+		Font font;
+        DW.Factory factory;
 
-		public Direct2DGraphicsFontMetrics (int size)
+		public Direct2DGraphicsFontMetrics (SharpDX.DirectWrite.Factory dw, Font font)
 		{
-			_height = size;
-			_charWidth = (855 * size) / 1600;
+            this.factory = dw;
+            this.font = font;
 		}
+
+        private DW.TextLayout GetTextLayout(string str, DW.TextFormat format)
+        {
+            return new DW.TextLayout(this.factory, str, format, float.MaxValue, float.MaxValue);   
+        }
 
 		public int StringWidth (string str, int startIndex, int length)
 		{
-			return length * _charWidth;
+            if (str == null) return 0;
+            var end = startIndex + length;
+            if (end <= 0) return 0;
+            using (var format = this.font.GetTextFormat(this.factory))
+            using (var layout = GetTextLayout(str.Substring(startIndex, length), format))
+                return (int)layout.Metrics.Width;
 		}
 
 		public int Height
 		{
 			get
 			{
-				return _height;
+				return this.font.Size;
 			}
 		}
 
@@ -464,5 +534,18 @@ namespace CrossGraphics
 			return g;
 		}
 	}
+
+    public static class FontEx
+    {
+        public static DW.TextFormat GetTextFormat(this Font font, DW.Factory factory)
+        {
+            return new SharpDX.DirectWrite.TextFormat(
+                factory,
+                font.FontFamily,
+                font.IsBold ? DW.FontWeight.Bold : DW.FontWeight.Normal,
+                DW.FontStyle.Normal,
+                font.Size);
+        }
+    }
 }
 
