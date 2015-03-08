@@ -206,6 +206,8 @@ namespace CrossGraphics
 		static Font[] _boldUserFixedPitchFonts = new Font[0];
 
 		public static Font BoldSystemFontOfSize (int size) {
+			if (size <= 0)
+				return BoldSystemFontOfSize (1);
 			if (size >= _boldSystemFonts.Length) {
 				return new Font ("SystemFont", FontOptions.Bold, size);
 			}
@@ -323,6 +325,8 @@ namespace CrossGraphics
 			Blue = blue;
 			Alpha = alpha;
 		}
+
+		public int Intensity { get { return (Red + Green + Blue) / 3; } }
 
 		public Color GetInvertedColor()
 		{
@@ -488,24 +492,40 @@ namespace CrossGraphics
         }
     }
 
+	public static class PointEx
+	{
+		#if __UNIFIED__
+		public static PointF ToPointF (this global::CoreGraphics.CGPoint r)
+		{
+			return new PointF ((float)r.X, (float)r.Y);
+		}
+		#endif
+
+		public static System.Drawing.Point GetCenter (this System.Drawing.Rectangle r)
+		{
+			return new System.Drawing.Point (r.Left + r.Width / 2,
+				r.Top + r.Height / 2);
+		}
+
+		public static System.Drawing.PointF GetCenter (this System.Drawing.RectangleF r)
+		{
+			return new System.Drawing.PointF (r.X + r.Width / 2.0f,
+				r.Y + r.Height / 2.0f);
+		}
+	}
+
 	public static class RectangleEx
 	{
 		public static RectangleF ToRectangleF (this System.Drawing.Rectangle r)
 		{
 			return new RectangleF (r.X, r.Y, r.Width, r.Height);
 		}
-
-		public static System.Drawing.Point GetCenter (this System.Drawing.Rectangle r)
+		#if __UNIFIED__
+		public static RectangleF ToRectangleF (this global::CoreGraphics.CGRect r)
 		{
-			return new System.Drawing.Point (r.Left + r.Width / 2,
-										r.Top + r.Height / 2);
+			return new RectangleF ((float)r.X, (float)r.Y, (float)r.Width, (float)r.Height);
 		}
-
-		public static System.Drawing.PointF GetCenter (this System.Drawing.RectangleF r)
-		{
-			return new System.Drawing.PointF (r.X + r.Width / 2.0f,
-										r.Y + r.Height / 2.0f);
-		}
+		#endif
 
 		public static List<RectangleF> GetIntersections (this List<RectangleF> boxes, RectangleF box)
 		{

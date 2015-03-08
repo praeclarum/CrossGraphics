@@ -167,7 +167,7 @@ namespace CrossGraphics
 			
 			if (Checked) {
 				g.FillRoundedRect (inner, 3);
-				g.SetColor (Colors.Black);
+				g.SetColor (Colors.LightGray);
 			}
 			
 			if (!string.IsNullOrEmpty (Title)) {

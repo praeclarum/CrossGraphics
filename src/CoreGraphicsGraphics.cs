@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010 Frank A. Krueger
+// Copyright (c) 2010-2015 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,13 +23,14 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 
+using CoreGraphics;
 #if MONOMAC
-using MonoMac.CoreGraphics;
-using MonoMac.AppKit;
+using AppKit;
 #else
-using MonoTouch.CoreGraphics;
-using MonoTouch.UIKit;
+using UIKit;
 #endif
+
+using NativePoint = CoreGraphics.CGPoint;
 
 
 namespace CrossGraphics.CoreGraphics
@@ -37,8 +38,8 @@ namespace CrossGraphics.CoreGraphics
 #if !MONOMAC
 	public class UIKitGraphics : CrossGraphics.CoreGraphics.CoreGraphicsGraphics
 	{
-		public UIKitGraphics (CGContext c, bool highQuality)
-			: base (c, highQuality)
+		public UIKitGraphics (bool highQuality)
+			: base (UIGraphics.GetCurrentContext (), highQuality)
 		{
 		}
 	}
@@ -83,13 +84,13 @@ namespace CrossGraphics.CoreGraphics
 		public void SetColor (Color c)
 		{
 			var cgcol = c.GetCGColor ();
-#if MONOMAC
-			_c.SetFillColorWithColor (cgcol);
-			_c.SetStrokeColorWithColor (cgcol);
-#else
 			_c.SetFillColor (cgcol);
 			_c.SetStrokeColor (cgcol);
-#endif
+		}
+
+		public void Clear (Color color)
+		{
+			_c.ClearRect (_c.GetClipBoundingBox ());
 		}
 
 		public void FillPolygon (Polygon poly)
@@ -106,23 +107,33 @@ namespace CrossGraphics.CoreGraphics
 		public void DrawPolygon (Polygon poly, float w)
 		{
 			_c.SetLineWidth (w);
+			_c.SetLineJoin (CGLineJoin.Round);
 			_c.MoveTo (poly.Points[0].X, poly.Points[0].Y);
 			for (var i = 1; i < poly.Points.Count; i++) {
 				var p = poly.Points[i];
 				_c.AddLineToPoint (p.X, p.Y);
 			}
-			_c.AddLineToPoint (poly.Points[0].X, poly.Points[0].Y);
+			_c.ClosePath ();
 			_c.StrokePath ();
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height) || float.IsNaN (radius)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillRoundedRect");
+				return;
+			}
+
 			_c.AddRoundedRect (new RectangleF (x, y, width, height), radius);
 			_c.FillPath ();
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height) || float.IsNaN (radius) || float.IsNaN (w)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawRoundedRect");
+				return;
+			}
 			_c.SetLineWidth (w);
 			_c.AddRoundedRect (new RectangleF (x, y, width, height), radius);
 			_c.StrokePath ();
@@ -130,28 +141,48 @@ namespace CrossGraphics.CoreGraphics
 
 		public void FillRect (float x, float y, float width, float height)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillRect");
+				return;
+			}
 			_c.FillRect (new RectangleF (x, y, width, height));
 		}
 
 		public void FillOval (float x, float y, float width, float height)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillOval");
+				return;
+			}
 			_c.FillEllipseInRect (new RectangleF (x, y, width, height));
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height) || float.IsNaN (w)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawOval");
+				return;
+			}
 			_c.SetLineWidth (w);
 			_c.StrokeEllipseInRect (new RectangleF (x, y, width, height));
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
+			if (float.IsNaN (x) || float.IsNaN (y) || float.IsNaN (width) || float.IsNaN (height) || float.IsNaN (w)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawRect");
+				return;
+			}
 			_c.SetLineWidth (w);
 			_c.StrokeRect (new RectangleF (x, y, width, height));
 		}
 		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
+			if (float.IsNaN (cx) || float.IsNaN (cy) || float.IsNaN (radius) || float.IsNaN (startAngle) || float.IsNaN (endAngle) || float.IsNaN (w)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawArc");
+				return;
+			}
 			_c.SetLineWidth (w);
 			_c.AddArc (cx, cy, radius, -startAngle, -endAngle, true);
 			_c.StrokePath ();
@@ -159,6 +190,10 @@ namespace CrossGraphics.CoreGraphics
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
+			if (float.IsNaN (cx) || float.IsNaN (cy) || float.IsNaN (radius) || float.IsNaN (startAngle) || float.IsNaN (endAngle)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillArc");
+				return;
+			}
 			_c.AddArc (cx, cy, radius, -startAngle, -endAngle, true);
 			_c.FillPath ();
 		}
@@ -179,6 +214,10 @@ namespace CrossGraphics.CoreGraphics
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
+			if (float.IsNaN (sx) || float.IsNaN (sy) || float.IsNaN (ex) || float.IsNaN (ey) || float.IsNaN (w)) {
+				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.DrawLine");
+				return;
+			}
 			if (_linesBegun) {
 				
 				_lineWidth = w;
@@ -205,6 +244,7 @@ namespace CrossGraphics.CoreGraphics
 		{
 			if (!_linesBegun)
 				return;
+			_c.SaveState ();
 			_c.SetLineJoin (_lineRounded ? CGLineJoin.Round : CGLineJoin.Miter);
 			_c.SetLineWidth (_lineWidth);
 			for (var i = 0; i < _numLinePoints; i++) {
@@ -216,6 +256,7 @@ namespace CrossGraphics.CoreGraphics
 				}
 			}
 			_c.StrokePath ();
+			_c.RestoreState ();
 			_linesBegun = false;
 		}
 		
@@ -376,7 +417,8 @@ namespace CrossGraphics.CoreGraphics
 		{
 #if MONOMAC
 			var img = new NSImage ("Images/" + filename);
-			return new UIKitImage (img.AsCGImage (new RectangleF (PointF.Empty, img.Size), NSGraphicsContext.CurrentContext, new MonoMac.Foundation.NSDictionary ()));
+			var rect = new CGRect (CGPoint.Empty, img.Size);
+			return new UIKitImage (img.AsCGImage (ref rect, NSGraphicsContext.CurrentContext, new Foundation.NSDictionary ()));
 #else
 			return new UIKitImage (UIImage.FromFile ("Images/" + filename).CGImage);
 #endif
@@ -498,7 +540,7 @@ namespace CrossGraphics.CoreGraphics
 			
 			var mmWidth = c.TextPosition.X;
 			
-			_height = f.Size - 5;
+			_height = (int)(f.Size * (11.0f / 16.0f));
 			
 			Widths = new float[0x80];
 
@@ -506,7 +548,7 @@ namespace CrossGraphics.CoreGraphics
 
 				var s = "M" + ((char)i).ToString() + "M";
 				
-				c.TextPosition = new PointF(0, 0);
+				c.TextPosition = NativePoint.Empty;
 				c.ShowText (s);
 				
 				var sz = c.TextPosition.X - mmWidth;
@@ -516,7 +558,7 @@ namespace CrossGraphics.CoreGraphics
 					return;
 				}
 				
-				Widths[i] = sz;
+				Widths[i] = (float)sz;
 			}
 			
 			c.SetTextDrawingMode (CGTextDrawingMode.Fill);
@@ -576,9 +618,9 @@ namespace CrossGraphics.CoreGraphics
 	public static class CGContextEx
 	{
 #if !MONOMAC
-		[System.Runtime.InteropServices.DllImport (MonoTouch.Constants.CoreGraphicsLibrary)]
-		extern static void CGContextShowTextAtPoint(IntPtr c, float x, float y, byte[] bytes, int size_t_length);
-		public static void ShowTextAtPoint (this CGContext c, float x, float y, byte[] bytes)
+		[System.Runtime.InteropServices.DllImport (ObjCRuntime.Constants.CoreGraphicsLibrary)]
+		extern static void CGContextShowTextAtPoint(IntPtr c, nfloat x, nfloat y, byte[] bytes, nint size_t_length);
+		public static void ShowTextAtPoint (this CGContext c, nfloat x, nfloat y, byte[] bytes)
 		{
 			if (bytes == null)
 				throw new ArgumentNullException ("bytes");
@@ -588,22 +630,38 @@ namespace CrossGraphics.CoreGraphics
 
 		public static void AddRoundedRect (this CGContext c, RectangleF b, float r)
 		{
-			c.MoveTo (b.Left, b.Top + r);
-			c.AddLineToPoint (b.Left, b.Bottom - r);
+			var x = b.X;
+			var y = b.Y;
+			var w = b.Width;
+			var h = b.Height;
+			if (w < 0) {
+				x += w;
+				w = Math.Abs (w);
+			}
+			if (h < 0) {
+				y += h;
+				h = Math.Abs (h);
+			}
+
+			var ri = x + w;
+			var bo = y + h;
+
+			c.MoveTo (x, y + r);
+			c.AddLineToPoint (x, bo - r);
 			
-			c.AddArc (b.Left + r, b.Bottom - r, r, (float)(Math.PI), (float)(Math.PI / 2), true);
+			c.AddArc (x + r, bo - r, r, (float)(Math.PI), (float)(Math.PI / 2), true);
 			
-			c.AddLineToPoint (b.Right - r, b.Bottom);
+			c.AddLineToPoint (ri - r, bo);
 			
-			c.AddArc (b.Right - r, b.Bottom - r, r, (float)(-3 * Math.PI / 2), (float)(0), true);
+			c.AddArc (ri - r, bo - r, r, (float)(-3 * Math.PI / 2), (float)(0), true);
 			
-			c.AddLineToPoint (b.Right, b.Top + r);
+			c.AddLineToPoint (ri, y + r);
 			
-			c.AddArc (b.Right - r, b.Top + r, r, (float)(0), (float)(-Math.PI / 2), true);
+			c.AddArc (ri - r, y + r, r, (float)(0), (float)(-Math.PI / 2), true);
 			
-			c.AddLineToPoint (b.Left + r, b.Top);
+			c.AddLineToPoint (x + r, y);
 			
-			c.AddArc (b.Left + r, b.Top + r, r, (float)(-Math.PI / 2), (float)(Math.PI), true);
+			c.AddArc (x + r, y + r, r, (float)(-Math.PI / 2), (float)(Math.PI), true);
 		}
 
 		public static void AddBottomRoundedRect (this CGContext c, RectangleF b, float r)
