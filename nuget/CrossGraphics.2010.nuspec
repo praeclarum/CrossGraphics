@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
-    <version>1.0.11</version>
+    <version>1.0.12</version>
     <authors>Frank A. Krueger</authors>
     <owners>gregsn</owners>
     <projectUrl>https://github.com/vvvv/CrossGraphics</projectUrl>
@@ -14,6 +14,7 @@
 	  <summary>Cross-platform library for rendering vector graphics.</summary>
 	  <releaseNotes>
       <![CDATA[
+	  v1.0.12: Fixed outline drawing of rectangles in Direct2D
 	  v1.0.11: Direct2D graphics exposes the render target in order for clients to change certain render settings
 	  v1.0.10: Fixed the SaveState and RestoreState methods in Direct2D
       v1.0.9: Fully implemented the DrawText and DrawArc methods in Direct2D

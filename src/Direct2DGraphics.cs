@@ -248,7 +248,7 @@ namespace CrossGraphics
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
 			dc.DrawRoundedRectangle (new RoundedRectangle {
-				Rect = new RectangleF (x, y, width, height),
+                Rect = new RectangleF(x + w / 2, y + w / 2, width, height),
 				RadiusX = radius,
 				RadiusY = radius,
             }, lastBrush, w);
@@ -261,7 +261,7 @@ namespace CrossGraphics
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-            dc.DrawRectangle(new RectangleF(x, y, width, height), lastBrush, w);
+            dc.DrawRectangle(new RectangleF(x + w / 2, y + w / 2, width, height), lastBrush, w);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
