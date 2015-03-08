@@ -117,8 +117,6 @@ namespace CrossGraphics
             lastBrush = new SolidColorBrush(dc, Color4.Black);
 
 			SetFont (Font.SystemFontOfSize (16));
-
-            dc.TextAntialiasMode = TextAntialiasMode.Cleartype;
 		}
 
 		~Direct2DGraphics ()
@@ -131,6 +129,11 @@ namespace CrossGraphics
 			Dispose (true);
 			GC.SuppressFinalize (this);
 		}
+
+        public RenderTarget RenderTarget
+        {
+            get { return this.dc; }
+        }
 
 		List<IDisposable> toDispose;
 
