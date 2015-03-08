@@ -113,9 +113,6 @@ namespace CrossGraphics
 			}));
 
 			states = new Stack<State> ();
-			states.Push (new State {
-				Transform = Matrix3x2.Identity,
-			});
 
             lastBrush = new SolidColorBrush(dc, Color4.Black);
 
@@ -399,12 +396,10 @@ namespace CrossGraphics
 
 		public void SaveState ()
 		{
-			var s = states.Peek ();
 			var n = new State {
-				Transform = s.Transform,
+				Transform = dc.Transform,
 			};
 			states.Push (n);
-			dc.Transform = n.Transform;
 		}
 
 		public void SetClippingRect (float x, float y, float width, float height)
@@ -450,11 +445,8 @@ namespace CrossGraphics
 
 		public void RestoreState ()
 		{
-			if (states.Count > 1) {
-				states.Pop ();
-				var s = states.Peek ();
-				dc.Transform = s.Transform;
-			}
+			var s = states.Pop();
+			dc.Transform = s.Transform;
 		}
 
 		public IImage ImageFromFile (string filename)
