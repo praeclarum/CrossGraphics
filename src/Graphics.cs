@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 
 namespace CrossGraphics
 {
@@ -199,69 +200,46 @@ namespace CrossGraphics
 			Options = options;
 			Size = size;
 		}
-		
-		static Font[] _boldSystemFonts = new Font[0];
-		static Font[] _systemFonts = new Font[0];
-		static Font[] _userFixedPitchFonts = new Font[0];
-		static Font[] _boldUserFixedPitchFonts = new Font[0];
 
-		public static Font BoldSystemFontOfSize (int size) {
-			if (size <= 0)
-				return BoldSystemFontOfSize (1);
-			if (size >= _boldSystemFonts.Length) {
-				return new Font ("SystemFont", FontOptions.Bold, size);
-			}
-			else {
-				var f = _boldSystemFonts[size];
-				if (f == null) {
-					f = new Font ("SystemFont", FontOptions.Bold, size);
-					_boldSystemFonts[size] = f;
-				}
-				return f;
-			}
+        static Dictionary<string, List<Font>> _fonts = new Dictionary<string, List<Font>>();
+
+        public static Font Get(string name, FontOptions options, int size)
+        {
+            List<Font> fonts;
+            if (!_fonts.TryGetValue(name, out fonts))
+            {
+                fonts = new List<Font>(1);
+                _fonts.Add(name, fonts);
+            }
+            var font = fonts.FirstOrDefault(f => f.FontFamily == name && f.Options == options && f.Size == size);
+            if (font == null)
+            {
+                font = new Font(name, options, size);
+                fonts.Add(font);
+            }
+            return font;
+        }
+
+		public static Font BoldSystemFontOfSize(int size) 
+        {
+            return Get("SystemFont", FontOptions.Bold, size);
 		}
-		public static Font SystemFontOfSize (int size) {
-			if (size >= _systemFonts.Length) {
-				return new Font ("SystemFont", FontOptions.None, size);
-			}
-			else {
-				var f = _systemFonts[size];
-				if (f == null) {
-					f = new Font ("SystemFont", FontOptions.None, size);
-					_systemFonts[size] = f;
-				}
-				return f;
-			}
+		public static Font SystemFontOfSize(int size) 
+        {
+            return Get("SystemFont", FontOptions.None, size);
 		}
-		public static Font UserFixedPitchFontOfSize (int size) {
-			if (size >= _userFixedPitchFonts.Length) {
-				return new Font ("Monospace", FontOptions.None, size);
-			}
-			else {
-				var f = _userFixedPitchFonts[size];
-				if (f == null) {
-					f = new Font ("Monospace", FontOptions.None, size);
-					_userFixedPitchFonts[size] = f;
-				}
-				return f;
-			}
+		public static Font UserFixedPitchFontOfSize(int size)
+        {
+            return Get("Monospace", FontOptions.Bold, size);
 		}
-		public static Font BoldUserFixedPitchFontOfSize (int size) {
-			if (size >= _boldUserFixedPitchFonts.Length) {
-				return new Font ("Monospace", FontOptions.Bold, size);
-			}
-			else {
-				var f = _boldUserFixedPitchFonts[size];
-				if (f == null) {
-					f = new Font ("Monospace", FontOptions.Bold, size);
-					_boldUserFixedPitchFonts[size] = f;
-				}
-				return f;
-			}
+		public static Font BoldUserFixedPitchFontOfSize(int size) 
+        {
+            return Get("Monospace", FontOptions.None, size);
 		}
 		
-		public static Font FromName (string name, int size) {
-			return new Font (name, FontOptions.None, size);
+		public static Font FromName(string name, int size) 
+        {
+            return Get(name, FontOptions.None, size);
 		}
 
 		public override string ToString()
