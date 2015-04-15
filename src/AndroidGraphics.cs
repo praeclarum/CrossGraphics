@@ -23,7 +23,7 @@ using System;
 using Android.Graphics;
 
 
-namespace CrossGraphics.Android
+namespace CrossGraphics
 {
 	public class AndroidGraphics : IGraphics
 	{
@@ -383,5 +383,13 @@ namespace CrossGraphics.Android
 		public int Ascent { get; private set; }
 
 		public int Descent { get; private set; }
+	}
+
+	public static partial class Conversions
+	{
+		public static global::Android.Graphics.Color ToAndroidColor (this Color c)
+		{
+			return global::Android.Graphics.Color.Argb (c.Alpha, c.Red, c.Green, c.Blue);
+		}
 	}
 }
