@@ -33,6 +33,9 @@ namespace CrossGraphics
 		SvgGraphicsFontMetrics _fontMetrics;
 		//Font _lastFont = null;
 		string _lastColor = null;
+		string _lastColorOpacity = null;
+
+		readonly IFormatProvider icult = System.Globalization.CultureInfo.InvariantCulture;
 		
 		class State {
             public PointF Scale;
@@ -72,7 +75,7 @@ namespace CrossGraphics
 		}
 		void WriteLine (string format, params object[] args)
 		{
-			WriteLine (string.Format (System.Globalization.CultureInfo.InvariantCulture, format, args));
+			WriteLine (string.Format (icult, format, args));
 		}
 		void Write (string s)
 		{
@@ -80,7 +83,7 @@ namespace CrossGraphics
 		}
 		void Write (string format, params object[] args)
 		{
-			Write (string.Format (System.Globalization.CultureInfo.InvariantCulture, format, args));
+			Write (string.Format (icult, format, args));
 		}
 
 		public void BeginDrawing ()
@@ -168,11 +171,12 @@ namespace CrossGraphics
 		public void SetColor (Color c)
 		{
 			_lastColor = FormatColor (c);
+			_lastColorOpacity = string.Format (icult, "{0}", c.Alpha / 255.0);
 		}
 
 		public void FillPolygon (Polygon poly)
 		{
-			Write("<polygon fill=\"{0}\" stroke=\"none\" points=\"", _lastColor);
+			Write ("<polygon fill=\"{0}\" fill-opacity=\"{1}\" stroke=\"none\" points=\"", _lastColor, _lastColorOpacity);
 			foreach (var p in poly.Points) {
 				Write("{0}", p.X);
 				Write(",");
@@ -184,7 +188,7 @@ namespace CrossGraphics
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
-			Write("<polygon stroke=\"{0}\" stroke-width=\"{1}\" fill=\"none\" points=\"", _lastColor, w);
+			Write("<polygon stroke=\"{0}\" stroke-opacity=\"{1}\" stroke-width=\"{2}\" fill=\"none\" points=\"", _lastColor, _lastColorOpacity, w);
 			foreach (var p in poly.Points) {
 				Write("{0}", p.X);
 				Write(",");
@@ -200,8 +204,8 @@ namespace CrossGraphics
 			var ry = height / 2;
 			var cx = x + rx;
 			var cy = y + ry;
-			WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" fill=\"{4}\" stroke=\"none\" />", 
-				cx, cy, rx, ry, _lastColor);
+			WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" fill=\"{4}\" fill-opacity=\"{5}\" stroke=\"none\" />", 
+				cx, cy, rx, ry, _lastColor, _lastColorOpacity);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
@@ -210,21 +214,21 @@ namespace CrossGraphics
 			var ry = height / 2;
 			var cx = x + rx;
 			var cy = y + ry;
-			WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
-				cx, cy, rx, ry, _lastColor, w);
+			WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" fill=\"none\" />", 
+				cx, cy, rx, ry, _lastColor, _lastColorOpacity, w);
 		}
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
-			WriteArc (cx, cy, radius, startAngle, endAngle, 0, "none", _lastColor);
+			WriteArc (cx, cy, radius, startAngle, endAngle, 0, "none", "0", _lastColor, _lastColorOpacity);
 		}
 		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
-			WriteArc (cx, cy, radius, startAngle, endAngle, w, _lastColor, "none");
+			WriteArc (cx, cy, radius, startAngle, endAngle, w, _lastColor, _lastColorOpacity, "none", "0");
 		}
 
-		public void WriteArc (float cx, float cy, float radius, float startAngle, float endAngle, float w, string stroke, string fill)
+		public void WriteArc (float cx, float cy, float radius, float startAngle, float endAngle, float w, string stroke, string strokeOp, string fill, string fillOp)
 		{
 			var sa = startAngle + Math.PI;
 			var ea = endAngle + Math.PI;
@@ -234,35 +238,35 @@ namespace CrossGraphics
 			var ex = cx + radius * Math.Cos (ea);
 			var ey = cy + radius * Math.Sin (ea);
 			
-			WriteLine("<path d=\"M {0} {1} A {2} {3} 0 0 1 {4} {5}\" stroke=\"{6}\" stroke-width=\"{7}\" fill=\"{8}\" />", 
+			WriteLine("<path d=\"M {0} {1} A {2} {3} 0 0 1 {4} {5}\" stroke=\"{6}\" stroke-opacity=\"{7}\" stroke-width=\"{8}\" fill=\"{9}\" fill-opacity=\"{10}\" />", 
 				sx, sy,
 				radius, radius,
 				ex, ey,				 
-				stroke, w, fill);
+				stroke, strokeOp, w, fill, fillOp);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
-			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{5}\" ry=\"{5}\" fill=\"{4}\" stroke=\"none\" />", 
-				x, y, width, height, _lastColor, radius);
+			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{6}\" ry=\"{6}\" fill=\"{4}\" fill-opacity=\"{5}\" stroke=\"none\" />", 
+				x, y, width, height, _lastColor, _lastColorOpacity, radius);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
-			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{6}\" ry=\"{6}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
-				x, y, width, height, _lastColor, w, radius);
+			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{7}\" ry=\"{7}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" fill=\"none\" />", 
+				x, y, width, height, _lastColor, _lastColorOpacity, w, radius);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
 		{
-			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" fill=\"{4}\" stroke=\"none\" />", 
-				x, y, width, height, _lastColor);
+			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" fill=\"{4}\" fill-opacity=\"{5}\" stroke=\"none\" />", 
+				x, y, width, height, _lastColor, _lastColorOpacity);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" fill=\"none\" />", 
-				x, y, width, height, _lastColor, w);
+			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" fill=\"none\" />", 
+				x, y, width, height, _lastColor, _lastColorOpacity, w);
 		}
 		
 		bool _inPolyline = false;
