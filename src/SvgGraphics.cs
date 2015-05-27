@@ -281,14 +281,14 @@ namespace CrossGraphics
 		{
 			if (_inPolyline) {
 				if (!_startedPolyline) {
-					Write ("<polyline stroke=\"{0}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"{1}\" fill=\"none\" points=\"", _lastColor, w);
+					Write ("<polyline stroke=\"{0}\" stroke-opacity=\"{1}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"{2}\" fill=\"none\" points=\"", _lastColor, _lastColorOpacity, w);
 					Write("{0},{1} ", sx, sy);
 					_startedPolyline = true;
 				}
 				Write("{0},{1} ", ex, ey);
 			}
 			else {
-				WriteLine("<line x1=\"{0}\" y1=\"{1}\" x2=\"{2}\" y2=\"{3}\" stroke=\"{4}\" stroke-width=\"{5}\" stroke-linecap=\"round\" fill=\"none\" />", sx, sy, ex, ey, _lastColor, w);
+				WriteLine("<line x1=\"{0}\" y1=\"{1}\" x2=\"{2}\" y2=\"{3}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" stroke-linecap=\"round\" fill=\"none\" />", sx, sy, ex, ey, _lastColor, _lastColorOpacity, w);
 			}
 		}
 
@@ -303,15 +303,17 @@ namespace CrossGraphics
 		
 		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\">{2}</text>",
+			WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\" font-size=\"{2}\">{3}</text>",
 				x, y + _fontMetrics.Height,
+				_fontMetrics.Height * 3 / 2,
 				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"));
 		}
 
 		public void DrawString (string s, float x, float y)
 		{
-			WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\">{2}</text>",
+			WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\" font-size=\"{2}\">{3}</text>",
 				x, y + _fontMetrics.Height,
+				_fontMetrics.Height * 3 / 2,
 				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"));
 		}
 
