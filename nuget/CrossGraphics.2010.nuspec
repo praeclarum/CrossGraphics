@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
-    <version>1.0.14</version>
+    <version>1.0.15-SharpDX3</version>
     <authors>Frank A. Krueger</authors>
     <owners>gregsn</owners>
     <projectUrl>https://github.com/vvvv/CrossGraphics</projectUrl>
@@ -11,9 +11,10 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Cross-platform library for rendering vector graphics and writing graphics-rich apps. Supports iOS, OS X, Android, Windows Phone, Windows RT, WPF among a variety of file formats.</description>
     <tags>graphics rendering vector draw svg wmf</tags>
-	  <summary>Cross-platform library for rendering vector graphics.</summary>
-	  <releaseNotes>
+	<summary>Cross-platform library for rendering vector graphics.</summary>
+	<releaseNotes>
       <![CDATA[
+	  v1.0.15: Updated SharpDX to 3.0.0-alpha01
 	  v1.0.14: Added factory function for fonts
 	  v1.0.13: Added points to pixel and pixel to DIP helper methods
 	  v1.0.12: Fixed outline drawing of rectangles in Direct2D
@@ -29,10 +30,15 @@
       v1.0.2: Cleaned up the namespace
 		  v1.0.1: Initial Release
 		  ]]>
-	  </releaseNotes>
+	</releaseNotes>
+	<dependencies>
+      <dependency id="SharpDX" version="3.0.0-alpha01" />
+      <dependency id="SharpDX.Mathematics" version="3.0.0-alpha01" />
+	  <dependency id="SharpDX.DXGI" version="3.0.0-alpha01" />
+	  <dependency id="SharpDX.Direct2D1" version="3.0.0-alpha01" />
+    </dependencies> 
   </metadata>
   <files>
-    <file src="net40client\bin\Release\*.dll" target="lib\net40-client" />
-    <file src="net40client\bin\Release\*.pdb" target="lib\net40-client" />
+    <file src="net40client\bin\Release\CrossGraphics.*" target="lib\net452" />
   </files>
 </package>
