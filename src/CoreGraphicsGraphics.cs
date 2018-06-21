@@ -96,6 +96,7 @@ namespace CrossGraphics.CoreGraphics
 		public void FillPolygon (Polygon poly)
 		{
 			var count = poly.Points.Count;
+			_c.SetLineJoin (CGLineJoin.Round);
 			_c.MoveTo (poly.Points[0].X, poly.Points[0].Y);
 			for (var i = 1; i < count; i++) {
 				var p = poly.Points[i];

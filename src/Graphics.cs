@@ -401,6 +401,11 @@ namespace CrossGraphics
 			Points = new List<PointF> ();
 		}
 
+		public Polygon (int capacity)
+		{
+			Points = new List<PointF> (capacity);
+		}
+
 		public Polygon (int[] xs, int[] ys, int c)
 		{
 			Points = new List<PointF> (c);
