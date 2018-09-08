@@ -299,7 +299,7 @@ namespace CrossGraphics.CoreGraphics
 			_c.TextMatrix = _textMatrix;
 		}
 		
-		static Dictionary<string, byte[]> _stringFixups = new Dictionary<string, byte[]>();
+		static readonly Dictionary<string, byte[]> _stringFixups = new Dictionary<string, byte[]>();
 		
 		byte[] FixupString (string s)
 		{
