@@ -155,7 +155,10 @@ namespace CrossGraphics.Skia
 		{
 			var sa = -startAngle * RadiansToDegrees;
 			var ea = -endAngle * RadiansToDegrees;
-			//_c.DrawArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Fill);
+			using (var p = new SKPath ()) {
+				p.AddArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa);
+				_c.DrawPath (p, _paints.Fill);
+			}
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
@@ -163,7 +166,10 @@ namespace CrossGraphics.Skia
 			var sa = -startAngle * RadiansToDegrees;
 			var ea = -endAngle * RadiansToDegrees;
 			_paints.Stroke.StrokeWidth = w;
-			//_c.DrawArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa, false, _paints.Stroke);
+			using (var p = new SKPath ()) {
+				p.AddArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa);
+				_c.DrawPath (p, _paints.Stroke);
+			}
 		}
 
 		bool _inLines = false;
