@@ -77,6 +77,8 @@ namespace CrossGraphics.Skia
 			stroke.Color = c.ToSkiaColor ();
 			stroke.IsAntialias = true;
 			stroke.Style = SKPaintStyle.Stroke;
+			stroke.StrokeCap = SKStrokeCap.Round;
+			stroke.StrokeJoin = SKStrokeJoin.Round;
 			var fill = new SKPaint ();
 			fill.Color = stroke.Color;
 			fill.IsAntialias = true;
