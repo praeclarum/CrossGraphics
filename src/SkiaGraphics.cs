@@ -235,6 +235,7 @@ namespace CrossGraphics.Skia
 			DrawString (s, x, y);
 		}
 
+		public void DrawString (string s, float x, float y)
 		static SkiaFontInfo GetFontInfo (Font f)
 		{
 			var fi = f.Tag as SkiaFontInfo;
