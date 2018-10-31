@@ -254,7 +254,20 @@ namespace CrossGraphics.Skia
 			var fi = f.Tag as SkiaFontInfo;
 			if (fi == null) {
 				var paint = new SKPaint ();
-				var tf = SKTypeface.FromFamilyName (f.FontFamily, f.IsBold ? SKTypefaceStyle.Bold : SKTypefaceStyle.Normal);
+
+				var name = "Helvetica";
+				if (f.FontFamily == "Monospace") {
+					name = "Courier";
+				}
+				else if (f.FontFamily == "DBLCDTempBlack") {
+#if __MACOS__
+					name = "Courier-Bold";
+#else
+					name = f.FontFamily;
+#endif
+				}
+
+				var tf = SKTypeface.FromFamilyName (name, f.IsBold ? SKTypefaceStyle.Bold : SKTypefaceStyle.Normal);
 				fi = new SkiaFontInfo {
 					Typeface = tf,
 				};
