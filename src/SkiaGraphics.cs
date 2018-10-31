@@ -236,6 +236,19 @@ namespace CrossGraphics.Skia
 		}
 
 		public void DrawString (string s, float x, float y)
+		{
+			if (string.IsNullOrWhiteSpace (s)) return;
+
+			SetFontOnPaints ();
+			var fm = GetFontMetrics ();
+			_c.DrawText (s, x, y + fm.Ascent, _paints.Fill);
+		}
+
+		public IFontMetrics GetFontMetrics ()
+		{
+			return GetFontInfo (_font).FontMetrics;
+		}
+
 		static SkiaFontInfo GetFontInfo (Font f)
 		{
 			var fi = f.Tag as SkiaFontInfo;
@@ -270,20 +283,6 @@ namespace CrossGraphics.Skia
 				_paints.Font = f;
 				ApplyFontToPaint (f, GetFontInfo (f), _paints.Fill);
 			}
-		}
-
-		public void DrawString (string s, float x, float y)
-		{
-			if (string.IsNullOrWhiteSpace (s)) return;
-
-			SetFontOnPaints ();
-			var fm = GetFontMetrics ();
-			_c.DrawText (s, x, y + fm.Ascent - fm.Descent, _paints.Fill);
-		}
-
-		public IFontMetrics GetFontMetrics ()
-		{
-			return GetFontInfo (_font).FontMetrics;
 		}
 
 		public IImage ImageFromFile (string path)
@@ -341,8 +340,8 @@ namespace CrossGraphics.Skia
 		public SkiaFontMetrics (SKPaint paint)
 		{
 			this.paint = paint;
-			Ascent = (int)(paint.TextSize + 0.5f);
-			Descent = 0;
+			Ascent = (int)Math.Abs (paint.FontMetrics.Ascent + 0.5f);
+			Descent = (int)Math.Abs (paint.FontMetrics.Descent + 0.5f);
 			Height = Ascent;
 		}
 
