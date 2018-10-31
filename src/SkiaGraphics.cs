@@ -94,7 +94,7 @@ namespace CrossGraphics.Skia
 		SKPath GetPolyPath (Polygon poly)
 		{
 			var p = poly.Tag as SKPath;
-			if (p == null) {
+			if (p == null || p.PointCount != poly.Points.Count + 1) {
 				p = new SKPath ();
 				p.MoveTo (poly.Points[0].X, poly.Points[0].Y);
 				for (var i = 1; i < poly.Points.Count; i++) {
