@@ -96,12 +96,15 @@ namespace CrossGraphics.Skia
 			var p = poly.Tag as SKPath;
 			if (p == null || p.PointCount != poly.Points.Count) {
 				p = new SKPath ();
-				p.MoveTo (poly.Points[0].X, poly.Points[0].Y);
-				for (var i = 1; i < poly.Points.Count; i++) {
-					var pt = poly.Points[i];
-					p.LineTo (pt.X, pt.Y);
+				var ps = poly.Points;
+				if (ps.Count > 2) {
+					p.MoveTo (ps[0].X, ps[0].Y);
+					for (var i = 1; i < ps.Count; i++) {
+						var pt = ps[i];
+						p.LineTo (pt.X, pt.Y);
+					}
+					p.Close ();
 				}
-				p.Close ();
 				poly.Tag = p;
 			}
 			return p;
