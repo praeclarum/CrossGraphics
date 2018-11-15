@@ -24,14 +24,18 @@ using System.Drawing;
 using System.Collections.Generic;
 
 using CoreGraphics;
+using CoreText;
+using Foundation;
+using NativeSize = CoreGraphics.CGSize;
+using NativePoint = CoreGraphics.CGPoint;
+using NativeRect = CoreGraphics.CGRect;
+using NativeValue = System.nfloat;
+
 #if MONOMAC
 using AppKit;
 #else
 using UIKit;
 #endif
-
-using NativePoint = CoreGraphics.CGPoint;
-
 
 namespace CrossGraphics.CoreGraphics
 {
@@ -272,7 +276,7 @@ namespace CrossGraphics.CoreGraphics
 				SelectFont ();
 			}
 		}
-		
+		CTStringAttributes _attrs;
 		void SelectFont ()
 		{
 			var f = _lastFont;
@@ -295,51 +299,42 @@ namespace CrossGraphics.CoreGraphics
 			else if (f.IsBold) {
 				name = "Helvetica-Bold";
 			}
-			_c.SelectFont (name, f.Size, CGTextEncoding.MacRoman);
-			_c.TextMatrix = _textMatrix;
+			_attrs = new CTStringAttributes {
+				Font = new CTFont (name, f.Size),
+				ForegroundColorFromContext = true,
+			};
 		}
-		
-		static readonly Dictionary<string, byte[]> _stringFixups = new Dictionary<string, byte[]>();
-		
-		byte[] FixupString (string s)
-		{
-			byte[] fix;
-			if (_stringFixups.TryGetValue (s, out fix)) {
-				return fix;
-			}
-			else {
-				var n = s.Length;
-				var bad = false;
-				for (var i = 0; i < n && !bad; i++) {
-					bad = ((int)s[i] > 127);
-				}
-				if (bad) {
-					fix = MacRomanEncoding.GetBytes (s.Replace ("\u03A9", "Ohm"));
-					_stringFixups [s] = fix;
-					return fix;
-				}
-				else {
-					return null;
-				}
-			}
-		}
-		
+
 		public void SetClippingRect (float x, float y, float width, float height)
 		{
 			_c.ClipToRect (new RectangleF (x, y, width, height));
 		}
 		
 		public void DrawString (string s, float x, float y)
-		{			
-			if (_lastFont == null) return;
-			var fm = GetFontMetrics ();
-			var fix = FixupString (s);
-			
-			if (fix == null) {
-				_c.ShowTextAtPoint (x, y + fm.Height, s);
-			}
-			else {
-				_c.ShowTextAtPoint (x, y + fm.Height, fix);
+		{
+			if (string.IsNullOrEmpty (s))
+				return;
+			using (var astr = new NSMutableAttributedString (s)) {
+				astr.AddAttributes (_attrs, new NSRange (0, s.Length));
+				using (var fs = new CTFramesetter (astr)) {
+					using (var path = new CGPath ()) {
+						var h = _lastFont.Size * 2;
+						path.AddRect (new NativeRect (0, 0, s.Length * h, h));
+						using (var f = fs.GetFrame (new NSRange (0, 0), path, null)) {
+							var line = f.GetLines ()[0];
+							NativeValue a, d, l;
+							line.GetTypographicBounds (out a, out d, out l);
+
+							_c.SaveState ();
+							_c.TranslateCTM (x, h + y - d);
+							_c.ScaleCTM (1, -1);
+
+							f.Draw (_c);
+
+							_c.RestoreState ();
+						}
+					}
+				}
 			}
 		}
 
@@ -347,7 +342,6 @@ namespace CrossGraphics.CoreGraphics
 		{
 			if (_lastFont == null) return;
 			var fm = GetFontMetrics ();
-			var fix = FixupString (s);
 			var xx = x;
 			var yy = y;
 			if (align == TextAlignment.Center) {
@@ -356,13 +350,8 @@ namespace CrossGraphics.CoreGraphics
 			else if (align == TextAlignment.Right) {
 				xx = (x + width) - fm.StringWidth (s);
 			}
-			
-			if (fix == null) {
-				_c.ShowTextAtPoint (xx, yy + fm.Height, s);
-			}
-			else {
-				_c.ShowTextAtPoint (xx, yy + fm.Height, fix);
-			}
+
+			DrawString (s, xx, yy);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -372,12 +361,8 @@ namespace CrossGraphics.CoreGraphics
 
 			var fm = f.Tag as CoreGraphicsFontMetrics;
 			if (fm == null) {
-				fm = new CoreGraphicsFontMetrics ();
+				fm = new CoreGraphicsFontMetrics (_attrs);
 				f.Tag = fm;
-			}
-			
-			if (fm.Widths == null) {
-				fm.MeasureText (_c, _lastFont);
 			}
 			
 			return fm;
@@ -526,92 +511,71 @@ namespace CrossGraphics.CoreGraphics
 
 	public class CoreGraphicsFontMetrics : IFontMetrics
 	{
-		int _height;
-		public float[] Widths;
-		
-		const float DefaultWidth = 8.0f;
+		int _ascent;
+		int _descent;
 
-		public void MeasureText (CGContext c, Font f)
+		readonly CTStringAttributes attrs;
+
+		public CoreGraphicsFontMetrics (CTStringAttributes attrs)
 		{
-//			Console.WriteLine ("MEASURE {0}", f);
-			
-			c.SetTextDrawingMode (CGTextDrawingMode.Invisible);
-			c.TextPosition = new PointF(0, 0);
-			c.ShowText ("MM");
-			
-			var mmWidth = c.TextPosition.X;
-			
-			_height = (int)(f.Size * (11.0f / 16.0f));
-			
-			Widths = new float[0x80];
-
-			for (var i = ' '; i < 127; i++) {
-
-				var s = "M" + ((char)i).ToString() + "M";
-				
-				c.TextPosition = NativePoint.Empty;
-				c.ShowText (s);
-				
-				var sz = c.TextPosition.X - mmWidth;
-				
-				if (sz < 0.1f) {
-					Widths = null;
-					return;
-				}
-				
-				Widths[i] = (float)sz;
-			}
-			
-			c.SetTextDrawingMode (CGTextDrawingMode.Fill);
+			this.attrs = attrs;
 		}
 
-		public CoreGraphicsFontMetrics ()
-		{
-		}
-		
 		public int StringWidth (string str, int startIndex, int length)
 		{
-			if (str == null) return 0;
+			return StringSize (str, startIndex, length).Width;
+		}
 
-			var end = startIndex + str.Length;
-			if (end <= 0) return 0;
-			
-			if (Widths == null) {
-				return 0;
-			}
+		(int Width, int Ascent, int Descent) StringSize (string str, int startIndex, int length)
+		{
+			if (str == null || length <= 0) return (0, 0, 0);
 
-			var w = 0.0f;
-
-			for (var i = startIndex; i < end; i++) {
-				var ch = (int)str[i];
-				if (ch < Widths.Length) {
-					w += Widths[ch];
+			using (var astr = new NSMutableAttributedString (str)) {
+				astr.AddAttributes (attrs, new NSRange (startIndex, length));
+				using (var fs = new CTFramesetter (astr)) {
+					using (var path = new CGPath ()) {
+						path.AddRect (new NativeRect (0, 0, 30000, attrs.Font.XHeightMetric * 10));
+						using (var f = fs.GetFrame (new NSRange (startIndex, length), path, null)) {
+							var line = f.GetLines ()[0];
+							NativeValue a, d, l;
+							var tw = line.GetTypographicBounds (out a, out d, out l);
+							return ((int)Math.Round (tw), (int)Math.Round (a), (int)Math.Round (d));
+						}
+					}
 				}
-				else {
-					w += DefaultWidth;
+			}
+		}
+
+		public int Height {
+			get {
+				if (_ascent <= 0) {
+					var s = StringSize ("M", 0, 1);
+					_ascent = s.Ascent;
+					_descent = s.Descent;
 				}
-			}
-			return (int)(w + 0.5f);
-		}
-
-		public int Height
-		{
-			get {
-				return _height;
+				return _ascent;
 			}
 		}
 
-		public int Ascent
-		{
+		public int Ascent {
 			get {
-				return Height;
+				if (_ascent <= 0) {
+					var s = StringSize ("M", 0, 1);
+					_ascent = s.Ascent;
+					_descent = s.Descent;
+				}
+				return _ascent;
 			}
 		}
 
-		public int Descent
-		{
+		public int Descent {
 			get {
-				return 0;
+				if (_ascent <= 0) {
+					var s = StringSize ("M", 0, 1);
+					_ascent = s.Ascent;
+					_descent = s.Descent;
+				}
+				return _descent;
 			}
 		}
 	}
