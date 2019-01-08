@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Drawing;
+using System.Numerics;
 
 namespace CrossGraphics
 {
@@ -38,8 +39,7 @@ namespace CrossGraphics
 		readonly IFormatProvider icult = System.Globalization.CultureInfo.InvariantCulture;
 		
 		class State {
-            public PointF Scale;
-			public PointF Translation;
+            public Matrix3x2 Transform = Matrix3x2.Identity;
             public RectangleF ClippingRect;
 		}
 		readonly Stack<State> _states = new Stack<State> ();
@@ -52,7 +52,7 @@ namespace CrossGraphics
 			_viewBox = viewBox;
 			_tw = tw;
 			IncludeXmlAndDoctype = true;
-			_fontMetrics = new SvgGraphicsFontMetrics ();
+			_fontMetrics = new SvgGraphicsFontMetrics (Font.SystemFontOfSize (16));
 			SetColor (Colors.Black);			
 			_states.Push (_state);
 		}
@@ -104,8 +104,8 @@ namespace CrossGraphics
 			if (inGroup) {
 				WriteLine ("</g>");
 			}
-			var klass = (entity != null) ? entity.ToString () : "";
-			WriteLine ("<g class=\"{0}\">", klass);
+			var id = (entity != null) ? entity.ToString () : "";
+			WriteLine ("<g id=\"{0}\">", id);
 			inGroup = true;
 		}
 
@@ -128,7 +128,8 @@ namespace CrossGraphics
 		public void SaveState ()
 		{			
 			var ns = new State() {
-				Translation = _state.Translation,
+				Transform = _state.Transform,
+				ClippingRect = _state.ClippingRect,
 			};
 			_states.Push (ns);
 			_state = ns;
@@ -136,14 +137,12 @@ namespace CrossGraphics
 
         public void Scale (float sx, float sy)
         {
-            _state.Scale.X *= sx;
-            _state.Scale.Y *= sy;
-        }
-		
+			_state.Transform = Matrix3x2.Multiply (Matrix3x2.CreateScale (sx, sy), _state.Transform);
+		}
+
 		public void Translate (float dx, float dy)
 		{
-			_state.Translation.X += dx;
-			_state.Translation.Y += dy;
+			_state.Transform = Matrix3x2.Multiply (Matrix3x2.CreateTranslation (dx, dy), _state.Transform);
 		}
 
         public void SetClippingRect (float x, float y, float width, float height)
@@ -160,7 +159,7 @@ namespace CrossGraphics
 
 		public void SetFont (Font f)
 		{
-			//_lastFont = f;
+			_fontMetrics = new SvgGraphicsFontMetrics (f);
 		}
 
 		static string FormatColor (Color c)
@@ -174,13 +173,45 @@ namespace CrossGraphics
 			_lastColorOpacity = string.Format (icult, "{0}", c.Alpha / 255.0);
 		}
 
+		PointF Transform (PointF p)
+		{
+			var t = Vector2.Transform (new Vector2 (p.X, p.Y), _state.Transform);
+			return new PointF (t.X, t.Y);
+		}
+
+		PointF Transform (float x, float y)
+		{
+			var t = Vector2.Transform (new Vector2 (x, y), _state.Transform);
+			return new PointF (t.X, t.Y);
+		}
+
+		RectangleF Transform (float x, float y, float width, float height)
+		{
+			var t0 = Vector2.Transform (new Vector2 (x, y), _state.Transform);
+			var t1 = Vector2.Transform (new Vector2 (x + width, y + height), _state.Transform);
+			if (t1.X < t0.X) {
+				var t = t1.X;
+				t1.X = t0.X;
+				t0.X = t;
+			}
+			if (t1.Y < t0.Y) {
+				var t = t1.Y;
+				t1.Y = t0.Y;
+				t0.Y = t;
+			}
+			return new RectangleF (t0.X, t0.Y, t1.X - t0.X, t1.Y - t0.Y);
+		}
+
+		float XScale => _state.Transform.M11;
+
 		public void FillPolygon (Polygon poly)
 		{
 			Write ("<polygon fill=\"{0}\" fill-opacity=\"{1}\" stroke=\"none\" points=\"", _lastColor, _lastColorOpacity);
 			foreach (var p in poly.Points) {
-				Write("{0}", p.X);
+				var t = Transform (p);
+				Write("{0}", t.X);
 				Write(",");
-				Write ("{0}", p.Y);
+				Write ("{0}", t.Y);
 				Write(" ");
 			}
 			WriteLine("\" />");
@@ -188,11 +219,12 @@ namespace CrossGraphics
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
-			Write("<polygon stroke=\"{0}\" stroke-opacity=\"{1}\" stroke-width=\"{2}\" fill=\"none\" points=\"", _lastColor, _lastColorOpacity, w);
+			Write("<polygon stroke=\"{0}\" stroke-opacity=\"{1}\" stroke-width=\"{2}\" fill=\"none\" points=\"", _lastColor, _lastColorOpacity, w * XScale);
 			foreach (var p in poly.Points) {
-				Write("{0}", p.X);
+				var t = Transform (p);
+				Write ("{0}", t.X);
 				Write(",");
-				Write("{0}", p.Y);
+				Write("{0}", t.Y);
 				Write(" ");
 			}
 			WriteLine("\" />");
@@ -200,22 +232,24 @@ namespace CrossGraphics
 
 		public void FillOval (float x, float y, float width, float height)
 		{
-			var rx = width / 2;
-			var ry = height / 2;
-			var cx = x + rx;
-			var cy = y + ry;
+			var t = Transform (x, y, width, height);
+			var rx = t.Width / 2;
+			var ry = t.Height / 2;
+			var cx = t.X + rx;
+			var cy = t.Y + ry;
 			WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" fill=\"{4}\" fill-opacity=\"{5}\" stroke=\"none\" />", 
 				cx, cy, rx, ry, _lastColor, _lastColorOpacity);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
-			var rx = width / 2;
-			var ry = height / 2;
-			var cx = x + rx;
-			var cy = y + ry;
-			WriteLine("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" fill=\"none\" />", 
-				cx, cy, rx, ry, _lastColor, _lastColorOpacity, w);
+			var t = Transform (x, y, width, height);
+			var rx = t.Width / 2;
+			var ry = t.Height / 2;
+			var cx = t.X + rx;
+			var cy = t.Y + ry;
+			WriteLine ("<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" fill=\"none\" />", 
+				cx, cy, rx, ry, _lastColor, _lastColorOpacity, w * XScale);
 		}
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
@@ -237,36 +271,50 @@ namespace CrossGraphics
 			var sy = cy + radius * Math.Sin (sa);
 			var ex = cx + radius * Math.Cos (ea);
 			var ey = cy + radius * Math.Sin (ea);
-			
-			WriteLine("<path d=\"M {0} {1} A {2} {3} 0 0 1 {4} {5}\" stroke=\"{6}\" stroke-opacity=\"{7}\" stroke-width=\"{8}\" fill=\"{9}\" fill-opacity=\"{10}\" />", 
+			var s = Transform ((float)sx, (float)sy);
+			sx = s.X;
+			sy = s.Y;
+			var e = Transform ((float)ex, (float)ey);
+			ex = e.X;
+			ey = e.Y;
+			var sc = XScale;
+
+			WriteLine ("<path d=\"M {0} {1} A {2} {3} 0 0 1 {4} {5}\" stroke=\"{6}\" stroke-opacity=\"{7}\" stroke-width=\"{8}\" fill=\"{9}\" fill-opacity=\"{10}\" />", 
 				sx, sy,
-				radius, radius,
+				radius * sc, radius * sc,
 				ex, ey,				 
-				stroke, strokeOp, w, fill, fillOp);
+				stroke, strokeOp, w * sc, fill, fillOp);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
+			var sc = XScale;
+			var t = Transform (x, y, width, height);
 			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{6}\" ry=\"{6}\" fill=\"{4}\" fill-opacity=\"{5}\" stroke=\"none\" />", 
-				x, y, width, height, _lastColor, _lastColorOpacity, radius);
+				t.X, t.Y, t.Width, t.Height, _lastColor, _lastColorOpacity, radius * XScale);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
-			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{7}\" ry=\"{7}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" fill=\"none\" />", 
-				x, y, width, height, _lastColor, _lastColorOpacity, w, radius);
+			var sc = XScale;
+			var t = Transform (x, y, width, height);
+			WriteLine ("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" rx=\"{7}\" ry=\"{7}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" fill=\"none\" />",
+				t.X, t.Y, t.Width, t.Height, _lastColor, _lastColorOpacity, w * sc, radius * sc);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
 		{
-			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" fill=\"{4}\" fill-opacity=\"{5}\" stroke=\"none\" />", 
-				x, y, width, height, _lastColor, _lastColorOpacity);
+			var t = Transform (x, y, width, height);
+			WriteLine ("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" fill=\"{4}\" fill-opacity=\"{5}\" stroke=\"none\" />",
+				t.X, t.Y, t.Width, t.Height, _lastColor, _lastColorOpacity);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			WriteLine("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" fill=\"none\" />", 
-				x, y, width, height, _lastColor, _lastColorOpacity, w);
+			var sc = XScale;
+			var t = Transform (x, y, width, height);
+			WriteLine ("<rect x=\"{0}\" y=\"{1}\" width=\"{2}\" height=\"{3}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" fill=\"none\" />",
+				t.X, t.Y, t.Width, t.Height, _lastColor, _lastColorOpacity, w * sc);
 		}
 		
 		bool _inPolyline = false;
@@ -279,16 +327,21 @@ namespace CrossGraphics
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
+			var sc = XScale;
+			var s = Transform (sx, sy);
+			var e = Transform (ex, ey);
 			if (_inPolyline) {
 				if (!_startedPolyline) {
-					Write ("<polyline stroke=\"{0}\" stroke-opacity=\"{1}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"{2}\" fill=\"none\" points=\"", _lastColor, _lastColorOpacity, w);
-					Write("{0},{1} ", sx, sy);
+					Write ("<polyline stroke=\"{0}\" stroke-opacity=\"{1}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"{2}\" fill=\"none\" points=\"",
+						_lastColor, _lastColorOpacity, w * sc);
+					Write("{0},{1} ", s.X, s.Y);
 					_startedPolyline = true;
 				}
-				Write("{0},{1} ", ex, ey);
+				Write("{0},{1} ", e.X, e.Y);
 			}
 			else {
-				WriteLine("<line x1=\"{0}\" y1=\"{1}\" x2=\"{2}\" y2=\"{3}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" stroke-linecap=\"round\" fill=\"none\" />", sx, sy, ex, ey, _lastColor, _lastColorOpacity, w);
+				WriteLine("<line x1=\"{0}\" y1=\"{1}\" x2=\"{2}\" y2=\"{3}\" stroke=\"{4}\" stroke-opacity=\"{5}\" stroke-width=\"{6}\" stroke-linecap=\"round\" fill=\"none\" />",
+					s.X, s.Y, e.X, e.Y, _lastColor, _lastColorOpacity, w * sc);
 			}
 		}
 
@@ -303,18 +356,28 @@ namespace CrossGraphics
 		
 		public void DrawString(string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\" font-size=\"{2}\">{3}</text>",
-				x, y + _fontMetrics.Height,
-				_fontMetrics.Height * 3 / 2,
-				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"));
+			var sc = XScale;
+			var t = Transform (x, y, width, height);
+			var tx = t.X;
+			if (align == TextAlignment.Right) {
+				tx = t.Right - _fontMetrics.StringWidth (s) * sc;
+			}
+			WriteLine ("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\" font-size=\"{2}\" fill=\"{4}\">{3}</text>",
+				tx, t.Y + _fontMetrics.Height * 0.8f * sc,
+				_fontMetrics.Height * sc,
+				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"),
+				_lastColor);
 		}
 
 		public void DrawString (string s, float x, float y)
 		{
-			WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\" font-size=\"{2}\">{3}</text>",
-				x, y + _fontMetrics.Height,
-				_fontMetrics.Height * 3 / 2,
-				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"));
+			var sc = XScale;
+			var t = Transform (x, y);
+			WriteLine("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\" font-size=\"{2}\" fill=\"{4}\">{3}</text>",
+				t.X, t.Y + _fontMetrics.Height * 0.8f * sc,
+				_fontMetrics.Height * sc,
+				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"),
+				_lastColor);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -332,39 +395,11 @@ namespace CrossGraphics
 		}
 	}
 
-	class SvgGraphicsFontMetrics : IFontMetrics
+	class SvgGraphicsFontMetrics : NullGraphicsFontMetrics
 	{
-		int _height;
-		
-		public SvgGraphicsFontMetrics ()
+		public SvgGraphicsFontMetrics (Font font) : base (font.Size)
 		{
-			_height = 10;
-		}
-
-		public int StringWidth (string str, int startIndex, int length)
-		{
-			return length * 10;
-		}
-
-		public int Height
-		{
-			get {
-				return _height;
-			}
-		}
-
-		public int Ascent
-		{
-			get {
-				return Height;
-			}
-		}
-
-		public int Descent
-		{
-			get {
-				return 0;
-			}
 		}
 	}
 }
+
