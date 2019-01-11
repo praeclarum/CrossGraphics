@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Collections.Concurrent;
 
 namespace CrossGraphics
 {
@@ -184,15 +185,17 @@ namespace CrossGraphics
 
 	public class Font
 	{
-		public string FontFamily { get; private set; }
-		
-		public FontOptions Options { get; private set; }
+		static ConcurrentDictionary<(string FontFamily, FontOptions Options, int Size), Font> _fonts = new ConcurrentDictionary<(string FontFamily, FontOptions Options, int Size), Font> ();
 
-		public int Size { get; private set; }
+		public string FontFamily { get; }
+		
+		public FontOptions Options { get; }
+
+		public int Size { get; }
 
 		public object Tag { get; set; }
 		
-		public bool IsBold { get { return (Options & FontOptions.Bold) != 0; } }
+		public bool IsBold => (Options & FontOptions.Bold) != 0;
 
 		public Font (string fontFamily, FontOptions options, int size)
 		{
@@ -201,46 +204,22 @@ namespace CrossGraphics
 			Size = size;
 		}
 
-        static Dictionary<string, List<Font>> _fonts = new Dictionary<string, List<Font>>();
+		public static Font Get (string fontFamily, FontOptions options, int size)
+		{
+			var key = (fontFamily, options, size);
+			if (!_fonts.TryGetValue (key, out var font)) {
+				font = new Font (fontFamily, options, size);
+				_fonts.TryAdd (key, font);
+			}
+			return font;
+		}
 
-        public static Font Get(string name, FontOptions options, int size)
-        {
-            List<Font> fonts;
-            if (!_fonts.TryGetValue(name, out fonts))
-            {
-                fonts = new List<Font>(1);
-                _fonts.Add(name, fonts);
-            }
-            var font = fonts.FirstOrDefault(f => f.FontFamily == name && f.Options == options && f.Size == size);
-            if (font == null)
-            {
-                font = new Font(name, options, size);
-                fonts.Add(font);
-            }
-            return font;
-        }
+		public static Font SystemFontOfSize (int size) => Get ("SystemFont", FontOptions.None, size);
+		public static Font BoldSystemFontOfSize (int size) => Get ("SystemFont", FontOptions.Bold, size);
+		public static Font UserFixedPitchFontOfSize (int size) => Get ("Monospace", FontOptions.None, size);
+		public static Font BoldUserFixedPitchFontOfSize (int size) => Get ("Monospace", FontOptions.Bold, size);
 
-		public static Font BoldSystemFontOfSize(int size) 
-        {
-            return Get("SystemFont", FontOptions.Bold, size);
-		}
-		public static Font SystemFontOfSize(int size) 
-        {
-            return Get("SystemFont", FontOptions.None, size);
-		}
-		public static Font UserFixedPitchFontOfSize(int size)
-        {
-            return Get("Monospace", FontOptions.Bold, size);
-		}
-		public static Font BoldUserFixedPitchFontOfSize(int size) 
-        {
-            return Get("Monospace", FontOptions.None, size);
-		}
-		
-		public static Font FromName(string name, int size) 
-        {
-            return Get(name, FontOptions.None, size);
-		}
+		public static Font FromName (string name, int size) => Get (name, FontOptions.None, size);
 
 		public override string ToString()
 		{
