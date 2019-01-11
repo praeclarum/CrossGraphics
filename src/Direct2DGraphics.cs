@@ -22,133 +22,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
 using SharpDX.Direct2D1;
 using SharpDX;
+using DW = SharpDX.DirectWrite;
+using SharpDX.Mathematics.Interop;
 
 namespace CrossGraphics
 {
-	class WindowsDrawTimer
-	{
-		int _fps = 20;
-		readonly DispatcherTimer _drawTimer;
-
-		const double CpuUtilization = 0.25;
-		public int MinFps { get; set; }
-		public int MaxFps { get; set; }
-		static readonly TimeSpan ThrottleInterval = TimeSpan.FromSeconds (1.0);
-
-		double _drawTime;
-		int _drawCount;
-		DateTime _lastThrottleTime = DateTime.Now;
-
-		public bool Continuous { get; set; }
-
-		public WindowsDrawTimer ()
-		{
-			MinFps = 4;
-			MaxFps = 30;
-			Continuous = true;
-
-			_drawTimer = new DispatcherTimer ();
-			_drawTimer.Tick += DrawTick;
-		}
-
-		public void Start ()
-		{
-			_drawTimer.Interval = TimeSpan.FromSeconds (1.0 / _fps);
-
-			if (Continuous && !_drawTimer.IsEnabled) {
-				_drawTimer.Start ();
-			}
-		}
-
-		bool _paused = false;
-		public bool Paused
-		{
-			get
-			{
-				return _paused;
-			}
-			set
-			{
-				if (_paused != value) {
-					_paused = value;
-					_lastThrottleTime = DateTime.Now;
-				}
-			}
-		}
-
-		public void Stop ()
-		{
-			_drawTimer.Stop ();
-		}
-
-		public Func<bool> ShouldDrawFunc { get; set; }
-		public Func<double> DrawFunc { get; set; }
-
-		void DrawTick (object sender, object e)
-		{
-			//
-			// Decide if we should draw
-			//
-			if (Paused) {
-				_drawCount = 0;
-				_drawTime = 0;
-				return;
-			}
-
-			var sd = ShouldDrawFunc;
-			if (sd != null) {
-				if (!sd ()) {
-					return;
-				}
-			}
-
-			//
-			// Draw
-			//
-			var d = DrawFunc;
-			if (d != null) {
-				var dt = d ();
-				_drawTime += dt;
-				_drawCount++;
-			}
-
-			//
-			// Throttle
-			//
-			if (_drawCount > 2 && (DateTime.Now - _lastThrottleTime) >= ThrottleInterval) {
-
-				_lastThrottleTime = DateTime.Now;
-
-				var maxfps = 1.0 / (_drawTime / _drawCount);
-				_drawTime = 0;
-				_drawCount = 0;
-
-				var fps = ClampUpdateFreq ((int)(maxfps * CpuUtilization));
-
-				if (Math.Abs (fps - _fps) > 1) {
-					_fps = fps;
-					Start ();
-				}
-			}
-		}
-
-		int ClampUpdateFreq (int fps)
-		{
-			return Math.Min (MaxFps, Math.Max (MinFps, fps));
-		}
-	}
-
 	public class Direct2DGraphics : IGraphics
 	{
-		const int MaxFontSize = 120;
-		Direct2DGraphicsFontMetrics[] _fontMetrics;
-		int _fontSize = 10;
-
-		Color lastColor;
+        SolidColorBrush lastBrush;
 
 		Factory d2dFactory;
 		SharpDX.DirectWrite.Factory dwFactory;
@@ -159,7 +42,7 @@ namespace CrossGraphics
 		SharpDX.WIC.Bitmap bitmap;
 
 		StrokeStyle strokeStyle;
-		SharpDX.DirectWrite.TextFormat textFormat;
+        Font font;
 
 		class State
 		{
@@ -180,20 +63,30 @@ namespace CrossGraphics
 			dc = DisposeLater (new RenderTarget (
 				d2dFactory,
 				surface,
-				new RenderTargetProperties (
-					RenderTargetType.Default,
-					new SharpDX.Direct2D1.PixelFormat (SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied),
-					d2dFactory.DesktopDpi.Width, d2dFactory.DesktopDpi.Height,
-					RenderTargetUsage.None,
-					FeatureLevel.Level_DEFAULT)));
+                new RenderTargetProperties(new PixelFormat(SharpDX.DXGI.Format.Unknown, AlphaMode.Premultiplied)))
+            );
 
 			Initialize ();
 		}
 
+        public Direct2DGraphics(IntPtr handle, int width, int height)
+            : this()
+        {
+            //surface = DisposeLater(SharpDX.DXGI.Surface.FromSwapChain(swapChain, 0));
+            dc = DisposeLater(new WindowRenderTarget(
+                d2dFactory,
+                new RenderTargetProperties(new PixelFormat(SharpDX.DXGI.Format.Unknown, AlphaMode.Premultiplied)),
+                new HwndRenderTargetProperties() { Hwnd = handle, PixelSize = new Size2(width, height), PresentOptions = PresentOptions.None }
+                )
+            );
+
+            Initialize();
+        }
+
 		public Direct2DGraphics (int width, int height)
 			: this ()
 		{
-			var wicFactory = new SharpDX.WIC.ImagingFactory2 ();
+			var wicFactory = new SharpDX.WIC.ImagingFactory();
 			bitmap = DisposeLater (new SharpDX.WIC.Bitmap (
 				wicFactory,
 				width, height,
@@ -220,13 +113,8 @@ namespace CrossGraphics
 			}));
 
 			states = new Stack<State> ();
-			states.Push (new State {
-				Transform = Matrix3x2.Identity,
-			});
 
-			lastColor = Colors.Black;
-
-			SetFont (Font.SystemFontOfSize (16));
+            lastBrush = new SolidColorBrush(dc, Color4.Black);
 		}
 
 		~Direct2DGraphics ()
@@ -239,6 +127,11 @@ namespace CrossGraphics
 			Dispose (true);
 			GC.SuppressFinalize (this);
 		}
+
+        public RenderTarget RenderTarget
+        {
+            get { return this.dc; }
+        }
 
 		List<IDisposable> toDispose;
 
@@ -261,10 +154,11 @@ namespace CrossGraphics
 			toDispose.Clear ();
 			toDispose = null;
 
-			if (textFormat != null) {
-				textFormat.Dispose ();
-				textFormat = null;
-			}
+            if (lastBrush != null)
+            {
+                lastBrush.Dispose();
+                lastBrush = null;
+            }
 		}
 
 		public byte[] GetPixels ()
@@ -284,6 +178,16 @@ namespace CrossGraphics
 			return bytes;
 		}
 
+        public SharpDX.Direct2D1.Factory D2DFactory
+        {
+            get { return this.d2dFactory; }
+        }
+
+        public SharpDX.DirectWrite.Factory DwFactory
+        {
+            get { return this.dwFactory; }
+        }
+
 		public void BeginDrawing ()
 		{
 			dc.BeginDraw ();
@@ -301,70 +205,90 @@ namespace CrossGraphics
 
 		public void SetFont (Font f)
 		{
-			if (textFormat != null) {
-				textFormat.Dispose ();
-			}
-			textFormat = new SharpDX.DirectWrite.TextFormat (dwFactory, "Segoe", f.Size);
-			_fontSize = f.Size;
+            if (font != f)
+            {
+                var textFormat = f.Tag as DW.TextFormat;
+                if (textFormat == null)
+                {
+                    textFormat = DisposeLater(
+                        new SharpDX.DirectWrite.TextFormat(
+                            dwFactory,
+                            f.FontFamily,
+                            f.IsBold ? DW.FontWeight.Bold : DW.FontWeight.Normal,
+                            DW.FontStyle.Normal,
+                            d2dFactory.PixelsToDipsY(f.Size)));
+                    f.Tag = textFormat;
+                }
+                font = f;
+            }
 		}
 
 		public void SetColor (Color c)
 		{
-			lastColor = c;
+            var color4 = new Color4(c.RedValue, c.GreenValue, c.BlueValue, c.AlphaValue);
+            if (lastBrush.Color != color4)
+            {
+                lastBrush.Dispose();
+                lastBrush = new SolidColorBrush(dc, color4);
+            }
 		}
 
 		public void FillPolygon (Polygon poly)
 		{
-			var g = poly.GetGeometry (d2dFactory);
-			dc.FillGeometry (g, lastColor.GetBrush (dc));
+            using (var g = poly.GetGeometry(d2dFactory))
+            {
+                dc.FillGeometry(g, lastBrush);
+            }
 		}
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
-			var g = poly.GetGeometry (d2dFactory);
-			dc.DrawGeometry (g, lastColor.GetBrush (dc), w);
+            using (var g = poly.GetGeometry(d2dFactory))
+            {
+                dc.DrawGeometry(g, lastBrush, w);
+            }
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
 			dc.FillRoundedRectangle (new RoundedRectangle {
-				Rect = new RectangleF (x, y, x + width, y + height),
+				Rect = new RectangleF (x, y, width, height),
 				RadiusX = radius,
 				RadiusY = radius,
-			}, lastColor.GetBrush (dc));
+            }, lastBrush);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
 			dc.DrawRoundedRectangle (new RoundedRectangle {
-				Rect = new RectangleF (x, y, x + width, y + height),
+                Rect = new RectangleF(x + w / 2, y + w / 2, width, height),
 				RadiusX = radius,
 				RadiusY = radius,
-			}, lastColor.GetBrush (dc), w);
+            }, lastBrush, w);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
 		{
-			dc.FillRectangle (new RectangleF (x, y, x + width, y + height), lastColor.GetBrush (dc));
+            dc.FillRectangle(new RectangleF(x, y, width, height), lastBrush);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			dc.DrawRectangle (new RectangleF (x, y, x + width, y + height), lastColor.GetBrush (dc), w);
+            dc.DrawRectangle(new RectangleF(x + w / 2, y + w / 2, width, height), lastBrush, w);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
 		{
 			var rx = width / 2;
 			var ry = height / 2;
-			dc.FillEllipse (new Ellipse (new DrawingPointF (x + rx, y + ry), rx, ry), lastColor.GetBrush (dc));
+            dc.FillEllipse(new Ellipse(new Vector2(x + rx, y + ry), rx, ry), lastBrush);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
 			var rx = width / 2;
 			var ry = height / 2;
-			dc.DrawEllipse (new Ellipse (new DrawingPointF (x + rx, y + ry), rx, ry), lastColor.GetBrush (dc), w);
+            dc.DrawEllipse(new Ellipse(new Vector2(x + rx, y + ry), rx, ry), lastBrush, w);
 		}
 
 		public void BeginLines (bool rounded)
@@ -373,7 +297,7 @@ namespace CrossGraphics
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			dc.DrawLine (new DrawingPointF (sx, sy), new DrawingPointF (ex, ey), lastColor.GetBrush (dc), w, strokeStyle);
+            dc.DrawLine(new Vector2(sx, sy), new Vector2(ex, ey), lastBrush, w, strokeStyle);
 		}
 
 		public void EndLines ()
@@ -382,46 +306,114 @@ namespace CrossGraphics
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
+            using (var g = CreateArc(cx, cx, radius, startAngle, endAngle, FigureBegin.Filled, FigureEnd.Closed))
+            {
+                dc.FillGeometry(g, lastBrush);
+            }
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
+            using (var g = CreateArc(cx, cx, radius, startAngle, endAngle, FigureBegin.Hollow, FigureEnd.Closed))
+            {
+                dc.DrawGeometry(g, lastBrush, w);
+            }
 		}
 
-		const float FontOffsetScale = 0.25f;
+        private PathGeometry CreateArc(float cx, float cy, float radius, float startAngle, float endAngle, FigureBegin begin, FigureEnd end)
+        {
+            var geometry = new PathGeometry(d2dFactory);
+            using (var sink = geometry.Open())
+            {
+                var sa = -startAngle;
+                var ea = -endAngle;
+
+                sink.BeginFigure(
+                    new Vector2(
+                        cx + radius * (float)Math.Cos(sa),
+                        cy + radius * (float)Math.Sin(sa)),
+                    begin);
+
+                var segment = new ArcSegment()
+                {
+                    Point = new Vector2(
+                        cx + radius * (float)Math.Cos(ea),
+                        cy + radius * (float)Math.Sin(ea)),
+                    Size = new Size2F(radius, radius),
+                    SweepDirection = SweepDirection.CounterClockwise
+                };
+                sink.AddArc(segment);
+                sink.EndFigure(end);
+                sink.Close();
+            }
+            return geometry;
+        }
 
 		public void DrawString (string s, float x, float y)
 		{
-			var yy = y - FontOffsetScale * _fontSize;
-
-			dc.DrawText (
-				s,
-				textFormat,
-				new RectangleF (x, yy, x + 1000, yy + 1000),
-				lastColor.GetBrush (dc));
+            if (this.font != null)
+            {
+                var textFormat = this.font.Tag as DW.TextFormat;
+                dc.DrawText(
+                    s,
+                    textFormat,
+                    new RectangleF(x, y, float.MaxValue, float.MaxValue),
+                    lastBrush);
+            }
 		}
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			var yy = y - FontOffsetScale * _fontSize;
+            if (this.font != null)
+            {
+                var textFormat = this.font.Tag as DW.TextFormat;
+                using (var layout = new SharpDX.DirectWrite.TextLayout(dwFactory, s, textFormat, width, height))
+                {
+                    DrawTextOptions drawTextOptions;
+                    switch (lineBreak)
+                    {
+                        case LineBreakMode.None:
+                            drawTextOptions = DrawTextOptions.None;
+                            break;
+                        case LineBreakMode.Clip:
+                            drawTextOptions = DrawTextOptions.Clip;
+                            break;
+                        case LineBreakMode.WordWrap:
+                            drawTextOptions = DrawTextOptions.None;
+                            layout.WordWrapping = SharpDX.DirectWrite.WordWrapping.Wrap;
+                            break;
+                        default:
+                            drawTextOptions = DrawTextOptions.None;
+                            break;
+                    }
+                    switch (align)
+                    {
+                        case TextAlignment.Left:
+                            layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
+                            break;
+                        case TextAlignment.Center:
+                            layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
+                            break;
+                        case TextAlignment.Right:
+                            layout.TextAlignment = SharpDX.DirectWrite.TextAlignment.Trailing;
+                            break;
+                        case TextAlignment.Justified:
+                            // Needs Windows 8
+                            break;
+                        default:
+                            break;
+                    }
 
-			dc.DrawText (
-				s,
-				textFormat,
-				new RectangleF (x, yy, x + width, yy + height),
-				lastColor.GetBrush (dc));
+                    dc.DrawTextLayout(new Vector2(x, y), layout, lastBrush, drawTextOptions);
+                }
+            }
 		}
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			if (_fontMetrics == null) {
-				_fontMetrics = new Direct2DGraphicsFontMetrics[MaxFontSize + 1];
-			}
-			var i = Math.Min (_fontMetrics.Length, _fontSize);
-			if (_fontMetrics[i] == null) {
-				_fontMetrics[i] = new Direct2DGraphicsFontMetrics (i);
-			}
-			return _fontMetrics[i];
+            if (this.font != null)
+			    return new Direct2DGraphicsFontMetrics(this, font);
+            return null;
 		}
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
@@ -430,12 +422,10 @@ namespace CrossGraphics
 
 		public void SaveState ()
 		{
-			var s = states.Peek ();
 			var n = new State {
-				Transform = s.Transform,
+				Transform = dc.Transform,
 			};
 			states.Push (n);
-			dc.Transform = n.Transform;
 		}
 
 		public void SetClippingRect (float x, float y, float width, float height)
@@ -481,11 +471,8 @@ namespace CrossGraphics
 
 		public void RestoreState ()
 		{
-			if (states.Count > 1) {
-				states.Pop ();
-				var s = states.Peek ();
-				dc.Transform = s.Transform;
-			}
+			var s = states.Pop();
+			dc.Transform = s.Transform;
 		}
 
 		public IImage ImageFromFile (string filename)
@@ -500,25 +487,35 @@ namespace CrossGraphics
 
 	class Direct2DGraphicsFontMetrics : IFontMetrics
 	{
-		int _height;
-		int _charWidth;
+        Direct2DGraphics graphics;
+		Font font;
 
-		public Direct2DGraphicsFontMetrics (int size)
+        public Direct2DGraphicsFontMetrics(Direct2DGraphics graphics, Font font)
 		{
-			_height = size;
-			_charWidth = (855 * size) / 1600;
+            this.graphics = graphics;
+            this.font = font;
 		}
+
+        private DW.TextLayout GetTextLayout(string str, DW.TextFormat format)
+        {
+            return new DW.TextLayout(this.graphics.DwFactory, str, format, float.MaxValue, float.MaxValue);   
+        }
 
 		public int StringWidth (string str, int startIndex, int length)
 		{
-			return length * _charWidth;
+            if (str == null) return 0;
+            var end = startIndex + length;
+            if (end <= 0) return 0;
+            var textFormat = this.font.Tag as DW.TextFormat;
+            using (var layout = GetTextLayout(str.Substring(startIndex, length), textFormat))
+                return (int)layout.Metrics.Width;
 		}
 
 		public int Height
 		{
 			get
 			{
-				return _height;
+				return this.font.Size;
 			}
 		}
 
@@ -547,8 +544,8 @@ namespace CrossGraphics
 			if (g == null) {
 				var pg = new PathGeometry (factory);
 				using (var gs = pg.Open ()) {
-					gs.BeginFigure (new DrawingPointF (poly.Points[0].X, poly.Points[0].Y), FigureBegin.Filled);
-					gs.AddLines (poly.Points.Select (p => new DrawingPointF (p.X, p.Y)).ToArray ());
+                    gs.BeginFigure(new Vector2(poly.Points[0].X, poly.Points[0].Y), FigureBegin.Filled);
+					gs.AddLines (poly.Points.Select(p => (RawVector2)new Vector2(p.X, p.Y)).ToArray ());
 					gs.EndFigure (FigureEnd.Closed);
 					gs.Close ();
 				}
@@ -560,220 +557,25 @@ namespace CrossGraphics
 		}
 	}
 
-	public static partial class ColorEx
-	{
-		class ColorInfo
-		{
-			public RenderTarget Target;
-			public SolidColorBrush Brush;
-		}
+    public static class DwFactoryEx
+    {
+        public static float PixelsToDipsX(this SharpDX.Direct2D1.Factory factory, int x)
+        {
+            var scale = factory.DesktopDpi.Width / 96.0f;
+            return (float)(x) / scale;
+        }
 
-		public static SolidColorBrush GetBrush (this Color color, RenderTarget renderTarget)
-		{
-			var ci = color.Tag as ColorInfo;
+        public static float PixelsToDipsY(this SharpDX.Direct2D1.Factory factory, int y)
+        {
+            var scale = factory.DesktopDpi.Height / 96.0f;
+            return (float)(y) / scale;
+        }
 
-			if (ci != null) {
-				if (ci.Target != renderTarget) {
-					ci = null;
-				}
-			}
-
-			if (ci == null) {
-				ci = new ColorInfo {
-					Target = renderTarget,
-					Brush = new SolidColorBrush (
-						renderTarget,
-						new Color4 (color.RedValue, color.GreenValue, color.BlueValue, color.AlphaValue)),
-				};
-				color.Tag = ci;
-			}
-
-			return ci.Brush;
-		}
-	}
-
-	public class Direct2DCanvas : SwapChainBackgroundPanel, ICanvas
-	{
-		SharpDX.DXGI.SwapChain1 swapChain;
-		Direct2DGraphics g;
-		WindowsDrawTimer _drawTimer;
-
-		CanvasContent content;
-		public CanvasContent Content
-		{
-			get
-			{
-				return content;
-			}
-			set
-			{
-				if (content != value) {
-					if (content != null) {
-						content.NeedsDisplay -= OnNeedsDisplay;
-					}
-					content = value;
-					if (content != null) {
-						content.NeedsDisplay += OnNeedsDisplay;
-					}
-				}
-			}
-		}
-
-		public Direct2DCanvas ()
-		{
-			int width = 1024;
-			int height = 1024;
-
-			SharpDX.Direct3D11.Device defaultDevice = new SharpDX.Direct3D11.Device (
-				SharpDX.Direct3D.DriverType.Hardware,
-				SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport);
-
-			// Query the default device for the supported device and context interfaces.
-			var device = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device1> ();
-
-			// Query for the adapter and more advanced DXGI objects.
-			SharpDX.DXGI.Device2 dxgiDevice2 = device.QueryInterface<SharpDX.DXGI.Device2> ();
-			SharpDX.DXGI.Adapter dxgiAdapter = dxgiDevice2.Adapter;
-			SharpDX.DXGI.Factory2 dxgiFactory2 = dxgiAdapter.GetParent<SharpDX.DXGI.Factory2> ();
-
-			var swapChainDescription = new SharpDX.DXGI.SwapChainDescription1 {
-				Width = width,
-				Height = height,
-				Format = SharpDX.DXGI.Format.B8G8R8A8_UNorm,
-				Stereo = false,
-				Usage = SharpDX.DXGI.Usage.RenderTargetOutput,
-				BufferCount = 2,
-				Scaling = SharpDX.DXGI.Scaling.Stretch,
-				SwapEffect = SharpDX.DXGI.SwapEffect.FlipSequential,
-				Flags = SharpDX.DXGI.SwapChainFlags.None,
-			};
-			swapChainDescription.SampleDescription.Count = 1;
-			swapChainDescription.SampleDescription.Quality = 0;
-
-			swapChain = dxgiFactory2.CreateSwapChainForComposition (dxgiDevice2, ref swapChainDescription, null);
-			swapChain.BackgroundColor = new Color4 (1, 0, 0, 0);
-
-			var native = SharpDX.ComObject.QueryInterface<SharpDX.DXGI.ISwapChainBackgroundPanelNative> (this);
-			native.SwapChain = swapChain;
-
-			g = new Direct2DGraphics (swapChain);
-
-			_drawTimer = new WindowsDrawTimer {
-				Continuous = true,
-				ShouldDrawFunc = () =>
-					Content != null && ActualWidth > 0 && ActualHeight > 0,
-				DrawFunc = Draw,
-			};
-
-			Unloaded += HandleUnloaded;
-			Loaded += HandleLoaded;
-			LayoutUpdated += HandleLayoutUpdated;
-		}
-
-		double lastUpdateWidth = -1, lastUpdateHeight = -1;
-
-		void HandleLayoutUpdated (object sender, object e)
-		{
-			if (Content != null && (Math.Abs (lastUpdateWidth - ActualWidth) > 0.5 || Math.Abs (lastUpdateHeight - ActualHeight) > 0.5)) {
-				lastUpdateWidth = ActualWidth;
-				lastUpdateHeight = ActualHeight;
-
-				// TODO: Resize the SwapChain
-
-#if NETFX_CORE
-#pragma warning disable 4014
-				Dispatcher.RunAsync (Windows.UI.Core.CoreDispatcherPriority.Normal, delegate {
-					Content.SetNeedsDisplay ();
-				});
-#pragma warning restore 4014
-#endif
-			}
-		}
-
-		void HandleLoaded (object sender, RoutedEventArgs e)
-		{
-			//Debug.WriteLine("LOADED {0}", Delegate);
-			//TouchEnabled = true;
-			if (_drawTimer.Continuous) {
-				Start ();
-			}
-		}
-
-		void HandleUnloaded (object sender, RoutedEventArgs e)
-		{
-			//Debug.WriteLine("UNLOADED {0}", Delegate);
-			//TouchEnabled = false;
-			Stop ();
-		}
-
-		void OnNeedsDisplay (object sender, EventArgs e)
-		{
-			Draw ();
-		}
-
-		public void Start ()
-		{
-			_drawTimer.Start ();
-		}
-
-		public void Stop ()
-		{
-			_drawTimer.Stop ();
-		}
-
-		public Transform2D ContentTransform
-		{
-			get
-			{
-				return g.Transform;
-			}
-			set
-			{
-				g.Transform = value;
-				SetNeedsDisplay ();
-			}
-		}
-
-		void SetNeedsDisplay ()
-		{
-			Draw ();
-		}
-
-		double Draw ()
-		{
-			var del = Content;
-			if (del == null) return 0;
-
-			var startT = DateTime.Now;
-
-			g.BeginDrawing ();
-			g.BeginEntity (del);
-
-			//
-			// Draw
-			//
-			var fr = new System.Drawing.RectangleF (0, 0, (float)ActualWidth, (float)ActualHeight);
-			//if (_ppi != NativePointsPerInch) {
-			//	fr.Width /= _ppi / (float)NativePointsPerInch;
-			//	fr.Height /= _ppi / (float)NativePointsPerInch;
-			//}
-			del.Frame = fr;
-			try {
-				Console.WriteLine (g.Transform);
-				//g.Transform = transform;
-				g.Clear (Colors.Red);
-				del.Draw (g);
-			}
-			catch (Exception) {
-			}
-
-			g.EndDrawing ();
-
-			swapChain.Present (1, SharpDX.DXGI.PresentFlags.None);
-
-			var endT = DateTime.Now;
-			return (endT - startT).TotalSeconds;
-		}
-	}
+        public static int PointsToPixel(this SharpDX.Direct2D1.Factory factory, float points)
+        {
+            var scale = factory.DesktopDpi.Height / 72.0f;
+            return (int)(points * scale);
+        }
+    }
 }
 

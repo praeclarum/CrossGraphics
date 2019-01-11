@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <version>1.0.15-SharpDX3</version>
+    <authors>Frank A. Krueger</authors>
+    <owners>gregsn</owners>
+    <projectUrl>https://github.com/vvvv/CrossGraphics</projectUrl>
+    <id>CrossGraphics-gregsn</id>
+    <title>CrossGraphics</title>
+	  <licenseUrl>https://github.com/praeclarum/sqlite-net/blob/master/license.md</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Cross-platform library for rendering vector graphics and writing graphics-rich apps. Supports iOS, OS X, Android, Windows Phone, Windows RT, WPF among a variety of file formats.</description>
+    <tags>graphics rendering vector draw svg wmf</tags>
+	<summary>Cross-platform library for rendering vector graphics.</summary>
+	<releaseNotes>
+      <![CDATA[
+	  v1.0.15: Updated SharpDX to 3.0.0-alpha01
+	  v1.0.14: Added factory function for fonts
+	  v1.0.13: Added points to pixel and pixel to DIP helper methods
+	  v1.0.12: Fixed outline drawing of rectangles in Direct2D
+	  v1.0.11: Direct2D graphics exposes the render target in order for clients to change certain render settings
+	  v1.0.10: Fixed the SaveState and RestoreState methods in Direct2D
+      v1.0.9: Fully implemented the DrawText and DrawArc methods in Direct2D
+      v1.0.8: Fixed memory leak in Direct2D and upgraded to SharpDX 2.6.3
+      v1.0.7: Fixed rectangle drawing in Direct2D
+      v1.0.6: Added Direct2DGraphics to nuget package
+      v1.0.5: Fixed bugs with WPF touch and mouse events
+      v1.0.4: Added framework: portable-sl4+wp71+windows8
+      v1.0.3: Added framework: windowsphone8
+      v1.0.2: Cleaned up the namespace
+		  v1.0.1: Initial Release
+		  ]]>
+	</releaseNotes>
+	<dependencies>
+      <dependency id="SharpDX" version="3.0.0-alpha01" />
+      <dependency id="SharpDX.Mathematics" version="3.0.0-alpha01" />
+	  <dependency id="SharpDX.DXGI" version="3.0.0-alpha01" />
+	  <dependency id="SharpDX.Direct2D1" version="3.0.0-alpha01" />
+    </dependencies> 
+  </metadata>
+  <files>
+    <file src="net40client\bin\Release\CrossGraphics.*" target="lib\net452" />
+  </files>
+</package>

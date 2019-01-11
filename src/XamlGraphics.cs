@@ -65,6 +65,7 @@ namespace CrossGraphics
 		EntityShapes _eshape = null;
 
 		Canvas _canvas;
+        TextBlock _txtMeasure;
 
 		class State
 		{
@@ -80,6 +81,11 @@ namespace CrossGraphics
 		{
 			if (canvas == null) throw new ArgumentNullException ("canvas");
 			_canvas = canvas;
+
+            _txtMeasure = new TextBlock();
+            _txtMeasure.Visibility = Visibility.Hidden;
+            _canvas.Children.Add(_txtMeasure);
+
 			_states.Push(new State());
 		}
 
@@ -268,7 +274,7 @@ namespace CrossGraphics
 			var f = _eshape.CurrentFont;
 			var fm = f.Tag as XamlFontMetrics;
 			if (fm == null) {
-				fm = new XamlFontMetrics (f);
+                fm = new XamlFontMetrics(_txtMeasure, f);
 				f.Tag = fm;
 			}
 			return fm;
@@ -298,13 +304,16 @@ namespace CrossGraphics
 	{
 		float[] _widths;
 		int _height = 10;
+        TextBlock _txtMeasure;
 		static float DefaultWidth = 9.5f;
 
 		public static readonly NativeFontFamily SystemFont = new NativeFontFamily ("Global User Interface");
 		public static readonly NativeFontFamily Monospace = new NativeFontFamily ("Courier New");
 
-		public XamlFontMetrics (Font f)
+		public XamlFontMetrics (TextBlock txtMeasure, Font f)
 		{
+            _txtMeasure = txtMeasure;
+
 			var ff = SystemFont;
 			if (f.FontFamily == "Monospace") {
 				ff = Monospace;
@@ -332,15 +341,16 @@ namespace CrossGraphics
 			}
 		}
 
-		static System.Drawing.SizeF StringSize (string text, int fontSize, NativeFontFamily fontFamily, bool bold)
+		System.Drawing.SizeF StringSize (string text, int fontSize, NativeFontFamily fontFamily, bool bold)
 		{
-			TextBlock txtMeasure = new TextBlock();
-			txtMeasure.FontFamily = fontFamily;
-			txtMeasure.FontSize = fontSize;
-			txtMeasure.FontWeight = bold ? FontWeights.Bold : FontWeights.Normal;
-			txtMeasure.Text = text;
-			txtMeasure.Measure (new Size (1, 1));
-			return new System.Drawing.SizeF((float)txtMeasure.ActualWidth, (float)txtMeasure.ActualHeight);
+            _txtMeasure.Visibility = Visibility.Hidden;
+			_txtMeasure.FontFamily = fontFamily;
+			_txtMeasure.FontSize = fontSize;
+			_txtMeasure.FontWeight = bold ? FontWeights.Bold : FontWeights.Normal;
+			_txtMeasure.Text = text;
+            _txtMeasure.UpdateLayout();
+			//txtMeasure.Measure (new Size (1, 1));
+			return new System.Drawing.SizeF((float)_txtMeasure.ActualWidth, (float)_txtMeasure.ActualHeight);
 		}
 
 		public int StringWidth(string str, int startIndex, int length)
