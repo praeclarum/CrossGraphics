@@ -33,6 +33,10 @@ namespace System.Drawing
         public float Right { get { return X + Width; } }
         public float Bottom { get { return Y + Height; } }
 
+		public static readonly RectangleF Empty = new RectangleF (0, 0, 0, 0);
+
+		public PointF Location => new PointF (X, Y);
+
         public RectangleF (float left, float top, float width, float height)
         {
             X = left;
@@ -102,7 +106,12 @@ namespace System.Drawing
             return (x >= X && x < X + Width) && (y >= Y && y < Y + Height);
         }
 
-        public static Rectangle Union (Rectangle a, Rectangle b)
+		public bool Contains (Point point)
+		{
+			return (point.X >= X && point.X < X + Width) && (point.Y >= Y && point.Y < Y + Height);
+		}
+
+		public static Rectangle Union (Rectangle a, Rectangle b)
         {
 			var left = Math.Min (a.Left, b.Left);
 			var top = Math.Min (a.Top, b.Top);
