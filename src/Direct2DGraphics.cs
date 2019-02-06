@@ -25,7 +25,7 @@ using System.Linq;
 using SharpDX.Direct2D1;
 using SharpDX;
 using DW = SharpDX.DirectWrite;
-using SharpDX.Mathematics.Interop;
+
 
 namespace CrossGraphics
 {
@@ -114,7 +114,7 @@ namespace CrossGraphics
 
 			states = new Stack<State> ();
 
-            lastBrush = new SolidColorBrush(dc, Color4.Black);
+            lastBrush = new SolidColorBrush(dc, new Color4 (0, 0, 0, 1));
 		}
 
 		~Direct2DGraphics ()
@@ -545,7 +545,7 @@ namespace CrossGraphics
 				var pg = new PathGeometry (factory);
 				using (var gs = pg.Open ()) {
                     gs.BeginFigure(new Vector2(poly.Points[0].X, poly.Points[0].Y), FigureBegin.Filled);
-					gs.AddLines (poly.Points.Select(p => (RawVector2)new Vector2(p.X, p.Y)).ToArray ());
+					gs.AddLines (poly.Points.Select(p => (SharpDX.Mathematics.Interop.RawVector2)new Vector2(p.X, p.Y)).ToArray ());
 					gs.EndFigure (FigureEnd.Closed);
 					gs.Close ();
 				}
