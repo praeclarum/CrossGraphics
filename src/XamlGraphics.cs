@@ -83,7 +83,7 @@ namespace CrossGraphics
 			_canvas = canvas;
 
             _txtMeasure = new TextBlock();
-            _txtMeasure.Visibility = Visibility.Hidden;
+            _txtMeasure.Visibility = Visibility.Collapsed;
             _canvas.Children.Add(_txtMeasure);
 
 			_states.Push(new State());
@@ -343,7 +343,7 @@ namespace CrossGraphics
 
 		System.Drawing.SizeF StringSize (string text, int fontSize, NativeFontFamily fontFamily, bool bold)
 		{
-            _txtMeasure.Visibility = Visibility.Hidden;
+            _txtMeasure.Visibility = Visibility.Collapsed;
 			_txtMeasure.FontFamily = fontFamily;
 			_txtMeasure.FontSize = fontSize;
 			_txtMeasure.FontWeight = bold ? FontWeights.Bold : FontWeights.Normal;

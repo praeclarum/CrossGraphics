@@ -114,7 +114,7 @@ namespace CrossGraphics
 
 			states = new Stack<State> ();
 
-            lastBrush = new SolidColorBrush(dc, new Color4 (0, 0, 0, 1));
+            lastBrush = new SolidColorBrush(dc, Color4.Black);
 		}
 
 		~Direct2DGraphics ()
