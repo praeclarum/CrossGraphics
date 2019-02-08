@@ -23,31 +23,25 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 
-using CoreGraphics;
-using SkiaSharp;
+using System.Numerics;
+using NativePoint = System.Numerics.Vector2;
+using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.Brushes;
 
-using NativePoint = CoreGraphics.CGPoint;
-
-namespace CrossGraphics.Skia
+namespace CrossGraphics.Win2D
 {
 	public class Win2DGraphics : IGraphics
 	{
-		SKCanvas _c;
-		ColPaints _paints;
+		CanvasDrawingSession _c;
 		Font _font;
+		Color activeColor;
+		Windows.UI.Color wcolor;
 
-		public SKCanvas Canvas { get { return _c; } }
+		public CanvasDrawingSession Canvas { get { return _c; } }
 
-		class ColPaints
+		public Win2DGraphics (CanvasDrawingSession drawingSession)
 		{
-			public SKPaint Fill;
-			public SKPaint Stroke;
-			public Font Font;
-		}
-
-		public SkiaGraphics (SKSurface surface)
-		{
-			_c = surface.Canvas;
+			_c = drawingSession;
 			_font = null;
 			SetColor (Colors.Black);
 		}
@@ -63,32 +57,12 @@ namespace CrossGraphics.Skia
 
 		public void Clear (Color c)
 		{
-
 		}
 
 		public void SetColor (Color c)
 		{
-			if (c.Tag is ColPaints paints) {
-				_paints = paints;
-				return;
-			}
-
-			var stroke = new SKPaint ();
-			stroke.Color = c.ToSkiaColor ();
-			stroke.IsAntialias = true;
-			stroke.Style = SKPaintStyle.Stroke;
-			stroke.StrokeCap = SKStrokeCap.Round;
-			stroke.StrokeJoin = SKStrokeJoin.Round;
-			var fill = new SKPaint ();
-			fill.Color = stroke.Color;
-			fill.IsAntialias = true;
-			fill.Style = SKPaintStyle.Fill;
-			paints = new ColPaints {
-				Fill = fill,
-				Stroke = stroke
-			};
-			c.Tag = paints;
-			_paints = paints;
+			activeColor = c;
+			wcolor = c.ToWindowsColor ();
 		}
 
 		SKPath GetPolyPath (Polygon poly)
@@ -123,24 +97,22 @@ namespace CrossGraphics.Skia
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
-			_c.DrawRoundRect (new SKRect (x, y, x + width, y + height), radius, radius, _paints.Fill);
+			_c.FillRoundedRectangle (x, y, width, height, radius, radius, wcolor);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
-		{
-			_paints.Stroke.StrokeWidth = w;
-			_c.DrawRoundRect (new SKRect (x, y, x + width, y + height), radius, radius, _paints.Stroke);
+		{			
+			_c.DrawRoundedRectangle (x, y, width, height, radius, radius, wcolor, w);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
 		{
-			_c.DrawRect (new SKRect (x, y, x + width, y + height), _paints.Fill);
+			_c.FillRectangle (x, y, width, height, wcolor);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			_paints.Stroke.StrokeWidth = w;
-			_c.DrawRect (new SKRect (x, y, x + width, y + height), _paints.Stroke);
+			_c.DrawRectangle (x, y, width, height, wcolor, w);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
@@ -376,9 +348,8 @@ namespace CrossGraphics.Skia
 
 	public static partial class Conversions
 	{
-		public static SKColor ToSkiaColor (this Color c) => new SKColor ((byte)c.Red, (byte)c.Green, (byte)c.Blue, (byte)c.Alpha);
-		public static CGRect ToCGRect (this SKRect rect) => new CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
-		public static CGRect ToCGRect (this SKRectI rect) => new CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
+		public static Windows.UI.Color ToWindowsColor (this Color c) =>
+			Windows.UI.Color.FromArgb ((byte)c.Alpha, (byte)c.Red, (byte)c.Green, (byte)c.Blue);
 	}
 }
 

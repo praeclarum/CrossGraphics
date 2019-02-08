@@ -24,22 +24,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 
-#if NETFX_CORE
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Input;
 using DispatcherTimerTickEventArgs = System.Object;
 using NativeColors = Windows.UI.Colors;
-#else
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Threading;
-using DispatcherTimerTickEventArgs = System.EventArgs;
-using NativeColors = System.Windows.Media.Colors;
-#endif
+using Microsoft.Graphics.Canvas.UI.Xaml;
+using CrossGraphics.Win2D;
 
 namespace CrossGraphics
 {
@@ -47,7 +39,7 @@ namespace CrossGraphics
     {
         const int NativePointsPerInch = 160;
 
-        XamlGraphics _graphics;
+		CanvasControl canvasControl;
 
         int _fps = 20;
         readonly DispatcherTimer _drawTimer;
@@ -84,7 +76,7 @@ namespace CrossGraphics
 
 		public bool Continuous { get; set; }
 
-        public XamlCanvas ()
+        public Win2DCanvas ()
         {
 			Background = new SolidColorBrush (NativeColors.Transparent);
 
@@ -95,10 +87,14 @@ namespace CrossGraphics
             _drawTimer = new DispatcherTimer();
             _drawTimer.Tick += DrawTick;
 
+			canvasControl = new CanvasControl ();
+			canvasControl.Draw += Draw;
+
             Unloaded += HandleUnloaded;
             Loaded += HandleLoaded;
 			LayoutUpdated += delegate { HandleLayoutUpdated (); };
         }
+
 
 		double lastUpdateWidth = -1, lastUpdateHeight = -1;
 
@@ -132,7 +128,7 @@ namespace CrossGraphics
 
 		void OnNeedsDisplay (object sender, EventArgs e)
 		{
-			Draw ();
+			canvasControl.Invalidate ();
 		}
 
         bool _touchEnabled = false;
@@ -231,7 +227,6 @@ namespace CrossGraphics
 
         public void ResetGraphics()
         {
-            _graphics = null;
         }
 
         bool _paused = false;
@@ -252,18 +247,15 @@ namespace CrossGraphics
 
         public event EventHandler DrewFrame;
 
-		double Draw ()
+		void Draw (CanvasControl sender, CanvasDrawEventArgs args)
 		{
 			var del = Content;
-			if (del == null) return 0;
+			if (del == null) return;
 
-			if (_graphics == null) {
-				_graphics = new XamlGraphics (this);
-			}
+			var _graphics = new Win2DGraphics (args.DrawingSession);
 
 			var startT = DateTime.Now;
 
-			_graphics.BeginDrawing ();
 			_graphics.BeginEntity (del);
 
 			//
@@ -280,11 +272,6 @@ namespace CrossGraphics
 			}
 			catch (Exception) {
 			}
-
-			_graphics.EndDrawing ();
-
-			var endT = DateTime.Now;
-			return (endT - startT).TotalSeconds;
 		}
 
 		void DrawTick(object sender, DispatcherTimerTickEventArgs e)
@@ -307,8 +294,6 @@ namespace CrossGraphics
 			//
 			// Draw
 			//
-            _drawTime += Draw ();
-            _drawCount++;
 
             //
             // Throttle
