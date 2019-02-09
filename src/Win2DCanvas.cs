@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010-2013 Frank A. Krueger
+// Copyright (c) 2010-2019 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ using CrossGraphics.Win2D;
 
 namespace CrossGraphics
 {
-    public class Win2DCanvas : Canvas, ICanvas
+    public class Win2DCanvas : Grid, ICanvas
     {
         const int NativePointsPerInch = 160;
 
@@ -52,6 +52,10 @@ namespace CrossGraphics
         double _drawTime;
         int _drawCount;
         DateTime _lastThrottleTime = DateTime.Now;
+
+		double lastUpdateWidth = -1, lastUpdateHeight = -1;
+
+		public bool Continuous { get; set; }
 
 		CanvasContent content;
 		public CanvasContent Content
@@ -74,8 +78,6 @@ namespace CrossGraphics
 			}
 		}
 
-		public bool Continuous { get; set; }
-
         public Win2DCanvas ()
         {
 			Background = new SolidColorBrush (NativeColors.Transparent);
@@ -89,27 +91,22 @@ namespace CrossGraphics
 
 			canvasControl = new CanvasControl ();
 			canvasControl.Draw += Draw;
+			SetRow (canvasControl, 0);
+			SetColumn (canvasControl, 0);
 
             Unloaded += HandleUnloaded;
             Loaded += HandleLoaded;
-			LayoutUpdated += delegate { HandleLayoutUpdated (); };
+			SizeChanged += Win2DCanvas_SizeChanged;
         }
 
-
-		double lastUpdateWidth = -1, lastUpdateHeight = -1;
-
-		void HandleLayoutUpdated ()
+		async void Win2DCanvas_SizeChanged (object sender, SizeChangedEventArgs e)
 		{
 			if (Content != null && (Math.Abs (lastUpdateWidth - ActualWidth) > 0.5 || Math.Abs (lastUpdateHeight - ActualHeight) > 0.5)) {
 				lastUpdateWidth = ActualWidth;
 				lastUpdateHeight = ActualHeight;
-#if NETFX_CORE
-#pragma warning disable 4014
-				Dispatcher.RunAsync (Windows.UI.Core.CoreDispatcherPriority.Normal, delegate {
-					Content.SetNeedsDisplay ();
+				await Dispatcher.RunAsync (Windows.UI.Core.CoreDispatcherPriority.Normal, delegate {
+					Content?.SetNeedsDisplay ();
 				});
-#pragma warning restore 4014
-#endif
 			}
 		}
 
