@@ -153,7 +153,7 @@ namespace CrossGraphics
 		}
 	}
 
-	class NullGraphicsFontMetrics : IFontMetrics
+	public class NullGraphicsFontMetrics : IFontMetrics
 	{
 		int _height;
 		int _charWidth;

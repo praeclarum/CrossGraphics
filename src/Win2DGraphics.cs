@@ -27,6 +27,7 @@ using System.Numerics;
 using NativePoint = System.Numerics.Vector2;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Brushes;
+using Microsoft.Graphics.Canvas.Geometry;
 
 namespace CrossGraphics.Win2D
 {
@@ -36,6 +37,10 @@ namespace CrossGraphics.Win2D
 		Font _font;
 		Color activeColor;
 		Windows.UI.Color wcolor;
+
+		CanvasPathBuilder _linesPath = null;
+		int _linesCount = 0;
+		float _lineWidth = 1;
 
 		public CanvasDrawingSession Canvas { get { return _c; } }
 
@@ -65,34 +70,34 @@ namespace CrossGraphics.Win2D
 			wcolor = c.ToWindowsColor ();
 		}
 
-		SKPath GetPolyPath (Polygon poly)
+		CanvasGeometry GetPolyPath (Polygon poly, CanvasFigureFill fill)
 		{
-			var p = poly.Tag as SKPath;
-			if (p == null || p.PointCount != poly.Points.Count) {
-				p = new SKPath ();
+			using (var p = new CanvasPathBuilder (_c)) {
 				var ps = poly.Points;
 				if (ps.Count > 2) {
-					p.MoveTo (ps[0].X, ps[0].Y);
+					p.BeginFigure (ps[0].X, ps[0].Y, fill);
 					for (var i = 1; i < ps.Count; i++) {
 						var pt = ps[i];
-						p.LineTo (pt.X, pt.Y);
+						p.AddLine (pt.X, pt.Y);
 					}
-					p.Close ();
+					p.EndFigure (CanvasFigureLoop.Closed);
 				}
-				poly.Tag = p;
+				return CanvasGeometry.CreatePath (p);
 			}
-			return p;
 		}
 
 		public void FillPolygon (Polygon poly)
 		{
-			_c.DrawPath (GetPolyPath (poly), _paints.Fill);
+			using (var g = GetPolyPath (poly, CanvasFigureFill.Default)) {
+				_c.FillGeometry (g, wcolor);
+			}
 		}
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
-			_paints.Stroke.StrokeWidth = w;
-			_c.DrawPath (GetPolyPath (poly), _paints.Stroke);
+			using (var g = GetPolyPath (poly, CanvasFigureFill.Default)) {
+				_c.DrawGeometry (g, wcolor, w);
+			}
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
@@ -117,75 +122,54 @@ namespace CrossGraphics.Win2D
 
 		public void FillOval (float x, float y, float width, float height)
 		{
-			_c.DrawOval (new SKRect (x, y, x + width, y + width), _paints.Fill);
+			_c.FillEllipse (new Vector2 (x + width / 2, y + height / 2), width / 2, height / 2, wcolor);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
-			_paints.Stroke.StrokeWidth = w;
-			_c.DrawOval (new SKRect (x, y, x + width, y + width), _paints.Stroke);
+			_c.DrawEllipse (new Vector2 (x + width / 2, y + height / 2), width / 2, height / 2, wcolor, w);
 		}
 
 		const float RadiansToDegrees = (float)(180 / Math.PI);
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
-			var sa = -startAngle * RadiansToDegrees;
-			var ea = -endAngle * RadiansToDegrees;
-			using (var p = new SKPath ()) {
-				p.AddArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa);
-				_c.DrawPath (p, _paints.Fill);
-			}
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
-			var sa = -startAngle * RadiansToDegrees;
-			var ea = -endAngle * RadiansToDegrees;
-			_paints.Stroke.StrokeWidth = w;
-			using (var p = new SKPath ()) {
-				p.AddArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa);
-				_c.DrawPath (p, _paints.Stroke);
-			}
 		}
-
-		bool _inLines = false;
-		SKPath _linesPath = null;
-		int _linesCount = 0;
-		float _lineWidth = 1;
 
 		public void BeginLines (bool rounded)
 		{
-			if (!_inLines) {
-				_inLines = true;
-				_linesPath = new SKPath ();
+			if (_linesPath != null) {
+				_linesPath = new CanvasPathBuilder (_c);
 				_linesCount = 0;
+				_lineWidth = 1;
 			}
 		}
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			if (_inLines) {
+			if (_linesPath != null) {
 				if (_linesCount == 0) {
-					_linesPath.MoveTo (sx, sy);
+					_linesPath.BeginFigure (sx, sy, CanvasFigureFill.DoesNotAffectFills);
 				}
-				_linesPath.LineTo (ex, ey);
+				_linesPath.AddLine (ex, ey);
 				_lineWidth = w;
 				_linesCount++;
 			}
 			else {
-				_paints.Stroke.StrokeWidth = w;
-				_c.DrawLine (sx, sy, ex, ey, _paints.Stroke);
+				_c.DrawLine (sx, sy, ex, ey, wcolor, w);
 			}
 		}
 
 		public void EndLines ()
 		{
-			if (_inLines) {
-				_inLines = false;
-				_paints.Stroke.StrokeWidth = _lineWidth;
-				_paints.Stroke.StrokeJoin = SKStrokeJoin.Round;
-				_c.DrawPath (_linesPath, _paints.Stroke);
+			if (_linesPath != null) {
+				using (var g = CanvasGeometry.CreatePath (_linesPath)) {
+					_c.DrawGeometry (g, wcolor, _lineWidth);
+				}
 				_linesPath.Dispose ();
 				_linesPath = null;
 			}
@@ -193,14 +177,8 @@ namespace CrossGraphics.Win2D
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
 		{
-			var dimg = img as SkiaImage;
+			var dimg = img as Win2DImage;
 			if (dimg != null) {
-				SetColor (Colors.White);
-				_c.DrawBitmap (
-					dimg.Bitmap,
-					new SKRect (0, 0, dimg.Bitmap.Width, dimg.Bitmap.Height),
-					new SKRect (x, y, x + width, y + height),
-					_paints.Fill);
 			}
 		}
 
@@ -214,9 +192,7 @@ namespace CrossGraphics.Win2D
 		{
 			if (string.IsNullOrWhiteSpace (s)) return;
 
-			SetFontOnPaints ();
-			var fm = GetFontMetrics ();
-			_c.DrawText (s, x, y + fm.Ascent, _paints.Fill);
+			_c.DrawText (s, x, y, wcolor);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -224,12 +200,10 @@ namespace CrossGraphics.Win2D
 			return GetFontInfo (_font).FontMetrics;
 		}
 
-		static SkiaFontInfo GetFontInfo (Font f)
+		static Win2DFontInfo GetFontInfo (Font f)
 		{
-			var fi = f.Tag as SkiaFontInfo;
+			var fi = f.Tag as Win2DFontInfo;
 			if (fi == null) {
-				var paint = new SKPaint ();
-
 				var name = "Helvetica";
 				if (f.FontFamily == "Monospace") {
 					name = "Courier";
@@ -242,108 +216,51 @@ namespace CrossGraphics.Win2D
 #endif
 				}
 
-				var tf = SKTypeface.FromFamilyName (name, f.IsBold ? SKTypefaceStyle.Bold : SKTypefaceStyle.Normal);
-				fi = new SkiaFontInfo {
-					Typeface = tf,
-				};
-				ApplyFontToPaint (f, fi, paint);
-				fi.FontMetrics = new SkiaFontMetrics (paint);
+				fi = new Win2DFontInfo ();
 				f.Tag = fi;
 			}
 			return fi;
 		}
-
-		static void ApplyFontToPaint (Font f, SkiaFontInfo fi, SKPaint p)
-		{
-			p.Typeface = fi.Typeface;
-			p.TextSize = f.Size;
-
-			if (fi.FontMetrics == null) {
-				fi.FontMetrics = new SkiaFontMetrics (p);
-			}
-		}
-
-		void SetFontOnPaints ()
-		{
-			var f = _paints.Font;
-			if (f == null || f != _font) {
-				f = _font;
-				_paints.Font = f;
-				ApplyFontToPaint (f, GetFontInfo (f), _paints.Fill);
-			}
-		}
-
 		public IImage ImageFromFile (string path)
 		{
-			var bmp = SKBitmap.Decode (path);
-			if (bmp == null) return null;
-
-			var dimg = new SkiaImage () {
-				Bitmap = bmp
-			};
-			return dimg;
+			return null;
 		}
 
 		public void SaveState ()
 		{
-			_c.Save ();
 		}
 
 		public void SetClippingRect (float x, float y, float width, float height)
 		{
-			_c.ClipRect (new SKRect (x, y, x + width, y + height));
 		}
 
 		public void Translate (float dx, float dy)
 		{
-			_c.Translate (dx, dy);
 		}
 
 		public void Scale (float sx, float sy)
 		{
-			_c.Scale (sx, sy);
 		}
 
 		public void RestoreState ()
 		{
-			_c.Restore ();
 		}
 	}
 
-	class SkiaFontInfo
+	class Win2DFontInfo
 	{
-		public SKTypeface Typeface;
-		public SkiaFontMetrics FontMetrics;
+		public Win2DFontMetrics FontMetrics;
 	}
 
-	public class SkiaImage : IImage
+	public class Win2DImage : IImage
 	{
-		public SKBitmap Bitmap;
 	}
 
-	public class SkiaFontMetrics : IFontMetrics
+	public class Win2DFontMetrics : NullGraphicsFontMetrics
 	{
-		readonly SKPaint paint;
-
-		public SkiaFontMetrics (SKPaint paint)
+		public Win2DFontMetrics (int size, bool isBold = false) : base (size, isBold)
 		{
-			this.paint = paint;
-			Ascent = (int)Math.Abs (paint.FontMetrics.Ascent + 0.5f);
-			Descent = (int)Math.Abs (paint.FontMetrics.Descent + 0.5f);
-			Height = Ascent;
 		}
-
-		public int StringWidth (string s, int startIndex, int length)
-		{
-			if (string.IsNullOrEmpty (s)) return 0;
-			return (int)(paint.MeasureText (s) + 0.5f);
-		}
-
-		public int Height { get; private set; }
-
-		public int Ascent { get; private set; }
-
-		public int Descent { get; private set; }
 	}
 
 	public static partial class Conversions
