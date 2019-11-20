@@ -270,7 +270,7 @@ namespace CrossGraphics.Skia
 #endif
 				}
 
-				var tf = SKTypeface.FromFamilyName (name, f.IsBold ? SKTypefaceStyle.Bold : SKTypefaceStyle.Normal);
+				var tf = SKTypeface.FromFamilyName (name, f.IsBold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright);
 				fi = new SkiaFontInfo {
 					Typeface = tf,
 				};
