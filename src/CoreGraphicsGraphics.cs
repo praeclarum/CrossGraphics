@@ -33,8 +33,12 @@ using NativeValue = System.nfloat;
 
 #if MONOMAC
 using AppKit;
+using NativeStringAttributes = AppKit.NSStringAttributes;
+using NativeColor = AppKit.NSColor;
 #else
 using UIKit;
+using NativeStringAttributes = UIKit.UIStringAttributes;
+using NativeColor = UIKit.UIColor;
 #endif
 
 namespace CrossGraphics.CoreGraphics
@@ -48,10 +52,11 @@ namespace CrossGraphics.CoreGraphics
 		}
 	}
 #endif
-	
+
 	public class CoreGraphicsGraphics : IGraphics
 	{
 		CGContext _c;
+		CGColor _cgcol;
 
 		//bool _highQuality = false;
 
@@ -64,15 +69,17 @@ namespace CrossGraphics.CoreGraphics
 			//		Console.WriteLine ("  " + ff);
 			//	}
 			//}
-			
+
 			_textMatrix = CGAffineTransform.MakeScale (1, -1);
 		}
 
 		public CoreGraphicsGraphics (CGContext c, bool highQuality)
 		{
-			if (c == null) throw new ArgumentNullException ("c");
+			if (c == null)
+				throw new ArgumentNullException ("c");
 
 			_c = c;
+			_cgcol = NativeColor.Black.CGColor;
 			//_highQuality = highQuality;
 
 			if (highQuality) {
@@ -87,9 +94,9 @@ namespace CrossGraphics.CoreGraphics
 
 		public void SetColor (Color c)
 		{
-			var cgcol = c.GetCGColor ();
-			_c.SetFillColor (cgcol);
-			_c.SetStrokeColor (cgcol);
+			_cgcol = c.GetCGColor ();
+			_c.SetFillColor (_cgcol);
+			_c.SetStrokeColor (_cgcol);
 		}
 
 		public void Clear (Color color)
@@ -181,7 +188,7 @@ namespace CrossGraphics.CoreGraphics
 			_c.SetLineWidth (w);
 			_c.StrokeRect (new RectangleF (x, y, width, height));
 		}
-		
+
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
 			if (float.IsNaN (cx) || float.IsNaN (cy) || float.IsNaN (radius) || float.IsNaN (startAngle) || float.IsNaN (endAngle) || float.IsNaN (w)) {
@@ -224,7 +231,7 @@ namespace CrossGraphics.CoreGraphics
 				return;
 			}
 			if (_linesBegun) {
-				
+
 				_lineWidth = w;
 				if (_numLinePoints < _linePointsCount) {
 					if (_numLinePoints == 0) {
@@ -236,8 +243,9 @@ namespace CrossGraphics.CoreGraphics
 					_linePoints[_numLinePoints].Y = ey;
 					_numLinePoints++;
 				}
-				
-			} else {
+
+			}
+			else {
 				_c.MoveTo (sx, sy);
 				_c.AddLineToPoint (ex, ey);
 				_c.SetLineWidth (w);
@@ -256,7 +264,8 @@ namespace CrossGraphics.CoreGraphics
 				var p = _linePoints[i];
 				if (i == 0) {
 					_c.MoveTo (p.X, p.Y);
-				} else {
+				}
+				else {
 					_c.AddLineToPoint (p.X, p.Y);
 				}
 			}
@@ -264,7 +273,7 @@ namespace CrossGraphics.CoreGraphics
 			_c.RestoreState ();
 			_linesBegun = false;
 		}
-		
+
 		static CGAffineTransform _textMatrix;
 
 		Font _lastFont = null;
@@ -277,6 +286,7 @@ namespace CrossGraphics.CoreGraphics
 			}
 		}
 		CTStringAttributes _attrs;
+		NativeStringAttributes _nsattrs;
 		void SelectFont ()
 		{
 			var f = _lastFont;
@@ -303,19 +313,43 @@ namespace CrossGraphics.CoreGraphics
 				Font = new CTFont (name, f.Size),
 				ForegroundColorFromContext = true,
 			};
+			_nsattrs = new NativeStringAttributes {
+#if MONOMAC
+				Font = NSFont.FromFontName (name, f.Size),
+#else
+				Font = UIFont.FromName (name, f.Size),
+#endif
+			};
 		}
 
 		public void SetClippingRect (float x, float y, float width, float height)
 		{
 			_c.ClipToRect (new RectangleF (x, y, width, height));
 		}
-		
+
 		public void DrawString (string s, float x, float y)
 		{
 			if (string.IsNullOrEmpty (s))
 				return;
-			using (var astr = new NSMutableAttributedString (s)) {
-				astr.AddAttributes (_attrs, new NSRange (0, s.Length));
+
+#if MONOMAC
+			var cc = NSGraphicsContext.CurrentContext?.GraphicsPort;
+#else
+			var cc = UIGraphics.GetCurrentContext ();
+#endif
+			if (cc != null && cc.Handle == _c.Handle) {
+				_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
+				using var astr2 = new NSAttributedString (s, _nsattrs);
+#if MONOMAC
+				astr2.DrawAtPoint (new CGPoint (x, y));
+#else
+				astr2.DrawString (new CGPoint (x, y));
+#endif
+				return;
+			}
+
+			using (var astr = new NSAttributedString (s, _attrs)) {
+				//astr.AddAttributes (_attrs, new NSRange (0, s.Length));
 				using (var fs = new CTFramesetter (astr)) {
 					using (var path = new CGPath ()) {
 						var h = _lastFont.Size * 2;
@@ -340,7 +374,8 @@ namespace CrossGraphics.CoreGraphics
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			if (_lastFont == null) return;
+			if (_lastFont == null)
+				return;
 			var fm = GetFontMetrics ();
 			var xx = x;
 			var yy = y;
@@ -357,14 +392,15 @@ namespace CrossGraphics.CoreGraphics
 		public IFontMetrics GetFontMetrics ()
 		{
 			var f = _lastFont;
-			if (f == null) throw new InvalidOperationException ("Cannot call GetFontMetrics before calling SetFont.");
+			if (f == null)
+				throw new InvalidOperationException ("Cannot call GetFontMetrics before calling SetFont.");
 
 			var fm = f.Tag as CoreGraphicsFontMetrics;
 			if (fm == null) {
-				fm = new CoreGraphicsFontMetrics (_attrs);
+				fm = new CoreGraphicsFontMetrics (_nsattrs);
 				f.Tag = fm;
 			}
-			
+
 			return fm;
 		}
 
@@ -380,17 +416,17 @@ namespace CrossGraphics.CoreGraphics
 		{
 			_c.SaveState ();
 		}
-		
+
 		public void Translate (float dx, float dy)
 		{
 			_c.TranslateCTM (dx, dy);
 		}
-		
+
 		public void Scale (float sx, float sy)
 		{
 			_c.ScaleCTM (sx, sy);
 		}
-		
+
 		public void RestoreState ()
 		{
 			_c.RestoreState ();
@@ -409,7 +445,7 @@ namespace CrossGraphics.CoreGraphics
 			return new UIKitImage (UIImage.FromFile ("Images/" + filename).CGImage);
 #endif
 		}
-		
+
 		public void BeginEntity (object entity)
 		{
 		}
@@ -417,7 +453,8 @@ namespace CrossGraphics.CoreGraphics
 
 	public static class ColorEx
 	{
-		class ColorTag {
+		class ColorTag
+		{
 #if MONOMAC
 			public NSColor NSColor;
 #else
@@ -425,7 +462,7 @@ namespace CrossGraphics.CoreGraphics
 #endif
 			public CGColor CGColor;
 		}
-		
+
 #if MONOMAC
 		public static NSColor GetNSColor (this Color c)
 		{
@@ -484,7 +521,7 @@ namespace CrossGraphics.CoreGraphics
 				}
 			}
 		}*/
-		
+
 		/*public static CTFont GetCTFont (this Font f)
 		{
 			var t = f.Tag as CTFont;
@@ -514,11 +551,11 @@ namespace CrossGraphics.CoreGraphics
 		int _ascent;
 		int _descent;
 
-		readonly CTStringAttributes attrs;
+		readonly NativeStringAttributes nsattrs;
 
-		public CoreGraphicsFontMetrics (CTStringAttributes attrs)
+		public CoreGraphicsFontMetrics (NativeStringAttributes nsattrs)
 		{
-			this.attrs = attrs;
+			this.nsattrs = nsattrs;
 		}
 
 		public int StringWidth (string str, int startIndex, int length)
@@ -528,22 +565,15 @@ namespace CrossGraphics.CoreGraphics
 
 		(int Width, int Ascent, int Descent) StringSize (string str, int startIndex, int length)
 		{
-			if (str == null || length <= 0) return (0, 0, 0);
-
-			using (var astr = new NSMutableAttributedString (str)) {
-				astr.AddAttributes (attrs, new NSRange (startIndex, length));
-				using (var fs = new CTFramesetter (astr)) {
-					using (var path = new CGPath ()) {
-						path.AddRect (new NativeRect (0, 0, 30000, attrs.Font.XHeightMetric * 10));
-						using (var f = fs.GetFrame (new NSRange (startIndex, length), path, null)) {
-							var line = f.GetLines ()[0];
-							NativeValue a, d, l;
-							var tw = line.GetTypographicBounds (out a, out d, out l);
-							return ((int)Math.Round (tw), (int)Math.Round (a), (int)Math.Round (d));
-						}
-					}
-				}
-			}
+			if (str == null || length <= 0)
+				return (0, 0, 0);
+#if MONOMAC
+			using var s = new NSAttributedString (str, nsattrs);
+			var ssize = s.GetSize ();
+#else
+			var ssize = UIKit.UIStringDrawing.StringSize (str, nsattrs.Font);
+#endif
+			return ((int)(ssize.Width + 0.5), (int)(ssize.Height + 0.5), 0);
 		}
 
 		public int Height {
@@ -613,19 +643,19 @@ namespace CrossGraphics.CoreGraphics
 
 			c.MoveTo (x, y + r);
 			c.AddLineToPoint (x, bo - r);
-			
+
 			c.AddArc (x + r, bo - r, r, (float)(Math.PI), (float)(Math.PI / 2), true);
-			
+
 			c.AddLineToPoint (ri - r, bo);
-			
+
 			c.AddArc (ri - r, bo - r, r, (float)(-3 * Math.PI / 2), (float)(0), true);
-			
+
 			c.AddLineToPoint (ri, y + r);
-			
+
 			c.AddArc (ri - r, y + r, r, (float)(0), (float)(-Math.PI / 2), true);
-			
+
 			c.AddLineToPoint (x + r, y);
-			
+
 			c.AddArc (x + r, y + r, r, (float)(-Math.PI / 2), (float)(Math.PI), true);
 		}
 
@@ -633,21 +663,22 @@ namespace CrossGraphics.CoreGraphics
 		{
 			c.MoveTo (b.Left, b.Top + r);
 			c.AddLineToPoint (b.Left, b.Bottom - r);
-			
+
 			c.AddArc (b.Left + r, b.Bottom - r, r, (float)(Math.PI), (float)(Math.PI / 2), true);
-			
+
 			c.AddLineToPoint (b.Right - r, b.Bottom);
-			
+
 			c.AddArc (b.Right - r, b.Bottom - r, r, (float)(-3 * Math.PI / 2), (float)(0), true);
-			
+
 			c.AddLineToPoint (b.Right, b.Top);
-			
+
 			c.AddLineToPoint (b.Left, b.Top);
 		}
 	}
-	
-	public class MacRomanEncoding {
-		static Dictionary<int, byte> _uniToMac= new Dictionary<int, byte>() {
+
+	public class MacRomanEncoding
+	{
+		static Dictionary<int, byte> _uniToMac = new Dictionary<int, byte> () {
 			{160, 202}, {161, 193}, {162, 162}, {163, 163}, {165, 180}, {167, 164}, {168, 172}, {169,
 			169}, {170, 187}, {171, 199}, {172, 194}, {174, 168}, {175, 248}, {176, 161}, {177, 177},
 			{180, 171}, {181, 181}, {182, 166}, {183, 225}, {184, 252}, {186, 188}, {187, 200}, {191,
@@ -669,11 +700,12 @@ namespace CrossGraphics.CoreGraphics
 		};
 		public static byte[] GetBytes (string str)
 		{
-			if (str == null) throw new ArgumentNullException ("str");
+			if (str == null)
+				throw new ArgumentNullException (nameof(str));
 			var n = str.Length;
-			var r = new byte [n];
+			var r = new byte[n];
 			for (var i = 0; i < n; i++) {
-				var ch = (int)str [i];
+				var ch = (int)str[i];
 				var mac = (byte)'?';
 				if (ch <= 127) {
 					mac = (byte)ch;
@@ -683,7 +715,7 @@ namespace CrossGraphics.CoreGraphics
 				else {
 					mac = (byte)'?';
 				}
-				r [i] = mac;
+				r[i] = mac;
 			}
 			return r;
 		}
