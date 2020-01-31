@@ -28,6 +28,8 @@ using System.Linq;
 
 using CoreGraphics;
 using SceneKit;
+using Foundation;
+using AppKit;
 
 #if __MACOS__
 using NativeColor = AppKit.NSColor;
@@ -42,10 +44,8 @@ namespace CrossGraphics.SceneKit
 		readonly SCNScene scene;
 		readonly SCNNode rootNode;
 
-		readonly EntityNode[] initialEntityNodes;
-
-		int nextInitialEntityNode;
-		EntityNode currentNode;
+		int currentNodeIndex = 0;
+		EntityNode currentNode => entityNodes[currentNodeIndex];
 
 		Color currentColor = Colors.Black;
 		Font currentFont = Font.SystemFontOfSize (16);
@@ -54,22 +54,29 @@ namespace CrossGraphics.SceneKit
 		bool inLines = false;
 		float lineW = 1;
 
+		readonly List<EntityNode> entityNodes = new List<EntityNode> { new EntityNode () };
+
 		public SceneKitGraphics (SCNScene scene)
 		{
 			this.scene = scene;
 			rootNode = scene.RootNode;
-			initialEntityNodes = rootNode.ChildNodes.OfType<EntityNode> ().ToArray ();
-			Console.WriteLine (nameof (SceneKitGraphics) + $" Init: {initialEntityNodes.Length} nodes, {scene}");
-			nextInitialEntityNode = 0;
-			if (initialEntityNodes.Length > 0) {
-				currentNode = initialEntityNodes[0];
-				nextInitialEntityNode++;
-			}
-			else {
-				Console.WriteLine ("FIRST RENDER");
-				currentNode = new EntityNode ();
-				rootNode.Add (currentNode);
-			}
+		}
+
+		public void BeginFrame ()
+		{
+			currentNodeIndex = 0;
+			states.Clear ();
+			states.Add (new State ());
+			foreach (var n in entityNodes)
+				n.BeginFrame ();
+
+			SCNTransaction.Begin ();
+			SCNTransaction.DisableActions = true;
+		}
+
+		public void EndFrame ()
+		{
+			SCNTransaction.Commit ();
 		}
 
 		public void SaveState ()
@@ -102,14 +109,13 @@ namespace CrossGraphics.SceneKit
 
 		public void BeginEntity (object entity)
 		{
-			if (nextInitialEntityNode >= 0 && nextInitialEntityNode < initialEntityNodes.Length) {
-				currentNode = initialEntityNodes[nextInitialEntityNode];
-				nextInitialEntityNode++;
-				return;
+			//Console.WriteLine ($"ENTITY {entity}");
+			currentNodeIndex++;
+			if (currentNodeIndex >= entityNodes.Count) {
+				var node = new EntityNode ();
+				rootNode.Add (node);
+				entityNodes.Add (node);
 			}
-			var node = new EntityNode ();
-			rootNode.Add (node);
-			currentNode = node;
 		}
 
 		public void SetColor (Color c)
@@ -274,6 +280,7 @@ namespace CrossGraphics.SceneKit
 		public void EndLines ()
 		{
 			if (inLines) {
+				inLines = false;
 				var style = new Style {
 					W = lineW,
 					Color = currentColor,
@@ -316,7 +323,7 @@ namespace CrossGraphics.SceneKit
 			public SCNMatrix4 Transform;
 		}
 
-		struct Style
+		public struct Style
 		{
 			public SCNMatrix4 Transform;
 			public Color Color;
@@ -325,8 +332,47 @@ namespace CrossGraphics.SceneKit
 			public bool Fill;
 		}
 
-		class EntityNode : SCNNode
+		public class EntityNode : SCNNode
 		{
+			readonly List<PrimitiveNode> primitiveNodes;
+			int primitiveIndex = 0;
+
+			public EntityNode ()
+			{
+				primitiveNodes = new List<PrimitiveNode> ();
+			}
+			public EntityNode (IntPtr handle)
+				: base (handle)
+			{
+				primitiveNodes = base.ChildNodes.OfType<PrimitiveNode> ().ToList ();
+			}
+
+			public void BeginFrame ()
+			{
+				primitiveIndex = 0;
+			}
+
+			T GetNodeType<T> () where T : PrimitiveNode, new()
+			{
+				if (primitiveIndex < primitiveNodes.Count) {
+					if (primitiveNodes[primitiveIndex] is T t) {
+						primitiveIndex++;
+						return t;
+					}
+					else {
+						for (var i = primitiveIndex; i < primitiveNodes.Count; i++) {
+							primitiveNodes[i].RemoveFromParentNode ();
+						}
+						primitiveNodes.RemoveRange (primitiveIndex, primitiveNodes.Count - primitiveIndex);
+					}
+				}
+				var node = new T ();
+				primitiveNodes.Add (node);
+				primitiveIndex++;
+				AddChildNode (node);
+				return node;
+			}
+
 			public void Arc (float cx, float cy, float radius, float startAngle, float endAngle, ref Style style)
 			{
 			}
@@ -337,6 +383,8 @@ namespace CrossGraphics.SceneKit
 
 			public void Line (float sx, float sy, float ex, float ey, ref Style style)
 			{
+				var n = GetNodeType<LineNode> ();
+				n.Set (sx, sy, ex, ey, ref style);
 			}
 
 			public void Lines (List<SCNVector3> points, ref Style style)
@@ -361,6 +409,74 @@ namespace CrossGraphics.SceneKit
 
 			public void String (string str, float x, float y, ref Style style)
 			{
+			}
+		}
+		public abstract class PrimitiveNode : SCNNode
+		{
+			protected Style style;
+
+			public PrimitiveNode ()
+			{
+				style.Color = Colors.Black;
+			}
+
+			protected bool StyleChanged (ref Style other)
+			{
+				return style.Color.Red != other.Color.Red ||
+					style.Color.Green != other.Color.Green ||
+					style.Color.Blue != other.Color.Blue ||
+					style.Color.Alpha != other.Color.Alpha ||
+					style.Fill != other.Fill;
+			}
+		}
+		public class LineNode : PrimitiveNode
+		{
+			float sx, sy, ex, ey;
+
+			static SCNCylinder template = SCNCylinder.Create (10f, 10f);
+
+			public LineNode ()
+			{
+				Console.WriteLine ("NEW LINE");
+				Geometry = (SCNGeometry)template.Copy (NSZone.Default);
+				Geometry.FirstMaterial.Diffuse.ContentColor = NSColor.Red;
+			}
+
+			public void Set (float sx, float sy, float ex, float ey, ref Style style)
+			{
+				if (this.sx == sx && this.sy == sy && this.ex == ex && this.ey == ey)
+					return;
+				//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
+				this.sx = sx;
+				this.sy = sy;
+				this.ex = ex;
+				this.ey = ey;
+				this.style = style;
+
+				var dx = ex - sx;
+				var dy = ey - sy;
+				var length = (float)Math.Sqrt (dx * dx + dy * dy);
+				var angle = (float)Math.Atan2 (dy, dx);
+
+				Console.WriteLine ($"Line: w={style.W}, dx={dx}, dy={dy}");
+
+				var cx = sx + 0.5f * dx;
+				var cy = sy + 0.5f * dy;
+
+				//Console.WriteLine ((cx, cy));
+
+				//Scale = new SCNVector3 (1, 100, 1);
+				Transform =
+					SCNMatrix4.Scale (style.W / 10, length / 10, style.W / 10)
+					* SCNMatrix4.CreateRotationZ (angle)
+					* SCNMatrix4.CreateTranslation (cx, cy, 0)
+					;
+
+				//Transform =
+				//	SCNMatrix4.Scale (style.W, length, style.W)
+				//	//* SCNMatrix4.CreateTranslation (sx, sy, 0)
+				//	* style.Transform;
+
 			}
 		}
 	}
