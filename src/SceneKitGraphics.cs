@@ -1,3 +1,5 @@
+#nullable enable
+
 //
 // Copyright (c) 2010-2020 Frank A. Krueger
 // 
@@ -43,7 +45,7 @@ namespace CrossGraphics.SceneKit
 		readonly EntityNode[] initialEntityNodes;
 
 		int nextInitialEntityNode;
-		EntityNode Node => null;
+		EntityNode currentNode;
 
 		Color currentColor = Colors.Black;
 		Font currentFont = Font.SystemFontOfSize (16);
@@ -58,6 +60,16 @@ namespace CrossGraphics.SceneKit
 			rootNode = scene.RootNode;
 			initialEntityNodes = rootNode.ChildNodes.OfType<EntityNode> ().ToArray ();
 			Console.WriteLine (nameof (SceneKitGraphics) + $" Init: {initialEntityNodes.Length} nodes, {scene}");
+			nextInitialEntityNode = 0;
+			if (initialEntityNodes.Length > 0) {
+				currentNode = initialEntityNodes[0];
+				nextInitialEntityNode++;
+			}
+			else {
+				Console.WriteLine ("FIRST RENDER");
+				currentNode = new EntityNode ();
+				rootNode.Add (currentNode);
+			}
 		}
 
 		public void SaveState ()
@@ -90,7 +102,14 @@ namespace CrossGraphics.SceneKit
 
 		public void BeginEntity (object entity)
 		{
-			throw new NotImplementedException ();
+			if (nextInitialEntityNode >= 0 && nextInitialEntityNode < initialEntityNodes.Length) {
+				currentNode = initialEntityNodes[nextInitialEntityNode];
+				nextInitialEntityNode++;
+				return;
+			}
+			var node = new EntityNode ();
+			rootNode.Add (node);
+			currentNode = node;
 		}
 
 		public void SetColor (Color c)
@@ -135,7 +154,7 @@ namespace CrossGraphics.SceneKit
 				Color = currentColor,
 				Transform = states[^1].Transform,
 			};
-			Node.Arc (cx, cy, radius, startAngle, endAngle, ref style);
+			currentNode.Arc (cx, cy, radius, startAngle, endAngle, ref style);
 		}
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
@@ -145,7 +164,7 @@ namespace CrossGraphics.SceneKit
 				Color = currentColor,
 				Transform = states[^1].Transform,
 			};
-			Node.Arc (cx, cy, radius, startAngle, endAngle, ref style);
+			currentNode.Arc (cx, cy, radius, startAngle, endAngle, ref style);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
@@ -155,7 +174,7 @@ namespace CrossGraphics.SceneKit
 				Color = currentColor,
 				Transform = states[^1].Transform,
 			};
-			Node.Oval (x, y, width, height, ref style);
+			currentNode.Oval (x, y, width, height, ref style);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
@@ -165,7 +184,7 @@ namespace CrossGraphics.SceneKit
 				Color = currentColor,
 				Transform = states[^1].Transform,
 			};
-			Node.Oval (x, y, width, height, ref style);
+			currentNode.Oval (x, y, width, height, ref style);
 		}
 
 		public void DrawPolygon (Polygon poly, float w)
@@ -175,7 +194,7 @@ namespace CrossGraphics.SceneKit
 				Color = currentColor,
 				Transform = states[^1].Transform,
 			};
-			Node.Polygon (poly, ref style);
+			currentNode.Polygon (poly, ref style);
 		}
 
 		public void FillPolygon (Polygon poly)
@@ -185,7 +204,7 @@ namespace CrossGraphics.SceneKit
 				Color = currentColor,
 				Transform = states[^1].Transform,
 			};
-			Node.Polygon (poly, ref style);
+			currentNode.Polygon (poly, ref style);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
@@ -195,7 +214,7 @@ namespace CrossGraphics.SceneKit
 				Color = currentColor,
 				Transform = states[^1].Transform,
 			};
-			Node.Rect (x, y, width, height, ref style);
+			currentNode.Rect (x, y, width, height, ref style);
 		}
 
 		public void FillRect (float x, float y, float width, float height)
@@ -205,7 +224,7 @@ namespace CrossGraphics.SceneKit
 				Color = currentColor,
 				Transform = states[^1].Transform,
 			};
-			Node.Rect (x, y, width, height, ref style);
+			currentNode.Rect (x, y, width, height, ref style);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
@@ -215,7 +234,7 @@ namespace CrossGraphics.SceneKit
 				Color = currentColor,
 				Transform = states[^1].Transform,
 			};
-			Node.RoundedRect (x, y, width, height, radius, ref style);
+			currentNode.RoundedRect (x, y, width, height, radius, ref style);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
@@ -225,7 +244,7 @@ namespace CrossGraphics.SceneKit
 				Color = currentColor,
 				Transform = states[^1].Transform,
 			};
-			Node.RoundedRect (x, y, width, height, radius, ref style);
+			currentNode.RoundedRect (x, y, width, height, radius, ref style);
 		}
 
 		public void BeginLines (bool rounded)
@@ -248,7 +267,7 @@ namespace CrossGraphics.SceneKit
 					Color = currentColor,
 					Transform = states[^1].Transform,
 				};
-				Node.Line (sx, sy, ex, ey, ref style);
+				currentNode.Line (sx, sy, ex, ey, ref style);
 			}
 		}
 
@@ -260,25 +279,36 @@ namespace CrossGraphics.SceneKit
 					Color = currentColor,
 					Transform = states[^1].Transform,
 				};
-				Node.Lines (linePoints, ref style);
+				currentNode.Lines (linePoints, ref style);
 			}
 		}
 
 		public void DrawString (string s, float x, float y)
 		{
+			var style = new Style {
+				Color = currentColor,
+				Font = currentFont,
+				Transform = states[^1].Transform,
+			};
+			currentNode.String (s, x, y, ref style);
 		}
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
+			DrawString (s, x, y);
 		}
 
-		public IImage ImageFromFile (string path)
+		public IImage? ImageFromFile (string path)
 		{
 			return null;
 		}
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
 		{
+			var style = new Style {
+				Transform = states[^1].Transform,
+			};
+			currentNode.Image (img, x, y, width, height, ref style);
 		}
 
 		public class State
@@ -290,6 +320,7 @@ namespace CrossGraphics.SceneKit
 		{
 			public SCNMatrix4 Transform;
 			public Color Color;
+			public Font Font;
 			public float W;
 			public bool Fill;
 		}
@@ -297,6 +328,10 @@ namespace CrossGraphics.SceneKit
 		class EntityNode : SCNNode
 		{
 			public void Arc (float cx, float cy, float radius, float startAngle, float endAngle, ref Style style)
+			{
+			}
+
+			public void Image (IImage image, float x, float y, float width, float height, ref Style style)
 			{
 			}
 
@@ -321,6 +356,10 @@ namespace CrossGraphics.SceneKit
 			}
 
 			public void RoundedRect (float x, float y, float width, float height, float radius, ref Style style)
+			{
+			}
+
+			public void String (string str, float x, float y, ref Style style)
 			{
 			}
 		}
