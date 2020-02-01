@@ -39,7 +39,7 @@ namespace CrossGraphics.SceneKit
 {
 	public class SceneKitGraphics : IGraphics
 	{
-		public readonly List<State> states = new List<State> { new State () };
+		public readonly List<State> states = new List<State> { new State { Transform = SCNMatrix4.Identity } };
 
 		readonly SCNScene scene;
 		readonly SCNNode rootNode;
@@ -66,7 +66,7 @@ namespace CrossGraphics.SceneKit
 		{
 			currentNodeIndex = 0;
 			states.Clear ();
-			states.Add (new State ());
+			states.Add (new State { Transform = SCNMatrix4.Identity });
 			foreach (var n in entityNodes)
 				n.BeginFrame ();
 
@@ -132,6 +132,17 @@ namespace CrossGraphics.SceneKit
 			c.Tag = nsc;
 			return nsc;
 #endif
+		}
+		static SCNMaterial GetNativeMaterial (Color c)
+		{
+			if (c.Tag is SCNMaterial mat)
+				return mat;
+			mat = SCNMaterial.Create ();
+			mat.WritesToDepthBuffer = false;
+			mat.ReadsFromDepthBuffer = false;
+			mat.Diffuse.ContentColor = GetNativeColor (c);
+			c.Tag = mat;
+			return mat;
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -393,6 +404,12 @@ namespace CrossGraphics.SceneKit
 
 			public void Oval (float x, float y, float width, float height, ref Style style)
 			{
+				if (style.Fill) {
+					var n = GetNodeType<FilledOvalNode> ();
+					n.Set (x, y, width, height, ref style);
+				}
+				else {
+				}					
 			}
 
 			public void Polygon (Polygon poly, ref Style style)
@@ -401,6 +418,12 @@ namespace CrossGraphics.SceneKit
 
 			public void Rect (float x, float y, float width, float height, ref Style style)
 			{
+				if (style.Fill) {
+					var n = GetNodeType<FilledRectNode> ();
+					n.Set (x, y, width, height, ref style);
+				}
+				else {
+				}
 			}
 
 			public void RoundedRect (float x, float y, float width, float height, float radius, ref Style style)
@@ -429,17 +452,98 @@ namespace CrossGraphics.SceneKit
 					style.Fill != other.Fill;
 			}
 		}
+		public class FilledOvalNode : PrimitiveNode
+		{
+			float x, y, width, height;
+
+			static SCNCylinder template = SCNCylinder.Create (10f, 10f);
+
+			public FilledOvalNode ()
+			{
+				//Console.WriteLine ("NEW FILLED OVAL");
+				Geometry = (SCNGeometry)template.Copy (NSZone.Default);
+			}
+
+			public void Set (float sx, float sy, float ex, float ey, ref Style style)
+			{
+				if (this.x == sx && this.y == sy && this.width == ex && this.height == ey)
+					return;
+				//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
+				this.x = sx;
+				this.y = sy;
+				this.width = ex;
+				this.height = ey;
+				this.style = style;
+
+				//Console.WriteLine (style.Transform);
+
+				Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+
+				Transform =
+					SCNMatrix4.Scale (width/20, 1, height/20)
+					* SCNMatrix4.CreateRotationX ((float)(Math.PI / 2))
+					* SCNMatrix4.CreateTranslation (x, y, 0)
+					* style.Transform
+					;
+
+				//Transform =
+				//	SCNMatrix4.Scale (style.W, length, style.W)
+				//	//* SCNMatrix4.CreateTranslation (sx, sy, 0)
+				//	* style.Transform;
+
+			}
+		}
+		public class FilledRectNode : PrimitiveNode
+		{
+			float x, y, width, height;
+
+			static SCNBox template = SCNBox.Create (10f, 10f, 1, 0);
+
+			public FilledRectNode ()
+			{
+				//Console.WriteLine ("NEW FILLED OVAL");
+				Geometry = (SCNGeometry)template.Copy (NSZone.Default);
+			}
+
+			public void Set (float sx, float sy, float ex, float ey, ref Style style)
+			{
+				if (this.x == sx && this.y == sy && this.width == ex && this.height == ey)
+					return;
+				//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
+				this.x = sx;
+				this.y = sy;
+				this.width = ex;
+				this.height = ey;
+				this.style = style;
+
+				//Console.WriteLine (style.Transform);
+
+				Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+
+				Transform =
+					SCNMatrix4.Scale (width / 10, height / 10, 1)
+					* SCNMatrix4.CreateTranslation (x + width / 2, y + height / 2, 0)
+					* style.Transform
+					;
+
+				//Transform =
+				//	SCNMatrix4.Scale (style.W, length, style.W)
+				//	//* SCNMatrix4.CreateTranslation (sx, sy, 0)
+				//	* style.Transform;
+
+			}
+		}
 		public class LineNode : PrimitiveNode
 		{
 			float sx, sy, ex, ey;
 
-			static SCNCylinder template = SCNCylinder.Create (10f, 10f);
+			static SCNBox template = SCNBox.Create (10f, 10f, 1f, 0);
 
 			public LineNode ()
 			{
-				Console.WriteLine ("NEW LINE");
+				//Console.WriteLine ("NEW LINE");
 				Geometry = (SCNGeometry)template.Copy (NSZone.Default);
-				Geometry.FirstMaterial.Diffuse.ContentColor = NSColor.Red;
+				//Geometry.FirstMaterial.Diffuse.ContentColor = NSColor.Red;
 			}
 
 			public void Set (float sx, float sy, float ex, float ey, ref Style style)
@@ -456,20 +560,24 @@ namespace CrossGraphics.SceneKit
 				var dx = ex - sx;
 				var dy = ey - sy;
 				var length = (float)Math.Sqrt (dx * dx + dy * dy);
-				var angle = (float)Math.Atan2 (dy, dx);
+				var angle = (float)(Math.Atan2 (dy, dx) + Math.PI / 2);
 
-				Console.WriteLine ($"Line: w={style.W}, dx={dx}, dy={dy}");
+				//Console.WriteLine ($"Line: w={style.W}, dx={dx}, dy={dy}");
 
 				var cx = sx + 0.5f * dx;
 				var cy = sy + 0.5f * dy;
 
 				//Console.WriteLine ((cx, cy));
+				//Console.WriteLine (style.Transform);
+
+				Geometry.FirstMaterial = GetNativeMaterial (style.Color);
 
 				//Scale = new SCNVector3 (1, 100, 1);
 				Transform =
-					SCNMatrix4.Scale (style.W / 10, length / 10, style.W / 10)
+					SCNMatrix4.Scale (style.W / 10, length / 10, 1)
 					* SCNMatrix4.CreateRotationZ (angle)
 					* SCNMatrix4.CreateTranslation (cx, cy, 0)
+					* style.Transform
 					;
 
 				//Transform =
