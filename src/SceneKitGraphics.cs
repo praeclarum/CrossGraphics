@@ -30,6 +30,7 @@ using CoreGraphics;
 using SceneKit;
 using Foundation;
 using AppKit;
+using System.Runtime.InteropServices;
 
 #if __MACOS__
 using NativeColor = AppKit.NSColor;
@@ -61,7 +62,7 @@ namespace CrossGraphics.SceneKit
 			this.scene = scene;
 			scene.RootNode.AddChildNode (graphicsNode);
 			graphicsNode.AddChildNode (entityNodes[0]);
-			graphicsNode.Scale = new SCNVector3 (1, -1, 1);
+			//graphicsNode.Scale = new SCNVector3 (1, -1, 1);
 		}
 
 		public void BeginFrame ()
@@ -419,12 +420,14 @@ namespace CrossGraphics.SceneKit
 
 			public void Line (float sx, float sy, float ex, float ey, ref Style style)
 			{
-				var n = GetNodeType<LineNode> ();
-				n.Set (sx, sy, ex, ey, ref style);
+				//var n = GetNodeType<LineNode> ();
+				//n.Set (sx, sy, ex, ey, ref style);
 			}
 
 			public void Lines (List<SCNVector3> points, ref Style style)
 			{
+				var n = GetNodeType<LinesNode> ();
+				n.Set (points, ref style);
 			}
 
 			public void Oval (float x, float y, float width, float height, ref Style style)
@@ -434,18 +437,24 @@ namespace CrossGraphics.SceneKit
 					n.Set (x, y, width, height, ref style);
 				}
 				else {
-				}					
+				}
 			}
 
 			public void Polygon (Polygon poly, ref Style style)
 			{
+				if (style.Fill) {
+					var n = GetNodeType<FilledPolygonNode> ();
+					n.Set (poly, ref style);
+				}
+				else {
+				}
 			}
 
 			public void Rect (float x, float y, float width, float height, ref Style style)
 			{
 				if (style.Fill) {
-					var n = GetNodeType<FilledRectNode> ();
-					n.Set (x, y, width, height, ref style);
+					//var n = GetNodeType<FilledRectNode> ();
+					//n.Set (x, y, width, height, ref style);
 				}
 				else {
 				}
@@ -515,7 +524,52 @@ namespace CrossGraphics.SceneKit
 				if (ColorChanged (ref style)) {
 					this.style.Color = style.Color;
 					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
-				}				
+				}
+			}
+		}
+		public class FilledPolygonNode : PrimitiveNode
+		{
+			Polygon? poly;
+
+			public FilledPolygonNode ()
+			{
+			}
+
+			public void Set (Polygon poly, ref Style style)
+			{
+				if (this.poly != poly) {
+					//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
+					this.poly = poly;
+
+					//Console.WriteLine (style.Transform);
+					var ps = poly.Points;
+					var n = ps.Count;
+					if (n > 1) {
+						var path = new NSBezierPath ();
+						path.MoveTo (new CGPoint (ps[0].X, ps[0].Y));
+						for (var i = 1; i < n; i++) {
+							path.LineTo (new CGPoint (ps[i].X, ps[i].Y));
+						}
+						path.ClosePath ();
+						var g = SCNShape.Create (path, 1);
+						g.FirstMaterial = GetNativeMaterial (style.Color);
+						Geometry = g;
+					}
+					else {
+						Geometry = null;
+					}
+
+					Transform =
+						style.Transform
+						;
+				}
+				if (ColorChanged (ref style)) {
+					this.style.Color = style.Color;
+					var g = Geometry;
+					if (g is object) {
+						g.FirstMaterial = GetNativeMaterial (style.Color);
+					}
+				}
 			}
 		}
 		public class FilledRectNode : PrimitiveNode
@@ -564,24 +618,24 @@ namespace CrossGraphics.SceneKit
 			{
 			}
 
-			public void Set (float sx, float sy, float ex, float ey, float radius, ref Style style)
+			public void Set (float x, float y, float width, float height, float radius, ref Style style)
 			{
-				if (this.x != sx || this.y != sy || this.width != ex || this.height != ey || this.radius != radius) {
+				if (this.x != x || this.y != y || this.width != width || this.height != height || this.radius != radius) {
 					//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
-					this.x = sx;
-					this.y = sy;
-					this.width = ex;
-					this.height = ey;
-					this.radius = radius;				
+					this.x = x;
+					this.y = y;
+					this.width = width;
+					this.height = height;
+					this.radius = radius;
 
 					//Console.WriteLine (style.Transform);
 
-					var g = SCNBox.Create (width, height, radius * 2, radius);
+					var g = SCNBox.Create (this.width, this.height, radius * 2, radius);
 					g.FirstMaterial = GetNativeMaterial (style.Color);
 					Geometry = g;
 
-					Transform =
-						SCNMatrix4.CreateTranslation (x + width / 2, y + height / 2, 0)
+					base.Transform =
+						SCNMatrix4.CreateTranslation (this.x + this.width / 2, this.y + this.height / 2, 0)
 						* style.Transform
 						;
 				}
@@ -639,18 +693,119 @@ namespace CrossGraphics.SceneKit
 			}
 		}
 
+		public class LinesNode : PrimitiveNode
+		{
+			SCNVector3[] points = Array.Empty<SCNVector3> ();
+
+			public LinesNode ()
+			{
+			}
+
+			public void Set (List<SCNVector3> points, ref Style style)
+			{
+				if (this.points.Length != points.Count) {
+					this.points = points.ToArray ();
+					var g = CreateWireGeometry (32, 256, 10);
+					this.style = style;
+					g.FirstMaterial = GetNativeMaterial (Colors.Red);
+					g.FirstMaterial.DoubleSided = true;
+					Geometry = g;
+				}
+
+				if (ColorChanged (ref style) && Geometry != null) {
+					this.style.Color = style.Color;
+					Geometry.FirstMaterial = GetNativeMaterial (Colors.Red);
+					Geometry.FirstMaterial.DoubleSided = true;
+				}
+
+				//Position = new SCNVector3 (64, 64, 0);
+			}
+
+			static unsafe SCNGeometry CreateWireGeometry (float r, float h, int numBones)
+			{
+				var numVertSegs = numBones;
+
+				var verts = new List<float> ();
+				var norms = new List<float> ();
+				var tverts = new List<CGPoint> ();
+				var tris = new List<ushort> ();
+				Console.WriteLine ("---");
+
+				for (var bi = 0; bi < numVertSegs; bi++) {
+					var x = bi * h / (numVertSegs - 1);
+					var tx = bi / (float)(numVertSegs - 1);
+					Console.WriteLine (x);
+
+					verts.Add (x);
+					verts.Add (r);
+					verts.Add (0);
+					tverts.Add (new CGPoint (tx, 1));
+					norms.Add (0);
+					norms.Add (0);
+					norms.Add (1);
+
+					verts.Add (x);
+					verts.Add (-r);
+					verts.Add (0);
+					tverts.Add (new CGPoint (tx, -1));
+					norms.Add (0);
+					norms.Add (0);
+					norms.Add (1);
+
+					if (bi > 0) {
+						var nv = verts.Count / 3;
+						//tris.Add ((ushort)(nv - 2));
+						//tris.Add ((ushort)(nv - 1));
+						tris.Add ((ushort)(nv - 1));
+						tris.Add ((ushort)(nv - 2));
+						tris.Add ((ushort)(nv - 3));
+						tris.Add ((ushort)(nv - 3));
+						tris.Add ((ushort)(nv - 2));
+						tris.Add ((ushort)(nv - 4));
+						//Console.WriteLine ((tris[^3], tris[^2], tris[^1]));
+					}
+				}
+
+				SCNGeometryElement trisElement;
+				var tarray = tris.ToArray ();
+				fixed (ushort* p = tarray) {
+					var numTris = tris.Count / 3;
+					Console.WriteLine (".");
+					for (var t = 0; t < numTris; t++) {
+						Console.WriteLine ((verts[tris[t * 3]], verts[tris[t * 3 + 1]], verts[tris[t * 3 + 2]]));
+					}
+					Console.WriteLine ($"{numTris} triangles");
+					var triData = NSData.FromBytes (new IntPtr (p), (nuint)(tris.Count * 2));
+					trisElement = SCNGeometryElement.FromData (triData, SCNGeometryPrimitiveType.Triangles, numTris, 2);
+				}
+
+				var vertsSource = CreateGeometrySource (verts.ToArray (), SCNGeometrySourceSemantics.Vertex);
+				var tvertsSource = SCNGeometrySource.FromTextureCoordinates (tverts.ToArray ());
+				var normsSource = CreateGeometrySource (norms.ToArray (), SCNGeometrySourceSemantics.Normal);
+				var g = SCNGeometry.Create (new[] { vertsSource, normsSource, tvertsSource }, new[] { trisElement });
+				//Console.WriteLine (g.DebugDescription);
+				return g;
+			}
+
+			public static unsafe SCNGeometrySource CreateGeometrySource (float[] array, SCNGeometrySourceSemantics semantic)
+			{
+				var n = array.Length / 3;
+				fixed (float* p = array) {
+					var size = 12;
+					var data = NSData.FromBytes (new IntPtr (p), (System.nuint)(n * size));
+					return SCNGeometrySource.FromData (data, semantic, n, true, 3, 4, 0, size);
+				}
+			}
+		}
+
 		public class StringNode : PrimitiveNode
 		{
 			string str = "";
 			float x, y;
 
-			//static SCNBox template = SCNBox.Create (10f, 10f, 1f, 0);
-
 			public StringNode ()
 			{
-				//Console.WriteLine ("NEW LINE");
-				//Geometry = (SCNGeometry)template.Copy (NSZone.Default);
-				//Geometry.FirstMaterial.Diffuse.ContentColor = NSColor.Red;
+				//Console.WriteLine ("NEW STRING");
 			}
 
 			public void Set (string str, float x, float y, Font font, ref Style style)
