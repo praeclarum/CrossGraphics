@@ -112,8 +112,12 @@ namespace CrossGraphics.SceneKit
 
 		public void BeginEntity (object entity)
 		{
-			if (currentNodeIndex > 0)
+			var renderingOrder = 1;
+			if (currentNodeIndex > 0) {
 				entityNodes[currentNodeIndex].EndFrame ();
+				renderingOrder = entityNodes[currentNodeIndex].NextRenderingOrder;
+				renderingOrder = 4 * ((renderingOrder + 3) / 4);
+			}
 			//Console.WriteLine ($"ENTITY {entity}");
 			currentNodeIndex++;
 			if (currentNodeIndex >= entityNodes.Count) {
@@ -121,7 +125,7 @@ namespace CrossGraphics.SceneKit
 				entityNodes.Add (entityNode);
 				graphicsNode.Add (entityNode);
 			}
-			currentNode.RenderingOrder = currentNodeIndex;
+			currentNode.InitialRenderingOrder = renderingOrder;
 		}
 
 		public void SetColor (Color c)
@@ -303,7 +307,10 @@ namespace CrossGraphics.SceneKit
 					Color = currentColor,
 					Transform = states[^1].Transform,
 				};
-				currentNode.Lines (linePoints, ref style);
+				if (linePoints.Count == 2)
+					currentNode.Line ((float)linePoints[0].X, (float)linePoints[0].Y, (float)linePoints[1].X, (float)linePoints[1].Y, ref style);
+				else
+					currentNode.Lines (linePoints, ref style);
 			}
 		}
 
@@ -352,6 +359,9 @@ namespace CrossGraphics.SceneKit
 			readonly List<PrimitiveNode> primitiveNodes;
 			int primitiveIndex = 0;
 
+			public int InitialRenderingOrder;
+			public int NextRenderingOrder => InitialRenderingOrder + primitiveIndex;
+
 			public EntityNode ()
 			{
 				primitiveNodes = new List<PrimitiveNode> ();
@@ -395,7 +405,7 @@ namespace CrossGraphics.SceneKit
 				primitiveNodes.Add (node);
 				primitiveIndex++;
 				AddChildNode (node);
-				node.RenderingOrder = RenderingOrder;
+				node.RenderingOrder = InitialRenderingOrder + primitiveIndex;
 				return node;
 			}
 
@@ -443,6 +453,12 @@ namespace CrossGraphics.SceneKit
 
 			public void RoundedRect (float x, float y, float width, float height, float radius, ref Style style)
 			{
+				if (style.Fill) {
+					var n = GetNodeType<FilledRoundedRectNode> ();
+					n.Set (x, y, width, height, radius, ref style);
+				}
+				else {
+				}
 			}
 
 			public void String (string str, float x, float y, Font font, ref Style style)
@@ -461,13 +477,12 @@ namespace CrossGraphics.SceneKit
 				style.Color = Colors.Black;
 			}
 
-			protected bool StyleChanged (ref Style other)
+			protected bool ColorChanged (ref Style other)
 			{
 				return style.Color.Red != other.Color.Red ||
 					style.Color.Green != other.Color.Green ||
 					style.Color.Blue != other.Color.Blue ||
-					style.Color.Alpha != other.Color.Alpha ||
-					style.Fill != other.Fill;
+					style.Color.Alpha != other.Color.Alpha;
 			}
 		}
 		public class FilledOvalNode : PrimitiveNode
@@ -484,23 +499,23 @@ namespace CrossGraphics.SceneKit
 
 			public void Set (float sx, float sy, float ex, float ey, ref Style style)
 			{
-				if (this.x == sx && this.y == sy && this.width == ex && this.height == ey)
-					return;
-				//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
-				this.x = sx;
-				this.y = sy;
-				this.width = ex;
-				this.height = ey;
-				this.style = style;
-
-				Geometry.FirstMaterial = GetNativeMaterial (style.Color);
-
-				Transform =
-					SCNMatrix4.Scale (width/20, 1, height/20)
-					* SCNMatrix4.CreateRotationX ((float)(Math.PI / 2))
-					* SCNMatrix4.CreateTranslation (x + width / 2, y + height / 2, 0)
-					* style.Transform
-					;
+				if (this.x != sx || this.y != sy || this.width != ex || this.height != ey) {
+					//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
+					this.x = sx;
+					this.y = sy;
+					this.width = ex;
+					this.height = ey;
+					Transform =
+						SCNMatrix4.Scale (width / 20, 1, height / 20)
+						* SCNMatrix4.CreateRotationX ((float)(Math.PI / 2))
+						* SCNMatrix4.CreateTranslation (x + width / 2, y + height / 2, 0)
+						* style.Transform
+						;
+				}
+				if (ColorChanged (ref style)) {
+					this.style.Color = style.Color;
+					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+				}				
 			}
 		}
 		public class FilledRectNode : PrimitiveNode
@@ -509,38 +524,71 @@ namespace CrossGraphics.SceneKit
 
 			static SCNBox template = SCNBox.Create (10f, 10f, 1, 0);
 
+			static FilledRectNode ()
+			{
+				template.FirstMaterial = GetNativeMaterial (Colors.Black);
+			}
+
 			public FilledRectNode ()
 			{
 				//Console.WriteLine ("NEW FILLED OVAL");
 				Geometry = (SCNGeometry)template.Copy (NSZone.Default);
+				Geometry.FirstMaterial = GetNativeMaterial (style.Color);
 			}
 
 			public void Set (float sx, float sy, float ex, float ey, ref Style style)
 			{
-				if (this.x == sx && this.y == sy && this.width == ex && this.height == ey)
-					return;
-				//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
-				this.x = sx;
-				this.y = sy;
-				this.width = ex;
-				this.height = ey;
-				this.style = style;
+				if (this.x != sx || this.y != sy || this.width != ex || this.height != ey) {
+					//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
+					this.x = sx;
+					this.y = sy;
+					this.width = ex;
+					this.height = ey;
+					Transform =
+						SCNMatrix4.Scale (width / 10, height / 10, 1)
+						* SCNMatrix4.CreateTranslation (x + width / 2, y + height / 2, 0)
+						* style.Transform
+						;
+				}
+				if (ColorChanged (ref style)) {
+					this.style.Color = style.Color;
+					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+				}
+			}
+		}
+		public class FilledRoundedRectNode : PrimitiveNode
+		{
+			float x, y, width, height, radius;
 
-				//Console.WriteLine (style.Transform);
+			public FilledRoundedRectNode ()
+			{
+			}
 
-				Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+			public void Set (float sx, float sy, float ex, float ey, float radius, ref Style style)
+			{
+				if (this.x != sx || this.y != sy || this.width != ex || this.height != ey || this.radius != radius) {
+					//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
+					this.x = sx;
+					this.y = sy;
+					this.width = ex;
+					this.height = ey;
+					this.radius = radius;				
 
-				Transform =
-					SCNMatrix4.Scale (width / 10, height / 10, 1)
-					* SCNMatrix4.CreateTranslation (x + width / 2, y + height / 2, 0)
-					* style.Transform
-					;
+					//Console.WriteLine (style.Transform);
 
-				//Transform =
-				//	SCNMatrix4.Scale (style.W, length, style.W)
-				//	//* SCNMatrix4.CreateTranslation (sx, sy, 0)
-				//	* style.Transform;
+					var g = SCNBox.Create (width, height, radius * 2, radius);
+					g.FirstMaterial = GetNativeMaterial (style.Color);
+					Geometry = g;
 
+					Transform =
+						SCNMatrix4.CreateTranslation (x + width / 2, y + height / 2, 0)
+						* style.Transform
+						;
+				}
+				if (ColorChanged (ref style)) {
+					this.style.Color = style.Color;
+					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+				}
 			}
 		}
 		public class LineNode : PrimitiveNode
@@ -551,50 +599,43 @@ namespace CrossGraphics.SceneKit
 
 			public LineNode ()
 			{
-				//Console.WriteLine ("NEW LINE");
 				Geometry = (SCNGeometry)template.Copy (NSZone.Default);
-				//Geometry.FirstMaterial.Diffuse.ContentColor = NSColor.Red;
+				Geometry.FirstMaterial = GetNativeMaterial (style.Color);
 			}
 
 			public void Set (float sx, float sy, float ex, float ey, ref Style style)
 			{
-				if (this.sx == sx && this.sy == sy && this.ex == ex && this.ey == ey)
-					return;
-				//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
-				this.sx = sx;
-				this.sy = sy;
-				this.ex = ex;
-				this.ey = ey;
-				this.style = style;
+				if (this.sx != sx || this.sy != sy || this.ex != ex || this.ey != ey) {
+					//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
+					this.sx = sx;
+					this.sy = sy;
+					this.ex = ex;
+					this.ey = ey;
 
-				var dx = ex - sx;
-				var dy = ey - sy;
-				var length = (float)Math.Sqrt (dx * dx + dy * dy);
-				var angle = (float)(Math.Atan2 (dy, dx) - Math.PI / 2);
+					var dx = ex - sx;
+					var dy = ey - sy;
+					var length = (float)Math.Sqrt (dx * dx + dy * dy);
+					var angle = (float)(Math.Atan2 (dy, dx) - Math.PI / 2);
 
-				//Console.WriteLine ($"Line: w={style.W}, dx={dx}, dy={dy}");
+					//Console.WriteLine ($"Line: w={style.W}, dx={dx}, dy={dy}");
 
-				var cx = sx + 0.5f * dx;
-				var cy = sy + 0.5f * dy;
+					var cx = sx + 0.5f * dx;
+					var cy = sy + 0.5f * dy;
 
-				//Console.WriteLine ((cx, cy));
-				//Console.WriteLine (style.Transform);
+					//Console.WriteLine ((cx, cy));
+					//Console.WriteLine (style.Transform);
 
-				Geometry.FirstMaterial = GetNativeMaterial (style.Color);
-
-				//Scale = new SCNVector3 (1, 100, 1);
-				Transform =
-					SCNMatrix4.Scale (style.W / 10, length / 10, 1)
-					* SCNMatrix4.CreateRotationZ (angle)
-					* SCNMatrix4.CreateTranslation (cx, cy, 0)
-					* style.Transform
-					;
-
-				//Transform =
-				//	SCNMatrix4.Scale (style.W, length, style.W)
-				//	//* SCNMatrix4.CreateTranslation (sx, sy, 0)
-				//	* style.Transform;
-
+					Transform =
+						SCNMatrix4.Scale (style.W / 10, length / 10, 1)
+						* SCNMatrix4.CreateRotationZ (angle)
+						* SCNMatrix4.CreateTranslation (cx, cy, 0)
+						* style.Transform
+						;
+				}
+				if (ColorChanged (ref style)) {
+					this.style.Color = style.Color;
+					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+				}
 			}
 		}
 
@@ -614,33 +655,30 @@ namespace CrossGraphics.SceneKit
 
 			public void Set (string str, float x, float y, Font font, ref Style style)
 			{
-				if (this.str == str && this.x == x && this.y == y)
-					return;
-				//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
-				this.str = str;
-				this.x = x;
-				this.y = y;
-				this.style = style;
+				if (this.str != str || this.x != x || this.y != y) {
+					//Console.WriteLine ($"({this.sx} == {sx} && {this.sy} == {sy} && {this.ex} == {ex} && {this.ey == ey})");
+					this.str = str;
+					this.x = x;
+					this.y = y;
 
-				var g = SCNText.Create (str, 1);
-				g.Font = font.FontFamily == "SystemFont" ? NSFont.SystemFontOfSize (font.Size) :
-					NSFont.FromFontName (font.FontFamily, font.Size);
-				g.FirstMaterial = GetNativeMaterial (style.Color);
+					var g = SCNText.Create (str, 1);
+					g.Font = font.FontFamily == "SystemFont" ? NSFont.SystemFontOfSize (font.Size) :
+						NSFont.FromFontName (font.FontFamily, font.Size);
+					g.FirstMaterial = GetNativeMaterial (style.Color);
 
-				Geometry = g;
+					Geometry = g;
 
-				//Scale = new SCNVector3 (1, 100, 1);
-				Transform =
-					SCNMatrix4.Scale (1, -1, 1)
-					* SCNMatrix4.CreateTranslation (x, y + font.Size, 0)
-					* style.Transform
-					;
-
-				//Transform =
-				//	SCNMatrix4.Scale (style.W, length, style.W)
-				//	//* SCNMatrix4.CreateTranslation (sx, sy, 0)
-				//	* style.Transform;
-
+					//Scale = new SCNVector3 (1, 100, 1);
+					Transform =
+						SCNMatrix4.Scale (1, -1, 1)
+						* SCNMatrix4.CreateTranslation (x, y + font.Size, 0)
+						* style.Transform
+						;
+				}
+				else if (ColorChanged (ref style)) {
+					this.style.Color = style.Color;
+					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+				}
 			}
 		}
 	}
