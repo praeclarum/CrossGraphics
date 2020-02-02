@@ -31,6 +31,8 @@ using SceneKit;
 using Foundation;
 using AppKit;
 using System.Runtime.InteropServices;
+using Metal;
+using ObjCRuntime;
 
 #if __MACOS__
 using NativeColor = AppKit.NSColor;
@@ -705,23 +707,74 @@ namespace CrossGraphics.SceneKit
 			{
 				if (this.points.Length != points.Count) {
 					this.points = points.ToArray ();
-					var g = CreateWireGeometry (32, 256, 10);
+					var g = CreateWireGeometry (points.Count);
+
+					var mods = new SCNShaderModifiers {
+						EntryPointGeometry = @"
+//#pragma arguments
+uniform float lineWidth = 1.0;
+uniform vec3 point0 = vec3(0,0,0);
+uniform vec3 point1 = vec3(0,0,0);
+uniform vec3 point2 = vec3(0,0,0);
+uniform vec3 point3 = vec3(0,0,0);
+uniform vec3 point4 = vec3(0,0,0);
+uniform vec3 point5 = vec3(0,0,0);
+
+#pragma body
+
+int index = (int)_geometry.position.x;
+
+vec3 p = index < 1 ? point0 :
+         index < 2 ? point1 :
+         index < 3 ? point2 :
+         index < 4 ? point3 :
+         index < 5 ? point4 :
+         point5;
+
+float dy = _geometry.position.y;
+
+_geometry.position = vec4(p.x, dy*lineWidth/2 + p.y, 0.0, 1.0);
+",
+					};
+					var ps = new float[] { 200, -100, -100, -100 }.Select (x => new NSNumber (x)).ToArray ();
+					g.ShaderModifiers = mods;
+					g.SetValueForKey (new NSNumber ((float)style.W), new NSString ("lineWidth"));
+					g.SetValueForKey (NSArray.FromObjects (ps), new NSString ("points"));
+					for (var i = 0; i < points.Count; i++) {
+						g.SetValueForKey (NSValue.FromVector (new SCNVector3 (points[i].X, points[i].Y, 1)), new NSString ("point" + i));
+					}
+
+					//var dev = MTLDevice.SystemDefault;
+					//var pf = MTLPixelFormat.RGBA32Float;
+					//var align = (int)dev.GetMinimumLinearTextureAlignment (pf);
+					//var len = align * ((points.Count + align - 1)/ align);
+					//var desc = MTLTextureDescriptor.CreateTexture2DDescriptor (pf, (nuint)len, 1, false);
+					//var contents = dev.CreateTexture (desc);
+					//var pointData = Runtime.GetNSObject<SCNMaterialProperty> (IntPtr_objc_msgSend_IntPtr (class_ptr, selMaterialPropertyWithContents_Handle, contents.Handle));
+
 					this.style = style;
-					g.FirstMaterial = GetNativeMaterial (Colors.Red);
-					g.FirstMaterial.DoubleSided = true;
+					var mat = (SCNMaterial)GetNativeMaterial (style.Color);
+					//mat.ShaderModifiers = mods;
+					//mat.DoubleSided = true;
+					g.FirstMaterial = mat;
 					Geometry = g;
 				}
 
 				if (ColorChanged (ref style) && Geometry != null) {
 					this.style.Color = style.Color;
-					Geometry.FirstMaterial = GetNativeMaterial (Colors.Red);
+					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
 					Geometry.FirstMaterial.DoubleSided = true;
 				}
 
 				//Position = new SCNVector3 (64, 64, 0);
 			}
 
-			static unsafe SCNGeometry CreateWireGeometry (float r, float h, int numBones)
+			static readonly IntPtr selMaterialPropertyWithContents_Handle = Selector.GetHandle ("materialPropertyWithContents:");
+			IntPtr class_ptr = Class.GetHandle("SCNMaterialProperty");
+			[DllImport ("/usr/lib/libobjc.dylib", EntryPoint = "objc_msgSend")]
+			public static extern IntPtr IntPtr_objc_msgSend_IntPtr (IntPtr receiver, IntPtr selector, IntPtr arg1);
+
+			static unsafe SCNGeometry CreateWireGeometry (int numBones)
 			{
 				var numVertSegs = numBones;
 
@@ -732,12 +785,11 @@ namespace CrossGraphics.SceneKit
 				Console.WriteLine ("---");
 
 				for (var bi = 0; bi < numVertSegs; bi++) {
-					var x = bi * h / (numVertSegs - 1);
+					var x = bi;
 					var tx = bi / (float)(numVertSegs - 1);
-					Console.WriteLine (x);
 
 					verts.Add (x);
-					verts.Add (r);
+					verts.Add (1);
 					verts.Add (0);
 					tverts.Add (new CGPoint (tx, 1));
 					norms.Add (0);
@@ -745,7 +797,7 @@ namespace CrossGraphics.SceneKit
 					norms.Add (1);
 
 					verts.Add (x);
-					verts.Add (-r);
+					verts.Add (-1);
 					verts.Add (0);
 					tverts.Add (new CGPoint (tx, -1));
 					norms.Add (0);
@@ -754,8 +806,6 @@ namespace CrossGraphics.SceneKit
 
 					if (bi > 0) {
 						var nv = verts.Count / 3;
-						//tris.Add ((ushort)(nv - 2));
-						//tris.Add ((ushort)(nv - 1));
 						tris.Add ((ushort)(nv - 1));
 						tris.Add ((ushort)(nv - 2));
 						tris.Add ((ushort)(nv - 3));
@@ -770,11 +820,11 @@ namespace CrossGraphics.SceneKit
 				var tarray = tris.ToArray ();
 				fixed (ushort* p = tarray) {
 					var numTris = tris.Count / 3;
-					Console.WriteLine (".");
-					for (var t = 0; t < numTris; t++) {
-						Console.WriteLine ((verts[tris[t * 3]], verts[tris[t * 3 + 1]], verts[tris[t * 3 + 2]]));
-					}
-					Console.WriteLine ($"{numTris} triangles");
+					//Console.WriteLine (".");
+					//for (var t = 0; t < numTris; t++) {
+					//	Console.WriteLine ((verts[tris[t * 3]], verts[tris[t * 3 + 1]], verts[tris[t * 3 + 2]]));
+					//}
+					//Console.WriteLine ($"{numTris} triangles");
 					var triData = NSData.FromBytes (new IntPtr (p), (nuint)(tris.Count * 2));
 					trisElement = SCNGeometryElement.FromData (triData, SCNGeometryPrimitiveType.Triangles, numTris, 2);
 				}
