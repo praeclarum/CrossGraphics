@@ -439,6 +439,8 @@ namespace CrossGraphics.SceneKit
 					n.Set (x, y, width, height, ref style);
 				}
 				else {
+					var n = GetNodeType<StrokedOvalNode> ();
+					n.Set (x, y, width, height, ref style);
 				}
 			}
 
@@ -496,6 +498,51 @@ namespace CrossGraphics.SceneKit
 					style.Color.Green != other.Color.Green ||
 					style.Color.Blue != other.Color.Blue ||
 					style.Color.Alpha != other.Color.Alpha;
+			}
+			protected bool ColorOrWidthChanged (ref Style other)
+			{
+				return style.W != other.W ||
+					style.Color.Red != other.Color.Red ||
+					style.Color.Green != other.Color.Green ||
+					style.Color.Blue != other.Color.Blue ||
+					style.Color.Alpha != other.Color.Alpha;
+			}
+		}
+		public class StrokedOvalNode : LinesNode
+		{
+			float x, y, width, height;
+			readonly List<SCNVector3> points = new List<SCNVector3> ();
+
+			public void Set (float x, float y, float width, float height, ref Style style)
+			{
+				if (this.x != x || this.y != y || this.width != width || this.height != height || ColorOrWidthChanged (ref style)) {
+					this.x = x;
+					this.y = y;
+					this.width = width;
+					this.height = height;
+
+					var rx = width / 2;
+					var ry = height / 2;
+
+					var circ = 2 * Math.PI * (rx + ry) / 2;
+					var n = (int)(circ / 4) + 4;
+					while (points.Count < n)
+						points.Add (new SCNVector3 ());
+					while (points.Count > n)
+						points.RemoveAt (points.Count - 1);
+
+					var da = 2 * Math.PI / (n - 1);
+					var cx = x + rx;
+					var cy = y + ry;
+					var a = 0.0;
+					for (var i = 0; i < n; i++) {
+						var px = cx + rx * Math.Cos (a);
+						var py = cy + ry * Math.Sin (a);
+						points[i] = new SCNVector3 ((float)px, (float)py, 0);
+						a += da;
+					}
+					Set (points, ref style);
+				}
 			}
 		}
 		public class FilledOvalNode : PrimitiveNode
@@ -588,7 +635,7 @@ namespace CrossGraphics.SceneKit
 
 			public void Set (float x, float y, float width, float height, ref Style style)
 			{
-				if (this.x != x || this.y != y || this.width != width || this.height != height || ColorChanged (ref style)) {
+				if (this.x != x || this.y != y || this.width != width || this.height != height || ColorOrWidthChanged (ref style)) {
 					this.x = x;
 					this.y = y;
 					this.width = width;
@@ -858,14 +905,18 @@ namespace CrossGraphics.SceneKit
 						var s = segments[i];
 						s.Point = spt;
 						s.Length = len;
-						s.Node.Position = spt;
+						var scale = (float)style.W;
 						if (len > 0) {
 							var angle = Math.Atan2 (d.Y, d.X) + Math.PI / 2;
-							s.LineNode.Transform = SCNMatrix4.CreateTranslation (0, -len / 2, 0) * SCNMatrix4.CreateRotationZ ((float)angle);
+							s.LineNode.Transform =
+								SCNMatrix4.Scale(scale, len, scale)
+								* SCNMatrix4.CreateTranslation (0, -len / 2, 0)
+								* SCNMatrix4.CreateRotationZ ((float)angle);
 						}
 						else {
 							s.LineNode.Transform = SCNMatrix4.Scale (1e-3f, 1e-3f, 1e-3f);
 						}
+						s.Node.Position = spt;
 					}
 				}
 
