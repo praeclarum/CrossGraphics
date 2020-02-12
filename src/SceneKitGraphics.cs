@@ -64,7 +64,7 @@ namespace CrossGraphics.SceneKit
 			this.scene = scene;
 			scene.RootNode.AddChildNode (graphicsNode);
 			graphicsNode.AddChildNode (entityNodes[0]);
-			//graphicsNode.Scale = new SCNVector3 (1, -1, 1);
+			graphicsNode.Scale = new SCNVector3 (1, -1, 1);
 		}
 
 		public void BeginFrame ()
@@ -422,8 +422,8 @@ namespace CrossGraphics.SceneKit
 
 			public void Line (float sx, float sy, float ex, float ey, ref Style style)
 			{
-				//var n = GetNodeType<LineNode> ();
-				//n.Set (sx, sy, ex, ey, ref style);
+				var n = GetNodeType<LineNode> ();
+				n.Set (sx, sy, ex, ey, ref style);
 			}
 
 			public void Lines (List<SCNVector3> points, ref Style style)
@@ -455,8 +455,8 @@ namespace CrossGraphics.SceneKit
 			public void Rect (float x, float y, float width, float height, ref Style style)
 			{
 				if (style.Fill) {
-					//var n = GetNodeType<FilledRectNode> ();
-					//n.Set (x, y, width, height, ref style);
+					var n = GetNodeType<FilledRectNode> ();
+					n.Set (x, y, width, height, ref style);
 				}
 				else {
 				}
@@ -698,152 +698,117 @@ namespace CrossGraphics.SceneKit
 		public class LinesNode : PrimitiveNode
 		{
 			SCNVector3[] points = Array.Empty<SCNVector3> ();
+			readonly List<Segment> segments = new List<Segment> ();
+
+			class Segment
+			{
+				public readonly SCNNode Node = SCNNode.Create ();
+				public SCNVector3 Point;
+				public double Length = 1;
+				public SCNNode DotNode;
+				public SCNNode LineNode;
+				static readonly SCNGeometry Dot = SCNCylinder.Create (0.5f, 1);
+				static readonly SCNGeometry Line = SCNBox.Create (1, 1, 1, 0);
+				public Segment ()
+				{
+					DotNode = SCNNode.FromGeometry ((SCNGeometry)Dot.Copy (NSZone.Default));
+					DotNode.LocalRotate (SCNQuaternion.FromAxisAngle (SCNVector3.UnitX, (float)(Math.PI / 2)));
+					LineNode = SCNNode.FromGeometry ((SCNGeometry)Line.Copy (NSZone.Default));
+					Node.AddChildNode (DotNode);
+					Node.AddChildNode (LineNode);
+				}
+				public void SetStyle (ref Style style)
+				{
+					var mat = GetNativeMaterial (style.Color);
+					DotNode.Geometry.FirstMaterial = mat;
+					LineNode.Geometry.FirstMaterial = mat;
+					var scale = (float)style.W;
+					DotNode.Scale = new SCNVector3 (scale, scale, scale);
+					LineNode.Scale = new SCNVector3 (scale, (float)Length, scale);
+				}
+			}
 
 			public LinesNode ()
 			{
 			}
 
+			public override nint RenderingOrder {
+				get => base.RenderingOrder; set {
+					base.RenderingOrder = value;
+
+					foreach (var s in segments) {
+						s.DotNode.RenderingOrder = value;
+						s.LineNode.RenderingOrder = value;
+					}
+				}
+			}
+
 			public void Set (List<SCNVector3> points, ref Style style)
 			{
-				if (this.points.Length != points.Count) {
-					this.points = points.ToArray ();
-					var g = CreateWireGeometry (points.Count);
+				var n = points.Count;
+				var nodesChanged = false;
 
-					var mods = new SCNShaderModifiers {
-						EntryPointGeometry = @"
-//#pragma arguments
-uniform float lineWidth = 1.0;
-uniform vec3 point0 = vec3(0,0,0);
-uniform vec3 point1 = vec3(0,0,0);
-uniform vec3 point2 = vec3(0,0,0);
-uniform vec3 point3 = vec3(0,0,0);
-uniform vec3 point4 = vec3(0,0,0);
-uniform vec3 point5 = vec3(0,0,0);
-
-#pragma body
-
-int index = (int)_geometry.position.x;
-
-vec3 p = index < 1 ? point0 :
-         index < 2 ? point1 :
-         index < 3 ? point2 :
-         index < 4 ? point3 :
-         index < 5 ? point4 :
-         point5;
-
-float dy = _geometry.position.y;
-
-_geometry.position = vec4(p.x, dy*lineWidth/2 + p.y, 0.0, 1.0);
-",
-					};
-					var ps = new float[] { 200, -100, -100, -100 }.Select (x => new NSNumber (x)).ToArray ();
-					g.ShaderModifiers = mods;
-					g.SetValueForKey (new NSNumber ((float)style.W), new NSString ("lineWidth"));
-					g.SetValueForKey (NSArray.FromObjects (ps), new NSString ("points"));
-					for (var i = 0; i < points.Count; i++) {
-						g.SetValueForKey (NSValue.FromVector (new SCNVector3 (points[i].X, points[i].Y, 1)), new NSString ("point" + i));
-					}
-
-					//var dev = MTLDevice.SystemDefault;
-					//var pf = MTLPixelFormat.RGBA32Float;
-					//var align = (int)dev.GetMinimumLinearTextureAlignment (pf);
-					//var len = align * ((points.Count + align - 1)/ align);
-					//var desc = MTLTextureDescriptor.CreateTexture2DDescriptor (pf, (nuint)len, 1, false);
-					//var contents = dev.CreateTexture (desc);
-					//var pointData = Runtime.GetNSObject<SCNMaterialProperty> (IntPtr_objc_msgSend_IntPtr (class_ptr, selMaterialPropertyWithContents_Handle, contents.Handle));
-
-					this.style = style;
-					var mat = (SCNMaterial)GetNativeMaterial (style.Color);
-					//mat.ShaderModifiers = mods;
-					//mat.DoubleSided = true;
-					g.FirstMaterial = mat;
-					Geometry = g;
+				//
+				// Check for points added and removed
+				//
+				while (n > segments.Count) {
+					var s = new Segment ();
+					var ro = RenderingOrder;
+					//s.Node.RenderingOrder = ro;
+					s.DotNode.RenderingOrder = ro;
+					s.LineNode.RenderingOrder = ro;
+					s.SetStyle (ref style);
+					segments.Add (s);
+					AddChildNode (s.Node);
+					nodesChanged = true;
+				}
+				while (segments.Count > n) {
+					var i = segments.Count - 1;
+					var s = segments[i];
+					s.Node.RemoveFromParentNode ();
+					segments.RemoveAt (i);
+					nodesChanged = true;
 				}
 
-				if (ColorChanged (ref style) && Geometry != null) {
+				//
+				// Check for position changes
+				//
+				if (!nodesChanged) {
+					for (var i = 0; i < n && !nodesChanged; i++) {
+						if (segments[i].Point != points[i])
+							nodesChanged = true;
+					}
+				}
+
+				//
+				// If anything changed, reposition
+				//
+				if (nodesChanged) {
+					for (var i = 0; i < n; i++) {
+
+						var spt = points[i];
+						var ept = i + 1 < n ? points[i + 1] : points[i];
+						var d = ept - spt;
+						var len = d.Length;
+						var s = segments[i];
+						s.Point = spt;
+						s.Length = len;
+						s.Node.Position = spt;
+						if (len > 0) {
+							var angle = Math.Atan2 (d.Y, d.X) + Math.PI / 2;
+							s.LineNode.Transform = SCNMatrix4.CreateTranslation (0, -len / 2, 0) * SCNMatrix4.CreateRotationZ ((float)angle);
+						}
+						else {
+							s.LineNode.Transform = SCNMatrix4.Scale (1e-3f, 1e-3f, 1e-3f);
+						}
+					}
+				}
+
+				if (ColorChanged (ref style)) {
+					foreach (var s in segments) {
+						s.SetStyle (ref style);
+					}
 					this.style.Color = style.Color;
-					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
-					Geometry.FirstMaterial.DoubleSided = true;
-				}
-
-				//Position = new SCNVector3 (64, 64, 0);
-			}
-
-			static readonly IntPtr selMaterialPropertyWithContents_Handle = Selector.GetHandle ("materialPropertyWithContents:");
-			IntPtr class_ptr = Class.GetHandle("SCNMaterialProperty");
-			[DllImport ("/usr/lib/libobjc.dylib", EntryPoint = "objc_msgSend")]
-			public static extern IntPtr IntPtr_objc_msgSend_IntPtr (IntPtr receiver, IntPtr selector, IntPtr arg1);
-
-			static unsafe SCNGeometry CreateWireGeometry (int numBones)
-			{
-				var numVertSegs = numBones;
-
-				var verts = new List<float> ();
-				var norms = new List<float> ();
-				var tverts = new List<CGPoint> ();
-				var tris = new List<ushort> ();
-				Console.WriteLine ("---");
-
-				for (var bi = 0; bi < numVertSegs; bi++) {
-					var x = bi;
-					var tx = bi / (float)(numVertSegs - 1);
-
-					verts.Add (x);
-					verts.Add (1);
-					verts.Add (0);
-					tverts.Add (new CGPoint (tx, 1));
-					norms.Add (0);
-					norms.Add (0);
-					norms.Add (1);
-
-					verts.Add (x);
-					verts.Add (-1);
-					verts.Add (0);
-					tverts.Add (new CGPoint (tx, -1));
-					norms.Add (0);
-					norms.Add (0);
-					norms.Add (1);
-
-					if (bi > 0) {
-						var nv = verts.Count / 3;
-						tris.Add ((ushort)(nv - 1));
-						tris.Add ((ushort)(nv - 2));
-						tris.Add ((ushort)(nv - 3));
-						tris.Add ((ushort)(nv - 3));
-						tris.Add ((ushort)(nv - 2));
-						tris.Add ((ushort)(nv - 4));
-						//Console.WriteLine ((tris[^3], tris[^2], tris[^1]));
-					}
-				}
-
-				SCNGeometryElement trisElement;
-				var tarray = tris.ToArray ();
-				fixed (ushort* p = tarray) {
-					var numTris = tris.Count / 3;
-					//Console.WriteLine (".");
-					//for (var t = 0; t < numTris; t++) {
-					//	Console.WriteLine ((verts[tris[t * 3]], verts[tris[t * 3 + 1]], verts[tris[t * 3 + 2]]));
-					//}
-					//Console.WriteLine ($"{numTris} triangles");
-					var triData = NSData.FromBytes (new IntPtr (p), (nuint)(tris.Count * 2));
-					trisElement = SCNGeometryElement.FromData (triData, SCNGeometryPrimitiveType.Triangles, numTris, 2);
-				}
-
-				var vertsSource = CreateGeometrySource (verts.ToArray (), SCNGeometrySourceSemantics.Vertex);
-				var tvertsSource = SCNGeometrySource.FromTextureCoordinates (tverts.ToArray ());
-				var normsSource = CreateGeometrySource (norms.ToArray (), SCNGeometrySourceSemantics.Normal);
-				var g = SCNGeometry.Create (new[] { vertsSource, normsSource, tvertsSource }, new[] { trisElement });
-				//Console.WriteLine (g.DebugDescription);
-				return g;
-			}
-
-			public static unsafe SCNGeometrySource CreateGeometrySource (float[] array, SCNGeometrySourceSemantics semantic)
-			{
-				var n = array.Length / 3;
-				fixed (float* p = array) {
-					var size = 12;
-					var data = NSData.FromBytes (new IntPtr (p), (System.nuint)(n * size));
-					return SCNGeometrySource.FromData (data, semantic, n, true, 3, 4, 0, size);
 				}
 			}
 		}
