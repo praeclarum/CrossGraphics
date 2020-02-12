@@ -451,6 +451,8 @@ namespace CrossGraphics.SceneKit
 					n.Set (poly, ref style);
 				}
 				else {
+					var n = GetNodeType<StrokedPolygonNode> ();
+					n.Set (poly, ref style);
 				}
 			}
 
@@ -575,6 +577,31 @@ namespace CrossGraphics.SceneKit
 				if (ColorChanged (ref style)) {
 					this.style.Color = style.Color;
 					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+				}
+			}
+		}
+		public class StrokedPolygonNode : LinesNode
+		{
+			Polygon? poly;
+
+			readonly List<SCNVector3> points = new List<SCNVector3> ();
+
+			public void Set (Polygon poly, ref Style style)
+			{
+				if (this.poly != poly || ColorOrWidthChanged (ref style)) {
+					this.poly = poly;
+
+					var n = poly.Points.Count;
+					while (points.Count < n + 1)
+						points.Add (new SCNVector3 ());
+					while (points.Count > n + 1)
+						points.RemoveAt (points.Count - 1);
+
+					for (var i = 0; i <= n; i++) {
+						var pi = i == n ? 0 : i;
+						points[i] = new SCNVector3 ((float)poly.Points[pi].X, (float)poly.Points[pi].Y, 0);
+					}
+					Set (points, ref style);
 				}
 			}
 		}
