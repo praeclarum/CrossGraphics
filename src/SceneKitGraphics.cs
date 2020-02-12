@@ -459,6 +459,8 @@ namespace CrossGraphics.SceneKit
 					n.Set (x, y, width, height, ref style);
 				}
 				else {
+					var n = GetNodeType<StrokedRectNode> ();
+					n.Set (x, y, width, height, ref style);
 				}
 			}
 
@@ -571,6 +573,34 @@ namespace CrossGraphics.SceneKit
 					if (g is object) {
 						g.FirstMaterial = GetNativeMaterial (style.Color);
 					}
+				}
+			}
+		}
+		public class StrokedRectNode : LinesNode
+		{
+			float x, y, width, height;
+			readonly List<SCNVector3> points;
+
+			public StrokedRectNode ()
+			{
+				points = Enumerable.Range (0, 5).Select (_ => new SCNVector3 ()).ToList ();
+			}
+
+			public void Set (float x, float y, float width, float height, ref Style style)
+			{
+				if (this.x != x || this.y != y || this.width != width || this.height != height || ColorChanged (ref style)) {
+					this.x = x;
+					this.y = y;
+					this.width = width;
+					this.height = height;
+
+					points[0] = new SCNVector3 (x, y, 0);
+					points[1] = new SCNVector3 (x + width, y, 0);
+					points[2] = new SCNVector3 (x + width, y + height, 0);
+					points[3] = new SCNVector3 (x, y + height, 0);
+					points[4] = new SCNVector3 (x, y, 0);
+
+					Set (points, ref style);
 				}
 			}
 		}
