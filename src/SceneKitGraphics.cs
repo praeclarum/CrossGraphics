@@ -681,12 +681,35 @@ namespace CrossGraphics.SceneKit
 		{
 			float sx, sy, ex, ey;
 
-			static SCNBox template = SCNBox.Create (10f, 10f, 1f, 0);
+			static SCNBox template = SCNBox.Create (1f, 1f, 1f, 0);
+			static SCNGeometry capTemplate = SCNCylinder.Create (0.5f, 1f);
+
+			readonly SCNNode lineNode;
+			readonly SCNNode scapNode;
+			readonly SCNNode ecapNode;
 
 			public LineNode ()
 			{
-				Geometry = (SCNGeometry)template.Copy (NSZone.Default);
-				Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+				var line = (SCNGeometry)template.Copy (NSZone.Default);
+				line.FirstMaterial = GetNativeMaterial (style.Color);
+				lineNode = SCNNode.FromGeometry (line);
+				var cap = (SCNGeometry)capTemplate.Copy (NSZone.Default);
+				cap.FirstMaterial = line.FirstMaterial;
+				scapNode = SCNNode.FromGeometry (cap);
+				ecapNode = SCNNode.FromGeometry (cap);
+				AddChildNode (lineNode);
+				AddChildNode (scapNode);
+				AddChildNode (ecapNode);
+			}
+
+			public override nint RenderingOrder {
+				get => base.RenderingOrder;
+				set {
+					base.RenderingOrder = value;
+					lineNode.RenderingOrder = value;
+					scapNode.RenderingOrder = value;
+					ecapNode.RenderingOrder = value;
+				}
 			}
 
 			public void Set (float sx, float sy, float ex, float ey, ref Style style)
@@ -711,16 +734,27 @@ namespace CrossGraphics.SceneKit
 					//Console.WriteLine ((cx, cy));
 					//Console.WriteLine (style.Transform);
 
+					scapNode.Transform =
+						SCNMatrix4.CreateRotationX ((float)(Math.PI / 2))
+						* SCNMatrix4.Scale (style.W, style.W, style.W);
+					ecapNode.Transform =
+						SCNMatrix4.CreateRotationX ((float)(Math.PI / 2))
+						* SCNMatrix4.Scale (style.W, style.W, style.W)
+						* SCNMatrix4.CreateTranslation (0, length, 0);
+					lineNode.Transform =
+						SCNMatrix4.Scale (style.W, length, style.W)
+						* SCNMatrix4.CreateTranslation (0, length / 2, 0);
 					Transform =
-						SCNMatrix4.Scale (style.W / 10, length / 10, 1)
-						* SCNMatrix4.CreateRotationZ (angle)
-						* SCNMatrix4.CreateTranslation (cx, cy, 0)
-						* style.Transform
-						;
+						SCNMatrix4.CreateRotationZ (angle)
+						* SCNMatrix4.CreateTranslation (sx, sy, 0)
+						* style.Transform;
 				}
 				if (ColorChanged (ref style)) {
 					this.style.Color = style.Color;
-					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+					var mat = GetNativeMaterial (style.Color);
+					scapNode.Geometry.FirstMaterial = mat;
+					ecapNode.Geometry.FirstMaterial = mat;
+					lineNode.Geometry.FirstMaterial = mat;
 				}
 			}
 		}
@@ -763,7 +797,8 @@ namespace CrossGraphics.SceneKit
 			}
 
 			public override nint RenderingOrder {
-				get => base.RenderingOrder; set {
+				get => base.RenderingOrder;
+				set {
 					base.RenderingOrder = value;
 
 					foreach (var s in segments) {
