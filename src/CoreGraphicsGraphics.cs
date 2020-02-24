@@ -1,5 +1,7 @@
+#nullable enable
+
 //
-// Copyright (c) 2010-2015 Frank A. Krueger
+// Copyright (c) 2010-2020 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -58,7 +60,13 @@ namespace CrossGraphics.CoreGraphics
 		CGContext _c;
 		CGColor _cgcol;
 
+		readonly bool flipText;
+
 		//bool _highQuality = false;
+
+		Font? _lastFont;
+		CTStringAttributes? _attrs;
+		NativeStringAttributes _nsattrs = new NativeStringAttributes ();
 
 		static CoreGraphicsGraphics ()
 		{
@@ -68,12 +76,10 @@ namespace CrossGraphics.CoreGraphics
 			//	foreach (var ff in fs) {
 			//		Console.WriteLine ("  " + ff);
 			//	}
-			//}
-
-			_textMatrix = CGAffineTransform.MakeScale (1, -1);
+			//}			
 		}
 
-		public CoreGraphicsGraphics (CGContext c, bool highQuality)
+		public CoreGraphicsGraphics (CGContext c, bool highQuality, bool flipText = false)
 		{
 			if (c == null)
 				throw new ArgumentNullException ("c");
@@ -81,6 +87,10 @@ namespace CrossGraphics.CoreGraphics
 			_c = c;
 			_cgcol = NativeColor.Black.CGColor;
 			//_highQuality = highQuality;
+			//this.yIsUp = true;
+			this.flipText = flipText;
+			_textMatrix = CGAffineTransform.MakeScale (1, -1);
+			c.TextMatrix = _textMatrix;
 
 			if (highQuality) {
 				c.SetLineCap (CGLineCap.Round);
@@ -274,22 +284,17 @@ namespace CrossGraphics.CoreGraphics
 			_linesBegun = false;
 		}
 
-		static CGAffineTransform _textMatrix;
-
-		Font _lastFont = null;
+		CGAffineTransform _textMatrix;
 
 		public void SetFont (Font f)
 		{
-			if (f != _lastFont) {
+			if (f != null && f != _lastFont) {
 				_lastFont = f;
-				SelectFont ();
+				SelectFont (f);
 			}
 		}
-		CTStringAttributes _attrs;
-		NativeStringAttributes _nsattrs;
-		void SelectFont ()
+		void SelectFont (Font f)
 		{
-			var f = _lastFont;
 			var name = "Helvetica";
 			if (f.FontFamily == "Monospace") {
 				if (f.IsBold) {
@@ -320,6 +325,7 @@ namespace CrossGraphics.CoreGraphics
 				Font = UIFont.FromName (name, f.Size),
 #endif
 			};
+			_c.SelectFont (name, f.Size, CGTextEncoding.MacRoman);
 		}
 
 		public void SetClippingRect (float x, float y, float width, float height)
@@ -332,6 +338,21 @@ namespace CrossGraphics.CoreGraphics
 			if (string.IsNullOrEmpty (s))
 				return;
 
+			var isSafe = true;
+			for (var i = 0; isSafe && i < s.Length; i++) {
+				isSafe = s[i] < 127;
+			}
+			if (isSafe) {
+				var fsize = _lastFont != null ? _lastFont.Size : 16;
+				if (flipText) {
+					_c.ShowTextAtPoint (x, y + fsize, s);
+				}
+				else {
+					_c.ShowTextAtPoint (x, y + fsize, s);
+				}
+				return;
+			}
+
 #if MONOMAC
 			var cc = NSGraphicsContext.CurrentContext?.GraphicsPort;
 #else
@@ -340,32 +361,44 @@ namespace CrossGraphics.CoreGraphics
 			if (cc != null && cc.Handle == _c.Handle) {
 				_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
 				using var astr2 = new NSAttributedString (s, _nsattrs);
+				if (flipText) {
+					var fsize = _lastFont != null ? _lastFont.Size : 16;
+					_c.SaveState ();
+					_c.TranslateCTM (x, y + fsize * 1.2f);
+					_c.ScaleCTM (1, -1);
+					_c.TranslateCTM (-x, -y);
+				}
 #if MONOMAC
 				astr2.DrawAtPoint (new CGPoint (x, y));
 #else
 				astr2.DrawString (new CGPoint (x, y));
 #endif
+				if (flipText) {
+					_c.RestoreState ();
+				}
 				return;
 			}
 
-			using (var astr = new NSAttributedString (s, _attrs)) {
-				//astr.AddAttributes (_attrs, new NSRange (0, s.Length));
-				using (var fs = new CTFramesetter (astr)) {
-					using (var path = new CGPath ()) {
-						var h = _lastFont.Size * 2;
-						path.AddRect (new NativeRect (0, 0, s.Length * h, h));
-						using (var f = fs.GetFrame (new NSRange (0, 0), path, null)) {
-							var line = f.GetLines ()[0];
-							NativeValue a, d, l;
-							line.GetTypographicBounds (out a, out d, out l);
+			if (_attrs != null && _lastFont != null) {
+				using (var astr = new NSAttributedString (s, _attrs)) {
+					//astr.AddAttributes (_attrs, new NSRange (0, s.Length));
+					using (var fs = new CTFramesetter (astr)) {
+						using (var path = new CGPath ()) {
+							var h = _lastFont.Size * 2;
+							path.AddRect (new NativeRect (0, 0, s.Length * h, h));
+							using (var f = fs.GetFrame (new NSRange (0, 0), path, null)) {
+								var line = f.GetLines ()[0];
+								NativeValue a, d, l;
+								line.GetTypographicBounds (out a, out d, out l);
 
-							_c.SaveState ();
-							_c.TranslateCTM (x, h + y - d);
-							_c.ScaleCTM (1, -1);
+								_c.SaveState ();
+								_c.TranslateCTM (x, h + y - d);
+								_c.ScaleCTM (1, -1);
 
-							f.Draw (_c);
+								f.Draw (_c);
 
-							_c.RestoreState ();
+								_c.RestoreState ();
+							}
 						}
 					}
 				}
@@ -431,7 +464,7 @@ namespace CrossGraphics.CoreGraphics
 		{
 			_c.RestoreState ();
 			if (_lastFont != null) {
-				SelectFont ();
+				SelectFont (_lastFont);
 			}
 		}
 
@@ -456,11 +489,11 @@ namespace CrossGraphics.CoreGraphics
 		class ColorTag
 		{
 #if MONOMAC
-			public NSColor NSColor;
+			public NSColor? NSColor;
 #else
-			public UIColor UIColor;
+			public UIColor? UIColor;
 #endif
-			public CGColor CGColor;
+			public CGColor? CGColor;
 		}
 
 #if MONOMAC
