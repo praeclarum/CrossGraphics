@@ -62,11 +62,7 @@ namespace CrossGraphics.CoreGraphics
 
 		readonly bool flipText;
 
-		//bool _highQuality = false;
-
 		Font? _lastFont;
-		CTStringAttributes? _attrs;
-		NativeStringAttributes _nsattrs = new NativeStringAttributes ();
 		static readonly Dictionary<(string, int), NativeStringAttributes> cachedNSAttrs = new Dictionary<(string, int), NativeStringAttributes> ();
 		static readonly Dictionary<(string, int), CTStringAttributes> cachedCTAttrs = new Dictionary<(string, int), CTStringAttributes> ();
 
@@ -81,17 +77,13 @@ namespace CrossGraphics.CoreGraphics
 			//}			
 		}
 
-		public CoreGraphicsGraphics (CGContext c, bool highQuality, bool flipText = false, PointF[]? linesStore = null)
+		public CoreGraphicsGraphics (CGContext c, bool highQuality, bool flipText = false)
 		{
 			if (c == null)
 				throw new ArgumentNullException ("c");
 
 			_c = c;
 			_cgcol = NativeColor.Black.CGColor;
-
-			_linePoints = linesStore ?? new PointF[2048];
-			_linePointsCount = _linePoints.Length;
-			//this._highQuality = highQuality;
 
 			this.flipText = flipText;
 			c.TextMatrix = CGAffineTransform.MakeScale (1, -1);
@@ -224,8 +216,6 @@ namespace CrossGraphics.CoreGraphics
 			_c.FillPath ();
 		}
 
-		readonly int _linePointsCount;
-		readonly PointF[] _linePoints;
 		bool _linesBegun = false;
 		int _numLinePoints = 0;
 		float _lineWidth = 1;
@@ -236,6 +226,7 @@ namespace CrossGraphics.CoreGraphics
 			_linesBegun = true;
 			_lineRounded = rounded;
 			_numLinePoints = 0;
+			_c.SaveState ();
 		}
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
@@ -245,19 +236,12 @@ namespace CrossGraphics.CoreGraphics
 				return;
 			}
 			if (_linesBegun) {
-
 				_lineWidth = w;
-				if (_numLinePoints < _linePointsCount) {
-					if (_numLinePoints == 0) {
-						_linePoints[_numLinePoints].X = sx;
-						_linePoints[_numLinePoints].Y = sy;
-						_numLinePoints++;
-					}
-					_linePoints[_numLinePoints].X = ex;
-					_linePoints[_numLinePoints].Y = ey;
-					_numLinePoints++;
+				if (_numLinePoints == 0) {
+					_c.MoveTo (sx, sy);
 				}
-
+				_c.AddLineToPoint (ex, ey);
+				_numLinePoints++;
 			}
 			else {
 				_c.MoveTo (sx, sy);
@@ -271,18 +255,8 @@ namespace CrossGraphics.CoreGraphics
 		{
 			if (!_linesBegun)
 				return;
-			_c.SaveState ();
 			_c.SetLineJoin (_lineRounded ? CGLineJoin.Round : CGLineJoin.Miter);
 			_c.SetLineWidth (_lineWidth);
-			for (var i = 0; i < _numLinePoints; i++) {
-				var p = _linePoints[i];
-				if (i == 0) {
-					_c.MoveTo (p.X, p.Y);
-				}
-				else {
-					_c.AddLineToPoint (p.X, p.Y);
-				}
-			}
 			_c.StrokePath ();
 			_c.RestoreState ();
 			_linesBegun = false;
@@ -296,7 +270,7 @@ namespace CrossGraphics.CoreGraphics
 			}
 		}
 
-		void SelectFont (Font f)
+		static string GetFontName (Font f)
 		{
 			var name = "Helvetica";
 			if (f.FontFamily == "Monospace") {
@@ -317,10 +291,21 @@ namespace CrossGraphics.CoreGraphics
 			else if (f.IsBold) {
 				name = "Helvetica-Bold";
 			}
+			return name;
+		}
+
+		void SelectFont (Font f)
+		{
+			var name = GetFontName (f);
 			_c.SelectFont (name, f.Size, CGTextEncoding.MacRoman);
+		}
+
+		NativeStringAttributes GetNativeStringAttributes (Font f)
+		{
+			var name = GetFontName (f);
 			var key = (name, (int)(f.Size + 0.5f));
 			lock (cachedNSAttrs) {
-				if (!cachedNSAttrs.TryGetValue (key, out _nsattrs)) {
+				if (!cachedNSAttrs.TryGetValue (key, out var _nsattrs)) {
 					_nsattrs = new NativeStringAttributes {
 #if MONOMAC
 						Font = NSFont.FromFontName (name, f.Size),
@@ -330,13 +315,23 @@ namespace CrossGraphics.CoreGraphics
 					};
 					cachedNSAttrs.Add (key, _nsattrs);
 				}
-				if (!cachedCTAttrs.TryGetValue (key, out _attrs)) {
+				return _nsattrs;
+			}
+		}
+
+		CTStringAttributes GetCTStringAttributes (Font f)
+		{
+			var name = GetFontName (f);
+			var key = (name, (int)(f.Size + 0.5f));
+			lock (cachedNSAttrs) {
+				if (!cachedCTAttrs.TryGetValue (key, out var _attrs)) {
 					_attrs = new CTStringAttributes {
 						Font = new CTFont (name, f.Size),
 						ForegroundColorFromContext = true,
 					};
 					cachedCTAttrs.Add (key, _attrs);
 				}
+				return _attrs;
 			}
 		}
 
@@ -370,7 +365,8 @@ namespace CrossGraphics.CoreGraphics
 #else
 			var cc = UIGraphics.GetCurrentContext ();
 #endif
-			if (cc != null && cc.Handle == _c.Handle) {
+			if (cc != null && cc.Handle == _c.Handle && _lastFont != null) {
+				var _nsattrs = GetNativeStringAttributes (_lastFont);
 				_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
 				using var astr2 = new NSAttributedString (s, _nsattrs);
 				if (flipText) {
@@ -391,7 +387,8 @@ namespace CrossGraphics.CoreGraphics
 				return;
 			}
 
-			if (_attrs != null && _lastFont != null) {
+			if (_lastFont != null) {
+				var _attrs = GetCTStringAttributes (_lastFont);
 				using (var astr = new NSAttributedString (s, _attrs)) {
 					//astr.AddAttributes (_attrs, new NSRange (0, s.Length));
 					using (var fs = new CTFramesetter (astr)) {
@@ -442,7 +439,7 @@ namespace CrossGraphics.CoreGraphics
 
 			var fm = f.Tag as CoreGraphicsFontMetrics;
 			if (fm == null) {
-				fm = new CoreGraphicsFontMetrics (_nsattrs);
+				fm = new CoreGraphicsFontMetrics (f.Size, f.IsBold);
 				f.Tag = fm;
 			}
 
@@ -591,14 +588,22 @@ namespace CrossGraphics.CoreGraphics
 		}
 	}
 
-	public class CoreGraphicsFontMetrics : IFontMetrics
+	public class CoreGraphicsFontMetrics : NullGraphicsFontMetrics
+	{
+		public CoreGraphicsFontMetrics (int size, bool isBold)
+			: base (size, isBold)
+		{
+		}
+	}
+
+	public class NSStringFontMetrics : IFontMetrics
 	{
 		int _ascent;
 		int _descent;
 
 		readonly NativeStringAttributes nsattrs;
 
-		public CoreGraphicsFontMetrics (NativeStringAttributes nsattrs)
+		public NSStringFontMetrics (NativeStringAttributes nsattrs)
 		{
 			this.nsattrs = nsattrs;
 		}
