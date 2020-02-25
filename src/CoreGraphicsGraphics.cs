@@ -67,6 +67,8 @@ namespace CrossGraphics.CoreGraphics
 		Font? _lastFont;
 		CTStringAttributes? _attrs;
 		NativeStringAttributes _nsattrs = new NativeStringAttributes ();
+		static readonly Dictionary<(string, int), NativeStringAttributes> cachedNSAttrs = new Dictionary<(string, int), NativeStringAttributes> ();
+		static readonly Dictionary<(string, int), CTStringAttributes> cachedCTAttrs = new Dictionary<(string, int), CTStringAttributes> ();
 
 		static CoreGraphicsGraphics ()
 		{
@@ -86,11 +88,10 @@ namespace CrossGraphics.CoreGraphics
 
 			_c = c;
 			_cgcol = NativeColor.Black.CGColor;
-			//_highQuality = highQuality;
-			//this.yIsUp = true;
+			//this._highQuality = highQuality;
+
 			this.flipText = flipText;
-			_textMatrix = CGAffineTransform.MakeScale (1, -1);
-			c.TextMatrix = _textMatrix;
+			c.TextMatrix = CGAffineTransform.MakeScale (1, -1);
 
 			if (highQuality) {
 				c.SetLineCap (CGLineCap.Round);
@@ -284,8 +285,6 @@ namespace CrossGraphics.CoreGraphics
 			_linesBegun = false;
 		}
 
-		CGAffineTransform _textMatrix;
-
 		public void SetFont (Font f)
 		{
 			if (f != null && f != _lastFont) {
@@ -293,6 +292,7 @@ namespace CrossGraphics.CoreGraphics
 				SelectFont (f);
 			}
 		}
+
 		void SelectFont (Font f)
 		{
 			var name = "Helvetica";
@@ -314,18 +314,27 @@ namespace CrossGraphics.CoreGraphics
 			else if (f.IsBold) {
 				name = "Helvetica-Bold";
 			}
-			_attrs = new CTStringAttributes {
-				Font = new CTFont (name, f.Size),
-				ForegroundColorFromContext = true,
-			};
-			_nsattrs = new NativeStringAttributes {
-#if MONOMAC
-				Font = NSFont.FromFontName (name, f.Size),
-#else
-				Font = UIFont.FromName (name, f.Size),
-#endif
-			};
 			_c.SelectFont (name, f.Size, CGTextEncoding.MacRoman);
+			var key = (name, (int)(f.Size + 0.5f));
+			lock (cachedNSAttrs) {
+				if (!cachedNSAttrs.TryGetValue (key, out _nsattrs)) {
+					_nsattrs = new NativeStringAttributes {
+#if MONOMAC
+						Font = NSFont.FromFontName (name, f.Size),
+#else
+						Font = UIFont.FromName (name, f.Size),
+#endif
+					};
+					cachedNSAttrs.Add (key, _nsattrs);
+				}
+				if (!cachedCTAttrs.TryGetValue (key, out _attrs)) {
+					_attrs = new CTStringAttributes {
+						Font = new CTFont (name, f.Size),
+						ForegroundColorFromContext = true,
+					};
+					cachedCTAttrs.Add (key, _attrs);
+				}
+			}
 		}
 
 		public void SetClippingRect (float x, float y, float width, float height)
