@@ -81,13 +81,16 @@ namespace CrossGraphics.CoreGraphics
 			//}			
 		}
 
-		public CoreGraphicsGraphics (CGContext c, bool highQuality, bool flipText = false)
+		public CoreGraphicsGraphics (CGContext c, bool highQuality, bool flipText = false, PointF[]? linesStore = null)
 		{
 			if (c == null)
 				throw new ArgumentNullException ("c");
 
 			_c = c;
 			_cgcol = NativeColor.Black.CGColor;
+
+			_linePoints = linesStore ?? new PointF[2048];
+			_linePointsCount = _linePoints.Length;
 			//this._highQuality = highQuality;
 
 			this.flipText = flipText;
@@ -221,8 +224,8 @@ namespace CrossGraphics.CoreGraphics
 			_c.FillPath ();
 		}
 
-		const int _linePointsCount = 1024;
-		PointF[] _linePoints = new PointF[_linePointsCount];
+		readonly int _linePointsCount;
+		readonly PointF[] _linePoints;
 		bool _linesBegun = false;
 		int _numLinePoints = 0;
 		float _lineWidth = 1;
