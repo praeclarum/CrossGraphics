@@ -61,6 +61,7 @@ namespace CrossGraphics.CoreGraphics
 		CGColor _cgcol;
 
 		readonly bool flipText;
+		readonly CGAffineTransform textMatrix;
 
 		Font? _lastFont;
 		static readonly Dictionary<(string, int), NativeStringAttributes> cachedNSAttrs = new Dictionary<(string, int), NativeStringAttributes> ();
@@ -86,7 +87,8 @@ namespace CrossGraphics.CoreGraphics
 			_cgcol = NativeColor.Black.CGColor;
 
 			this.flipText = flipText;
-			c.TextMatrix = CGAffineTransform.MakeScale (1, -1);
+			textMatrix = CGAffineTransform.MakeScale (1, -1);
+			c.TextMatrix = textMatrix;
 
 			if (highQuality) {
 				c.SetLineCap (CGLineCap.Round);
@@ -351,8 +353,12 @@ namespace CrossGraphics.CoreGraphics
 			var isSafe = true;
 			for (var i = 0; isSafe && i < s.Length; i++) {
 				isSafe = s[i] < 127;
+				if (!isSafe) {
+					//Console.WriteLine ($"UNSAFE {s} at #{i}");
+				}
 			}
 			if (isSafe) {
+				_c.TextMatrix = textMatrix;
 				var fsize = _lastFont != null ? _lastFont.Size : 16;
 				if (flipText) {
 					_c.ShowTextAtPoint (x, y + fsize * 0.8333f, s);
@@ -363,12 +369,8 @@ namespace CrossGraphics.CoreGraphics
 				return;
 			}
 
-#if MONOMAC
-			var cc = NSGraphicsContext.CurrentContext?.GraphicsPort;
-#else
-			var cc = UIGraphics.GetCurrentContext ();
-#endif
-			if (cc != null && cc.Handle == _c.Handle && _lastFont != null) {
+			if (_lastFont != null) {
+				_c.TextMatrix = textMatrix;
 				var _nsattrs = GetNativeStringAttributes (_lastFont);
 				_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
 				using var astr2 = new NSAttributedString (s, _nsattrs);
@@ -390,32 +392,6 @@ namespace CrossGraphics.CoreGraphics
 					_c.RestoreState ();
 				}
 				return;
-			}
-
-			if (_lastFont != null) {
-				var _attrs = GetCTStringAttributes (_lastFont);
-				using (var astr = new NSAttributedString (s, _attrs)) {
-					//astr.AddAttributes (_attrs, new NSRange (0, s.Length));
-					using (var fs = new CTFramesetter (astr)) {
-						using (var path = new CGPath ()) {
-							var h = _lastFont.Size * 2;
-							path.AddRect (new NativeRect (0, 0, s.Length * h, h));
-							using (var f = fs.GetFrame (new NSRange (0, 0), path, null)) {
-								var line = f.GetLines ()[0];
-								NativeValue a, d, l;
-								line.GetTypographicBounds (out a, out d, out l);
-
-								_c.SaveState ();
-								_c.TranslateCTM (x, h + y - d);
-								_c.ScaleCTM (1, -1);
-
-								f.Draw (_c);
-
-								_c.RestoreState ();
-							}
-						}
-					}
-				}
 			}
 		}
 
