@@ -352,10 +352,10 @@ namespace CrossGraphics.CoreGraphics
 			if (isSafe) {
 				var fsize = _lastFont != null ? _lastFont.Size : 16;
 				if (flipText) {
-					_c.ShowTextAtPoint (x, y + fsize, s);
+					_c.ShowTextAtPoint (x, y + fsize * 0.8333f, s);
 				}
 				else {
-					_c.ShowTextAtPoint (x, y + fsize, s);
+					_c.ShowTextAtPoint (x, y + fsize * 0.8333f, s);
 				}
 				return;
 			}
@@ -367,19 +367,21 @@ namespace CrossGraphics.CoreGraphics
 #endif
 			if (cc != null && cc.Handle == _c.Handle && _lastFont != null) {
 				var _nsattrs = GetNativeStringAttributes (_lastFont);
-				_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
+				_nsattrs.ForegroundColor = NSColor.Green;// NativeColor.FromCGColor (_cgcol);
 				using var astr2 = new NSAttributedString (s, _nsattrs);
+				var yy = y;
+				var fsize = _lastFont != null ? _lastFont.Size : 16;
 				if (flipText) {
-					var fsize = _lastFont != null ? _lastFont.Size : 16;
 					_c.SaveState ();
-					_c.TranslateCTM (x, y + fsize * 1.2f);
+					_c.TranslateCTM (x, y);
 					_c.ScaleCTM (1, -1);
 					_c.TranslateCTM (-x, -y);
 				}
+				yy -= (1.0f - 0.8333f) * fsize;
 #if MONOMAC
-				astr2.DrawAtPoint (new CGPoint (x, y));
+				astr2.DrawAtPoint (new CGPoint (x, yy));
 #else
-				astr2.DrawString (new CGPoint (x, y));
+				astr2.DrawString (new CGPoint (x, yy));
 #endif
 				if (flipText) {
 					_c.RestoreState ();
