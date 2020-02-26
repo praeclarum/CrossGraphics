@@ -270,9 +270,12 @@ namespace CrossGraphics.CoreGraphics
 			}
 		}
 
+		const string DefaultFontName = "Helvetica";
+		const string DefaultBoldFontName = "Helvetica-Bold";
+
 		static string GetFontName (Font f)
 		{
-			var name = "Helvetica";
+			var name = DefaultFontName;
 			if (f.FontFamily == "Monospace") {
 				if (f.IsBold) {
 					name = "Courier-Bold";
@@ -289,7 +292,7 @@ namespace CrossGraphics.CoreGraphics
 #endif
 			}
 			else if (f.IsBold) {
-				name = "Helvetica-Bold";
+				name = DefaultBoldFontName;
 			}
 			return name;
 		}
@@ -367,7 +370,7 @@ namespace CrossGraphics.CoreGraphics
 #endif
 			if (cc != null && cc.Handle == _c.Handle && _lastFont != null) {
 				var _nsattrs = GetNativeStringAttributes (_lastFont);
-				_nsattrs.ForegroundColor = NSColor.Green;// NativeColor.FromCGColor (_cgcol);
+				_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
 				using var astr2 = new NSAttributedString (s, _nsattrs);
 				var yy = y;
 				var fsize = _lastFont != null ? _lastFont.Size : 16;
@@ -438,14 +441,23 @@ namespace CrossGraphics.CoreGraphics
 			var f = _lastFont;
 			if (f == null)
 				throw new InvalidOperationException ("Cannot call GetFontMetrics before calling SetFont.");
-
-			var fm = f.Tag as CoreGraphicsFontMetrics;
-			if (fm == null) {
-				fm = new CoreGraphicsFontMetrics (f.Size, f.IsBold);
-				f.Tag = fm;
+			var name = GetFontName (f);
+			if (name == DefaultFontName || name == DefaultBoldFontName) {
+				var fm = f.Tag as CoreGraphicsFontMetrics;
+				if (fm == null) {
+					fm = new CoreGraphicsFontMetrics (f.Size, f.IsBold);
+					f.Tag = fm;
+				}
+				return fm;
 			}
-
-			return fm;
+			else {
+				var fm = f.Tag as NSStringFontMetrics;
+				if (fm == null) {
+					fm = new NSStringFontMetrics (GetNativeStringAttributes (f));
+					f.Tag = fm;
+				}
+				return fm;
+			}
 		}
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
