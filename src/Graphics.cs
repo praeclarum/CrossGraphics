@@ -183,9 +183,22 @@ namespace CrossGraphics
 		Bold = 1
 	}
 
+    public struct FontRef
+    {
+        public readonly string FontFamily;
+        public readonly FontOptions Options;
+        public readonly int Size;
+        public FontRef (string fontFamily, FontOptions options, int size)
+        {
+            FontFamily = fontFamily;
+            Options = options;
+            Size = size;
+        }
+    }
+
 	public class Font
 	{
-		static ConcurrentDictionary<(string FontFamily, FontOptions Options, int Size), Font> _fonts = new ConcurrentDictionary<(string FontFamily, FontOptions Options, int Size), Font> ();
+		static ConcurrentDictionary<FontRef, Font> _fonts = new ConcurrentDictionary<FontRef, Font> ();
 
 		public string FontFamily { get; }
 		
@@ -206,8 +219,9 @@ namespace CrossGraphics
 
 		public static Font Get (string fontFamily, FontOptions options, int size)
 		{
-			var key = (fontFamily, options, size);
-			if (!_fonts.TryGetValue (key, out var font)) {
+			var key = new FontRef (fontFamily, options, size);
+            Font font;
+			if (!_fonts.TryGetValue (key, out font)) {
 				font = new Font (fontFamily, options, size);
 				_fonts.TryAdd (key, font);
 			}
