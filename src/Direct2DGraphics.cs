@@ -76,7 +76,7 @@ namespace CrossGraphics
             dc = DisposeLater(new WindowRenderTarget(
                 d2dFactory,
                 new RenderTargetProperties(new PixelFormat(SharpDX.DXGI.Format.Unknown, AlphaMode.Premultiplied)),
-                new HwndRenderTargetProperties() { Hwnd = handle, PixelSize = new Size2(width, height), PresentOptions = PresentOptions.None }
+                new HwndRenderTargetProperties() { Hwnd = handle, PixelSize = new DrawingSize(width, height), PresentOptions = PresentOptions.None }
                 )
             );
 
@@ -339,7 +339,7 @@ namespace CrossGraphics
                     Point = new Vector2(
                         cx + radius * (float)Math.Cos(ea),
                         cy + radius * (float)Math.Sin(ea)),
-                    Size = new Size2F(radius, radius),
+                    Size = new DrawingSizeF(radius, radius),
                     SweepDirection = SweepDirection.CounterClockwise
                 };
                 sink.AddArc(segment);
@@ -545,7 +545,7 @@ namespace CrossGraphics
 				var pg = new PathGeometry (factory);
 				using (var gs = pg.Open ()) {
                     gs.BeginFigure(new Vector2(poly.Points[0].X, poly.Points[0].Y), FigureBegin.Filled);
-					gs.AddLines (poly.Points.Select(p => (SharpDX.Mathematics.Interop.RawVector2)new Vector2(p.X, p.Y)).ToArray ());
+					gs.AddLines (poly.Points.Select(p => new DrawingPointF(p.X, p.Y)).ToArray ());
 					gs.EndFigure (FigureEnd.Closed);
 					gs.Close ();
 				}
