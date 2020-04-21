@@ -202,7 +202,7 @@ namespace CrossGraphics.OpenGL
 		public void Clear (Color c)
 		{
 			GL.ClearColor (c.RedValue, c.GreenValue, c.BlueValue, c.AlphaValue);
-			GL.Clear ((uint)All.ColorClearValue);
+			GL.Clear (ClearBufferMask.ColorBufferBit);
 		}
 
 		void EnsureRoomForVertices (int count)
@@ -1317,7 +1317,7 @@ namespace CrossGraphics.OpenGL
 		{
 			if (Id == 0 || !_valid) {
 				if (Id == 0) {
-					GL.GenTextures (1, ref Id);
+					GL.GenTextures (1, out Id);
 				}
 				GL.BindTexture (All.Texture2D, Id);
 				GL.TexParameter (All.Texture2D, All.TextureMinFilter, (int)All.Linear);
@@ -1655,7 +1655,7 @@ namespace CrossGraphics.OpenGL
 				// and whatever the renderer can handle.
 				//
 				var maxSize = 0;
-				GL.GetInteger (All.MaxTextureSize, ref maxSize);
+				GL.GetInteger (All.MaxTextureSize, out maxSize);
 				maxSize = Math.Min (MaxTextureSize, maxSize);
 
 				//
