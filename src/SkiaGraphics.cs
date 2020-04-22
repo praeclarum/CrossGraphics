@@ -251,46 +251,24 @@ namespace CrossGraphics.Skia
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			return GetFontInfo (_font).FontMetrics;
+			return _font.Tag ?? GetFontInfo (_font);
 		}
 
-		static SkiaFontInfo GetFontInfo (Font f)
+		static SkiaFontMetrics GetFontInfo (Font f, SKPaint p = null)
 		{
-			var fi = f.Tag as SkiaFontInfo;
+			var fi = f.Tag as SkiaFontMetrics;
 			if (fi == null) {
-				var paint = new SKPaint ();
-
-				var name = "Helvetica";
-				if (f.FontFamily == "Monospace") {
-					name = "Courier";
-				}
-				else if (f.FontFamily == "DBLCDTempBlack") {
-#if __MACOS__
-					name = "Courier-Bold";
-#else
-					name = f.FontFamily;
-#endif
-				}
-
-				var tf = SKTypeface.FromFamilyName (name, f.IsBold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright);
-				fi = new SkiaFontInfo {
-					Typeface = tf,
-				};
-				ApplyFontToPaint (f, fi, paint);
-				fi.FontMetrics = new SkiaFontMetrics (paint);
+				fi = new SkiaFontMetrics (f, p ?? new SKPaint ());
 				f.Tag = fi;
 			}
 			return fi;
 		}
 
-		static void ApplyFontToPaint (Font f, SkiaFontInfo fi, SKPaint p)
+		static void ApplyFontToPaint (Font f, SKPaint p)
 		{
+			var fi = GetFontInfo (f, p);
 			p.Typeface = fi.Typeface;
 			p.TextSize = f.Size;
-
-			if (fi.FontMetrics == null) {
-				fi.FontMetrics = new SkiaFontMetrics (p);
-			}
 		}
 
 		void SetFontOnPaints ()
@@ -299,7 +277,7 @@ namespace CrossGraphics.Skia
 			if (f == null || f != _font) {
 				f = _font;
 				_paints.Font = f;
-				ApplyFontToPaint (f, GetFontInfo (f), _paints.Fill);
+				ApplyFontToPaint (f, _paints.Fill);
 			}
 		}
 
@@ -340,12 +318,6 @@ namespace CrossGraphics.Skia
 		}
 	}
 
-	class SkiaFontInfo
-	{
-		public SKTypeface Typeface;
-		public SkiaFontMetrics FontMetrics;
-	}
-
 	public class SkiaImage : IImage
 	{
 		public SKBitmap Bitmap;
@@ -355,8 +327,24 @@ namespace CrossGraphics.Skia
 	{
 		readonly SKPaint paint;
 
-		public SkiaFontMetrics (SKPaint paint)
+		public readonly SKTypeface Typeface;
+
+		public SkiaFontMetrics (Font font, SKPaint paint)
 		{
+			var name = "Helvetica";
+			if (font.FontFamily == "Monospace") {
+				name = "Courier";
+			}
+			else if (font.FontFamily == "DBLCDTempBlack") {
+#if __MACOS__
+					name = "Courier-Bold";
+#else
+				name = font.FontFamily;
+#endif
+			}
+
+			Typeface = SKTypeface.FromFamilyName (name, font.IsBold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright);
+
 			this.paint = paint;
 			Ascent = (int)Math.Abs (paint.FontMetrics.Ascent + 0.5f);
 			Descent = (int)Math.Abs (paint.FontMetrics.Descent + 0.5f);
@@ -381,8 +369,8 @@ namespace CrossGraphics.Skia
 		public static SKColor ToSkiaColor (this Color c) => new SKColor ((byte)c.Red, (byte)c.Green, (byte)c.Blue, (byte)c.Alpha);
 
 #if __IOS__ || __MACOS__
-		public static CoreGraphics.CGRect ToCGRect (this SKRect rect) => new CoreGraphics.CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
-		public static CoreGraphics.CGRect ToCGRect (this SKRectI rect) => new CoreGraphics.CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
+		public static global::CoreGraphics.CGRect ToCGRect (this SKRect rect) => new global::CoreGraphics.CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
+		public static global::CoreGraphics.CGRect ToCGRect (this SKRectI rect) => new global::CoreGraphics.CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
 #endif
 	}
 

@@ -206,7 +206,7 @@ namespace CrossGraphics
 
 		public int Size { get; }
 
-		public object Tag { get; set; }
+		public IFontMetrics Tag { get; set; }
 		
 		public bool IsBold => (Options & FontOptions.Bold) != 0;
 

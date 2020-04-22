@@ -223,14 +223,11 @@ namespace CrossGraphics
 			DrawString (s, x, y);
 		}
 
-		static AndroidFontInfo GetFontInfo (Font f)
+		static AndroidFontMetrics GetFontInfo (Font f, Paint p = null)
 		{
-			var fi = f.Tag as AndroidFontInfo;
+			var fi = f.Tag as AndroidFontMetrics;
 			if (fi == null) {
-				var tf = f.IsBold ? Typeface.DefaultBold : Typeface.Default;
-				fi = new AndroidFontInfo {
-					Typeface = tf,
-				};
+				fi = new AndroidFontMetrics (f, p ?? new Paint ());
 				f.Tag = fi;
 			}
 			return fi;
@@ -238,14 +235,9 @@ namespace CrossGraphics
 
 		static void ApplyFontToPaint (Font f, Paint p)
 		{
-			var fi = GetFontInfo (f);
-
+			var fi = GetFontInfo (f, p);
 			p.SetTypeface (fi.Typeface);
 			p.TextSize = f.Size;
-
-			if (fi.FontMetrics == null) {
-				fi.FontMetrics = new AndroidFontMetrics (p);
-			}
 		}
 
 		void SetFontOnPaints ()
@@ -267,20 +259,22 @@ namespace CrossGraphics
 			_c.DrawText (s, x, y + fm.Ascent - fm.Descent, _paints.Fill);
 		}
 
+		static readonly AndroidFontMetrics defaultFontMetrics = new AndroidFontMetrics (Font.SystemFontOfSize (16), new Paint ());
+
 		public IFontMetrics GetFontMetrics ()
 		{
 			SetFontOnPaints ();
-			return ((AndroidFontInfo)_paints.Font.Tag).FontMetrics;
+			var info = _paints.Font.Tag;
+			return info != null ? info : defaultFontMetrics;
 		}
 
 		public static IFontMetrics GetFontMetrics (Font font)
 		{
-			var fi = GetFontInfo (font);
-			if (fi.FontMetrics == null) {
-				var paint = new Paint ();
-				ApplyFontToPaint (font, paint); // This ensures font metrics
+			var fm = font.Tag;
+			if (fm == null) {
+				fm = GetFontInfo (font, new Paint ());
 			}
-			return fi.FontMetrics;
+			return fm;
 		}
 
 		public IImage ImageFromFile (string path)
@@ -320,12 +314,6 @@ namespace CrossGraphics
 		}
 	}
 
-	class AndroidFontInfo
-	{
-		public Typeface Typeface;
-		public AndroidFontMetrics FontMetrics;
-	}
-
 	public class AndroidImage : IImage
 	{
 		public Bitmap Bitmap;
@@ -350,8 +338,13 @@ namespace CrossGraphics
 			}
 		}
 
-		public AndroidFontMetrics (Paint paint)
+		public readonly Typeface Typeface;
+
+		public AndroidFontMetrics (Font f, Paint paint)
 		{
+			var tf = f.IsBold ? Typeface.DefaultBold : Typeface.Default;
+			Typeface = tf;
+
 			_widths = new float[NumWidths];
 			paint.GetTextWidths (_chars, 0, NumWidths, _widths);
 			Ascent = (int)(Math.Abs (paint.Ascent ()) + 0.5f);
