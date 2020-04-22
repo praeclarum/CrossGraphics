@@ -196,6 +196,19 @@ namespace CrossGraphics
         }
     }
 
+	public class FontRefEqualityComparer : IEqualityComparer<FontRef>
+	{
+		public bool Equals (FontRef x, FontRef y)
+		{
+			return x.Size == y.Size && x.Options == y.Options && x.FontFamily == y.FontFamily;
+		}
+
+		public int GetHashCode (FontRef obj)
+		{
+			return obj.Size.GetHashCode () + obj.Options.GetHashCode () * 2 + obj.FontFamily.GetHashCode () * 3;
+		}
+	}
+
 	public class Font
 	{
 		static ConcurrentDictionary<FontRef, Font> _fonts = new ConcurrentDictionary<FontRef, Font> ();
@@ -207,7 +220,9 @@ namespace CrossGraphics
 		public int Size { get; }
 
 		public IFontMetrics Tag { get; set; }
-		
+		public IFontMetrics AndroidTag { get; set; }
+		public IFontMetrics SkiaTag { get; set; }
+
 		public bool IsBold => (Options & FontOptions.Bold) != 0;
 
 		public Font (string fontFamily, FontOptions options, int size)

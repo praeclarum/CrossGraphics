@@ -223,12 +223,27 @@ namespace CrossGraphics
 			DrawString (s, x, y);
 		}
 
+		public void DrawString (string s, float x, float y)
+		{
+			if (string.IsNullOrWhiteSpace (s))
+				return;
+
+			SetFontOnPaints ();
+			var fm = GetFontMetrics ();
+			_c.DrawText (s, x, y + fm.Ascent - fm.Descent, _paints.Fill);
+		}
+
+		public IFontMetrics GetFontMetrics ()
+		{
+			return _font.AndroidTag ?? GetFontInfo (_font);
+		}
+
 		static AndroidFontMetrics GetFontInfo (Font f, Paint p = null)
 		{
-			var fi = f.Tag as AndroidFontMetrics;
+			var fi = f.AndroidTag as AndroidFontMetrics;
 			if (fi == null) {
 				fi = new AndroidFontMetrics (f, p ?? new Paint ());
-				f.Tag = fi;
+				f.AndroidTag = fi;
 			}
 			return fi;
 		}
@@ -250,27 +265,9 @@ namespace CrossGraphics
 			}
 		}
 
-		public void DrawString (string s, float x, float y)
-		{
-			if (string.IsNullOrWhiteSpace (s)) return;
-
-			SetFontOnPaints ();
-			var fm = GetFontMetrics ();
-			_c.DrawText (s, x, y + fm.Ascent - fm.Descent, _paints.Fill);
-		}
-
-		static readonly AndroidFontMetrics defaultFontMetrics = new AndroidFontMetrics (Font.SystemFontOfSize (16), new Paint ());
-
-		public IFontMetrics GetFontMetrics ()
-		{
-			SetFontOnPaints ();
-			var info = _paints.Font.Tag;
-			return info != null ? info : defaultFontMetrics;
-		}
-
 		public static IFontMetrics GetFontMetrics (Font font)
 		{
-			var fm = font.Tag;
+			var fm = font.AndroidTag;
 			if (fm == null) {
 				fm = GetFontInfo (font, new Paint ());
 			}
@@ -344,6 +341,9 @@ namespace CrossGraphics
 		{
 			var tf = f.IsBold ? Typeface.DefaultBold : Typeface.Default;
 			Typeface = tf;
+
+			paint.SetTypeface (tf);
+			paint.TextSize = f.Size;
 
 			_widths = new float[NumWidths];
 			paint.GetTextWidths (_chars, 0, NumWidths, _widths);

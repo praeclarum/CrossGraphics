@@ -251,15 +251,15 @@ namespace CrossGraphics.Skia
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			return _font.Tag ?? GetFontInfo (_font);
+			return _font.SkiaTag ?? GetFontInfo (_font);
 		}
 
 		static SkiaFontMetrics GetFontInfo (Font f, SKPaint p = null)
 		{
-			var fi = f.Tag as SkiaFontMetrics;
+			var fi = f.SkiaTag as SkiaFontMetrics;
 			if (fi == null) {
 				fi = new SkiaFontMetrics (f, p ?? new SKPaint ());
-				f.Tag = fi;
+				f.SkiaTag = fi;
 			}
 			return fi;
 		}
@@ -344,6 +344,8 @@ namespace CrossGraphics.Skia
 			}
 
 			Typeface = SKTypeface.FromFamilyName (name, font.IsBold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright);
+			paint.Typeface = Typeface;
+			paint.TextSize = font.Size;
 
 			this.paint = paint;
 			Ascent = (int)Math.Abs (paint.FontMetrics.Ascent + 0.5f);
