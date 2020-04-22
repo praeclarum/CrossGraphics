@@ -43,8 +43,13 @@ namespace CrossGraphics.Skia
 		}
 
 		public SkiaGraphics (SKSurface surface)
+			: this (surface.Canvas)
 		{
-			_c = surface.Canvas;
+		}
+
+		public SkiaGraphics (SKCanvas canvas)
+		{
+			_c = canvas;
 			_font = null;
 			SetColor (Colors.Black);
 		}
@@ -380,5 +385,181 @@ namespace CrossGraphics.Skia
 		public static CoreGraphics.CGRect ToCGRect (this SKRectI rect) => new CoreGraphics.CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
 #endif
 	}
+
+#if __ANDROID__
+	public class AndroidSkiaGLCanvas : SkiaSharp.Views.Android.SKGLSurfaceView, ICanvas
+	{
+		int _fps;
+		global::Android.OS.Handler _handler;
+
+		const double CpuUtilization = 0.25;
+		public int MinFps { get; set; }
+		public int MaxFps { get; set; }
+		static readonly TimeSpan ThrottleInterval = TimeSpan.FromSeconds (1.0);
+
+		double _drawTime;
+		int _drawCount;
+		DateTime _lastThrottleTime = DateTime.Now;
+
+		float _zoom = 1.0f;
+		public float Zoom {
+			get { return _zoom; }
+			set {
+				if (value > 0) {
+					_zoom = value;
+				}
+			}
+		}
+
+		CanvasContent _content;
+		public CanvasContent Content {
+			get { return _content; }
+			set {
+				if (_content != value) {
+					if (_content != null) {
+						_content.NeedsDisplay -= HandleNeedsDisplay;
+					}
+					_content = value;
+					if (_content != null) {
+						_content.NeedsDisplay += HandleNeedsDisplay;
+					}
+				}
+			}
+		}
+
+		public AndroidSkiaGLCanvas (global::Android.Content.Context context, global::Android.Util.IAttributeSet attrs)
+			: base (context, attrs)
+		{
+			Initialize (context);
+		}
+
+		public AndroidSkiaGLCanvas (global::Android.Content.Context context)
+			: base (context)
+		{
+			Initialize (context);
+		}
+
+		void Initialize (global::Android.Content.Context context)
+		{
+			_touchMan = new Android.AndroidCanvasTouchManager (0);
+			_touchMan.LocationFromViewLocationFunc = p => new PointF (p.X / _zoom, p.Y / _zoom);
+
+			MinFps = 4;
+			MaxFps = 30;
+			_fps = (MinFps + MaxFps) / 2;
+
+			var a = context as global::Android.App.Activity;
+			if (a != null) {
+				Zoom = Android.ActivityEx.GetDpi (a) / 160.0f;
+			}
+		}
+
+		#region Touching
+
+		Android.AndroidCanvasTouchManager _touchMan;
+
+		public override bool OnTouchEvent (global::Android.Views.MotionEvent e)
+		{
+			var del = Content;
+			if (del != null) {
+				_touchMan.OnTouchEvent (e, Content);
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+
+		#endregion
+
+		#region Drawing
+
+		void HandleNeedsDisplay (object sender, EventArgs e)
+		{
+		}
+
+		bool _running = false;
+
+		public void Start ()
+		{
+			_running = true;
+			_drawCount = 0;
+			_drawTime = 0;
+			_lastThrottleTime = DateTime.Now;
+		}
+
+		public void Stop ()
+		{
+			_running = false;
+		}
+
+		public event EventHandler DrewFrame;
+
+		protected override void OnPaintSurface (SkiaSharp.Views.Android.SKPaintGLSurfaceEventArgs e)
+		{
+			//
+			// Start drawing
+			//
+			var del = Content;
+			if (del == null)
+				return;
+
+			var startT = DateTime.Now;
+
+			var _graphics = new SkiaGraphics (e.Surface);
+			_graphics.SaveState ();
+			_graphics.Scale (Zoom, Zoom);
+
+
+			//
+			// Draw
+			//
+			del.Frame = new RectangleF (0, 0, Width / Zoom, Height / Zoom);
+			try {
+				del.Draw (_graphics);
+			}
+			catch (Exception) {
+			}
+
+			_graphics.RestoreState ();
+
+			var endT = DateTime.Now;
+
+			_drawTime += (endT - startT).TotalSeconds;
+			_drawCount++;
+
+			//
+			// Throttle
+			//
+			if (_running && _drawCount > 2 && (DateTime.Now - _lastThrottleTime) >= ThrottleInterval) {
+
+				_lastThrottleTime = DateTime.Now;
+
+				var maxfps = 1.0 / (_drawTime / _drawCount);
+				_drawTime = 0;
+				_drawCount = 0;
+
+				var fps = ClampUpdateFreq ((int)(maxfps * CpuUtilization));
+
+				if (Math.Abs (fps - _fps) > 1) {
+					_fps = fps;
+					Start ();
+				}
+			}
+
+			//
+			// Notify
+			//
+			DrewFrame?.Invoke (this, EventArgs.Empty);
+		}
+
+		int ClampUpdateFreq (int fps)
+		{
+			return Math.Min (MaxFps, Math.Max (MinFps, fps));
+		}
+
+		#endregion
+	}
+#endif
 }
 

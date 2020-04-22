@@ -63,7 +63,8 @@ namespace CrossGraphics
 
 		public void SetColor (Color c)
 		{
-			if (c.Tag == null) {
+			var tpaints = c.Tag as ColPaints;
+			if (tpaints == null) {
 				var stroke = new Paint ();
 				stroke.Color = global::Android.Graphics.Color.Argb (c.Alpha, c.Red, c.Green, c.Blue);
 				stroke.AntiAlias = true;
@@ -80,7 +81,7 @@ namespace CrossGraphics
 				_paints = paints;
 			}
 			else {
-				_paints = (ColPaints)c.Tag;
+				_paints = tpaints;
 			}
 		}
 
