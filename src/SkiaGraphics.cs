@@ -23,10 +23,7 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 
-using CoreGraphics;
 using SkiaSharp;
-
-using NativePoint = CoreGraphics.CGPoint;
 
 namespace CrossGraphics.Skia
 {
@@ -377,8 +374,11 @@ namespace CrossGraphics.Skia
 	public static partial class Conversions
 	{
 		public static SKColor ToSkiaColor (this Color c) => new SKColor ((byte)c.Red, (byte)c.Green, (byte)c.Blue, (byte)c.Alpha);
-		public static CGRect ToCGRect (this SKRect rect) => new CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
-		public static CGRect ToCGRect (this SKRectI rect) => new CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
+
+#if __IOS__ || __MACOS__
+		public static CoreGraphics.CGRect ToCGRect (this SKRect rect) => new CoreGraphics.CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
+		public static CoreGraphics.CGRect ToCGRect (this SKRectI rect) => new CoreGraphics.CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
+#endif
 	}
 }
 
