@@ -279,6 +279,7 @@ namespace CrossGraphics
 	{
 		public readonly int Red, Green, Blue, Alpha;
 		public object Tag;
+		public object SkiaTag;
 
 		public float RedValue {
 			get { return Red / 255.0f; }
@@ -378,7 +379,8 @@ namespace CrossGraphics
 	{
 		public readonly List<PointF> Points;
 
-		public object Tag { get; set; }
+		public object Tag;
+		public object SkiaTag;
 
 		public int Version { get; set; }
 

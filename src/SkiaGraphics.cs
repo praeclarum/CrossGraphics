@@ -70,7 +70,7 @@ namespace CrossGraphics.Skia
 
 		public void SetColor (Color c)
 		{
-			if (c.Tag is ColPaints paints) {
+			if (c.SkiaTag is ColPaints paints) {
 				_paints = paints;
 				return;
 			}
@@ -89,13 +89,13 @@ namespace CrossGraphics.Skia
 				Fill = fill,
 				Stroke = stroke
 			};
-			c.Tag = paints;
+			c.SkiaTag = paints;
 			_paints = paints;
 		}
 
 		SKPath GetPolyPath (Polygon poly)
 		{
-			var p = poly.Tag as SKPath;
+			var p = poly.SkiaTag as SKPath;
 			if (p == null || p.PointCount != poly.Points.Count) {
 				p = new SKPath ();
 				var ps = poly.Points;
@@ -107,7 +107,7 @@ namespace CrossGraphics.Skia
 					}
 					p.Close ();
 				}
-				poly.Tag = p;
+				poly.SkiaTag = p;
 			}
 			return p;
 		}
