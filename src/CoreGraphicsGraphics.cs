@@ -382,7 +382,7 @@ namespace CrossGraphics.CoreGraphics
 					_c.ScaleCTM (1, -1);
 					_c.TranslateCTM (-x, -y);
 				}
-				yy -= (1.0f - 0.8333f) * fsize;
+				yy -= fsize;
 #if MONOMAC
 				astr2.DrawAtPoint (new CGPoint (x, yy));
 #else
