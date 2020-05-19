@@ -194,7 +194,7 @@ namespace CrossGraphics
 			var end = startIndex + length;
 			for (var i = startIndex; i < end; i++) {
 				var c = (int)text[i];
-				var pw = (c < 128) ? props[c] : avgp;
+				var pw = (c < 128) ? props[c] : (c > 1024 ? 1.0 : avgp);
 				// Should we wrap?
 				if (px + pw > pwidthConstraint && lastSpaceIndex > 0) {
 					lines++;
