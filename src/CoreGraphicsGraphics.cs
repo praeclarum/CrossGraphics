@@ -380,7 +380,11 @@ namespace CrossGraphics.CoreGraphics
 			var _nsattrs = GetNativeStringAttributes (f);
 			_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
 			using var astr2 = new NSAttributedString (s, _nsattrs);
+#if MONOMAC
 			var size = astr2.GetSize ();
+#else
+			var size = astr2.Size;
+#endif
 			yy -= (float)((float)size.Height * 0.8333f);
 			if (flipText) {
 				_c.SaveState ();
