@@ -350,6 +350,13 @@ namespace CrossGraphics.CoreGraphics
 			if (string.IsNullOrEmpty (s))
 				return;
 
+			var f = _lastFont;
+			if (f == null)
+				return;
+			var fsize = f.Size;
+
+			var yy = y + fsize * 0.8333f;
+
 			var isSafe = true;
 			for (var i = 0; isSafe && i < s.Length; i++) {
 				isSafe = s[i] < 127;
@@ -357,47 +364,46 @@ namespace CrossGraphics.CoreGraphics
 					//Console.WriteLine ($"UNSAFE {s} at #{i}");
 				}
 			}
+
 			if (isSafe) {
 				_c.TextMatrix = textMatrix;
-				var fsize = _lastFont != null ? _lastFont.Size : 16;
 				if (flipText) {
-					_c.ShowTextAtPoint (x, y + fsize * 0.8333f, s);
+					_c.ShowTextAtPoint (x, yy, s);
 				}
 				else {
-					_c.ShowTextAtPoint (x, y + fsize * 0.8333f, s);
+					_c.ShowTextAtPoint (x, yy, s);
 				}
 				return;
 			}
 
-			if (_lastFont != null) {
-				_c.TextMatrix = textMatrix;
-				var _nsattrs = GetNativeStringAttributes (_lastFont);
-				_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
-				using var astr2 = new NSAttributedString (s, _nsattrs);
-				var fsize = _lastFont != null ? _lastFont.Size : 16;
-				var yy = y + fsize * 0.8333f;
-				var size = astr2.GetSize ();
-				yy -= (float)((float)size.Height * 0.8333f);
-				if (flipText) {
-					_c.SaveState ();
-					_c.TranslateCTM (x, yy + size.Height);
-					_c.ScaleCTM (1, -1);
+			_c.TextMatrix = textMatrix;
+			var _nsattrs = GetNativeStringAttributes (f);
+			_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
+			using var astr2 = new NSAttributedString (s, _nsattrs);
+			var size = astr2.GetSize ();
+			yy -= (float)((float)size.Height * 0.8333f);
+			if (flipText) {
+				_c.SaveState ();
+				_c.TranslateCTM (x, yy + size.Height);
+				_c.ScaleCTM (1, -1);
 #if MONOMAC
-					astr2.DrawAtPoint (new CGPoint (0, 0));
+				astr2.DrawAtPoint (new CGPoint (0, 0));
 #else
-					astr2.DrawString (new CGPoint (0, 0));
+				astr2.DrawString (new CGPoint (0, 0));
 #endif
-					_c.RestoreState ();
-				}
-				else {
-#if MONOMAC
-					astr2.DrawAtPoint (new CGPoint (x, yy));
-#else
-					astr2.DrawString (new CGPoint (x, yy));
-#endif
-				}
-				return;
+				_c.RestoreState ();
 			}
+			else {
+#if MONOMAC
+				astr2.DrawAtPoint (new CGPoint (x, yy));
+#else
+				astr2.DrawString (new CGPoint (x, yy));
+#endif
+			}
+
+			SelectFont (f);
+
+			return;
 		}
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
