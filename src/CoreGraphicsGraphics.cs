@@ -374,22 +374,27 @@ namespace CrossGraphics.CoreGraphics
 				var _nsattrs = GetNativeStringAttributes (_lastFont);
 				_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
 				using var astr2 = new NSAttributedString (s, _nsattrs);
-				var yy = y;
 				var fsize = _lastFont != null ? _lastFont.Size : 16;
+				var yy = y + fsize * 0.8333f;
+				var size = astr2.GetSize ();
+				yy -= (float)((float)size.Height * 0.8333f);
 				if (flipText) {
 					_c.SaveState ();
-					_c.TranslateCTM (x, y);
+					_c.TranslateCTM (x, yy + size.Height);
 					_c.ScaleCTM (1, -1);
-					_c.TranslateCTM (-x, -y);
-				}
-				yy -= fsize;
 #if MONOMAC
-				astr2.DrawAtPoint (new CGPoint (x, yy));
+					astr2.DrawAtPoint (new CGPoint (0, 0));
 #else
-				astr2.DrawString (new CGPoint (x, yy));
+					astr2.DrawString (new CGPoint (0, 0));
 #endif
-				if (flipText) {
 					_c.RestoreState ();
+				}
+				else {
+#if MONOMAC
+					astr2.DrawAtPoint (new CGPoint (x, yy));
+#else
+					astr2.DrawString (new CGPoint (x, yy));
+#endif
 				}
 				return;
 			}
