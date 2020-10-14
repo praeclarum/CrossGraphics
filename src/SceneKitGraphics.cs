@@ -576,7 +576,9 @@ namespace CrossGraphics.SceneKit
 				}
 				if (ColorChanged (ref style)) {
 					this.style.Color = style.Color;
-					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+					if (Geometry is SCNGeometry g) {
+						g.FirstMaterial = GetNativeMaterial (style.Color);
+					}
 				}
 			}
 		}
@@ -712,7 +714,9 @@ namespace CrossGraphics.SceneKit
 				}
 				if (ColorChanged (ref style)) {
 					this.style.Color = style.Color;
-					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+					if (Geometry is SCNGeometry g) {
+						g.FirstMaterial = GetNativeMaterial (style.Color);
+					}
 				}
 			}
 		}
@@ -747,7 +751,9 @@ namespace CrossGraphics.SceneKit
 				}
 				if (ColorChanged (ref style)) {
 					this.style.Color = style.Color;
-					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+					if (Geometry is SCNGeometry g) {
+						g.FirstMaterial = GetNativeMaterial (style.Color);
+					}
 				}
 			}
 		}
@@ -826,9 +832,15 @@ namespace CrossGraphics.SceneKit
 				if (ColorChanged (ref style)) {
 					this.style.Color = style.Color;
 					var mat = GetNativeMaterial (style.Color);
-					scapNode.Geometry.FirstMaterial = mat;
-					ecapNode.Geometry.FirstMaterial = mat;
-					lineNode.Geometry.FirstMaterial = mat;
+					if (scapNode.Geometry is SCNGeometry sng) {
+						sng.FirstMaterial = mat;
+					}
+					if (Geometry is SCNGeometry eng) {
+						eng.FirstMaterial = mat;
+					}
+					if (Geometry is SCNGeometry lng) {
+						lng.FirstMaterial = mat;
+					}
 				}
 			}
 		}
@@ -858,8 +870,12 @@ namespace CrossGraphics.SceneKit
 				public void SetStyle (ref Style style)
 				{
 					var mat = GetNativeMaterial (style.Color);
-					DotNode.Geometry.FirstMaterial = mat;
-					LineNode.Geometry.FirstMaterial = mat;
+					if (DotNode.Geometry is SCNGeometry dng) {
+						dng.FirstMaterial = mat;
+					}
+					if (LineNode.Geometry is SCNGeometry lng) {
+						lng.FirstMaterial = mat;
+					}
 					var scale = (float)style.W;
 					DotNode.Scale = new SCNVector3 (scale, scale, scale);
 					LineNode.Scale = new SCNVector3 (scale, (float)Length, scale);
@@ -990,7 +1006,9 @@ namespace CrossGraphics.SceneKit
 				}
 				else if (ColorChanged (ref style)) {
 					this.style.Color = style.Color;
-					Geometry.FirstMaterial = GetNativeMaterial (style.Color);
+					if (Geometry is SCNGeometry g) {
+						g.FirstMaterial = GetNativeMaterial (style.Color);
+					}
 				}
 			}
 		}
