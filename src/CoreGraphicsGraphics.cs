@@ -489,7 +489,10 @@ namespace CrossGraphics.CoreGraphics
 			var rect = new CGRect (CGPoint.Empty, img.Size);
 			return new UIKitImage (img.AsCGImage (ref rect, NSGraphicsContext.CurrentContext, new Foundation.NSDictionary ()));
 #else
-			return new UIKitImage (UIImage.FromFile ("Images/" + filename).CGImage);
+			var uiimage = UIImage.FromFile ("Images/" + filename);
+			if (uiimage == null || uiimage.CGImage == null)
+				throw new Exception ("Could not load " + filename);
+			return new UIKitImage (uiimage.CGImage);
 #endif
 		}
 
