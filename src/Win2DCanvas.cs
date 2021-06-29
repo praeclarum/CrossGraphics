@@ -93,6 +93,7 @@ namespace CrossGraphics
 			canvasControl.Draw += Draw;
 			SetRow (canvasControl, 0);
 			SetColumn (canvasControl, 0);
+			Children.Add (canvasControl);
 
             Unloaded += HandleUnloaded;
             Loaded += HandleLoaded;
@@ -287,10 +288,11 @@ namespace CrossGraphics
 
             var good = ActualWidth > 0 && ActualHeight > 0;
             if (!good) return;
-			
+
 			//
 			// Draw
 			//
+			canvasControl.Invalidate ();
 
             //
             // Throttle
