@@ -530,11 +530,11 @@ namespace CrossGraphics.CoreGraphics
 		public static UIColor GetUIColor (this Color c)
 		{
 			var t = c.Tag as ColorTag;
-			if (t == null) {
+			if (t is null) {
 				t = new ColorTag ();
 				c.Tag = t;
 			}
-			if (t.UIColor == null) {
+			if (t.UIColor is null) {
 				t.UIColor = UIColor.FromRGBA (c.Red / 255.0f, c.Green / 255.0f, c.Blue / 255.0f, c.Alpha / 255.0f);
 			}
 			return t.UIColor;
@@ -544,11 +544,11 @@ namespace CrossGraphics.CoreGraphics
 		public static CGColor GetCGColor (this Color c)
 		{
 			var t = c.Tag as ColorTag;
-			if (t == null) {
+			if (t is null) {
 				t = new ColorTag ();
 				c.Tag = t;
 			}
-			if (t.CGColor == null) {
+			if (t.CGColor is null) {
 				t.CGColor = new CGColor (c.Red / 255.0f, c.Green / 255.0f, c.Blue / 255.0f, c.Alpha / 255.0f);
 			}
 			return t.CGColor;
