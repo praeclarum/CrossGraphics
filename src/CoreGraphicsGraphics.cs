@@ -31,7 +31,6 @@ using Foundation;
 using NativeSize = CoreGraphics.CGSize;
 using NativePoint = CoreGraphics.CGPoint;
 using NativeRect = CoreGraphics.CGRect;
-using NativeValue = System.nfloat;
 
 #if MONOMAC
 using AppKit;
