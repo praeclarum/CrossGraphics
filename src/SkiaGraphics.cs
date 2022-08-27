@@ -350,7 +350,7 @@ namespace CrossGraphics.Skia
 			this.paint = paint;
 			Ascent = (int)Math.Abs (paint.FontMetrics.Ascent + 0.5f);
 			Descent = (int)Math.Abs (paint.FontMetrics.Descent + 0.5f);
-			Height = Ascent;
+			Height = Ascent + Descent;
 		}
 
 		public int StringWidth (string s, int startIndex, int length)
