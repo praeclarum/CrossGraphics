@@ -270,6 +270,7 @@ namespace CrossGraphics.Android
 
 		public Func<PointF, PointF> LocationFromViewLocationFunc { get; set; }
 		public event EventHandler LongClick;
+		public event EventHandler DoubleClick;
 
 		PointF LocationFromView (PointF viewLocation)
 		{
@@ -390,6 +391,10 @@ namespace CrossGraphics.Android
 
 			if (began.Count > 0) {
 				content.TouchesBegan (began.ToArray (), CanvasKeys.None);
+				if (began.Count == 1 && began[0].TapCount == 2)
+				{
+					DoubleClick?.Invoke(this, EventArgs.Empty);
+				}
 			}
 			if (moved.Count > 0) {
 				content.TouchesMoved (moved.ToArray ());
