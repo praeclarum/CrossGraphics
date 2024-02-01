@@ -85,7 +85,7 @@ namespace CrossGraphics.Android
 		void Initialize (global::Android.Content.Context context)
 		{
 			_touchMan = new AndroidCanvasTouchManager (0);
-			_touchMan.LocationFromViewLocationFunc = p => new PointF (p.X / _zoom, p.Y / _zoom);
+			_touchMan.LocationFromViewLocationFunc = p => new System.Drawing.PointF (p.X / _zoom, p.Y / _zoom);
 
 			MinFps = 4;
 			MaxFps = 30;
