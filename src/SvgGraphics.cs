@@ -105,7 +105,7 @@ namespace CrossGraphics
 				WriteLine ("</g>");
 			}
 			var id = (entity != null) ? entity.ToString () : "";
-			id = id.Trim ().Replace ("\n", " ").Replace ("&", "&amp;").Replace ("\"", "&quot;");
+			id = id.Trim ().Replace ("\n", " ").Replace ("&", "&amp;").Replace ("\"", "&quot;").Replace ("'", "&apos;").Replace ("<", "&lt;").Replace (">", "&gt;");
 			WriteLine ("<g id=\"{0}\">", id);
 			inGroup = true;
 		}
