@@ -375,6 +375,98 @@ namespace CrossGraphics
 		public static readonly Color DarkGray = new Color (64, 64, 64);
 	}
 
+	public struct ValueColor
+	{
+		public byte Red, Green, Blue, Alpha;
+
+		public float RedValue {
+			get { return Red / 255.0f; }
+		}
+
+		public float GreenValue {
+			get { return Green / 255.0f; }
+		}
+
+		public float BlueValue {
+			get { return Blue / 255.0f; }
+		}
+
+		public float AlphaValue {
+			get { return Alpha / 255.0f; }
+		}
+
+		public ValueColor (byte red, byte green, byte blue)
+		{
+			Red = red;
+			Green = green;
+			Blue = blue;
+			Alpha = 255;
+		}
+
+		public ValueColor (byte red, byte green, byte blue, byte alpha)
+		{
+			Red = red;
+			Green = green;
+			Blue = blue;
+			Alpha = alpha;
+		}
+
+		public Color GetColor () => new Color (Red, Green, Blue, Alpha);
+
+		public int Intensity { get { return (Red + Green + Blue) / 3; } }
+
+		public ValueColor GetInvertedColor()
+		{
+			return new ValueColor ((byte)(255 - Red), (byte)(255 - Green), (byte)(255 - Blue), Alpha);
+		}
+
+		public static bool AreEqual(Color a, Color b)
+		{
+			return (a.Red == b.Red && a.Green == b.Green && a.Blue == b.Blue && a.Alpha == b.Alpha);
+		}
+
+		public bool IsWhite {
+			get { return (Red == 255) && (Green == 255) && (Blue == 255); }
+		}
+
+		public bool IsBlack {
+			get { return (Red == 0) && (Green == 0) && (Blue == 0); }
+		}
+
+		public Color WithAlpha(int aa)
+		{
+			return new Color (Red, Green, Blue, aa);
+		}
+
+		public override bool Equals (object obj)
+		{
+			if (obj is ValueColor o) {
+				return (o.Red == Red) && (o.Green == Green) && (o.Blue == Blue) && (o.Alpha == Alpha);
+			}
+			return false;
+		}
+
+		public override int GetHashCode ()
+		{
+			return (Red + Green + Blue + Alpha).GetHashCode ();
+		}
+
+		public override string ToString()
+		{
+			return string.Format ("[ValueColor: RedValue={0}, GreenValue={1}, BlueValue={2}, AlphaValue={3}]", RedValue, GreenValue, BlueValue, AlphaValue);
+		}
+
+		public static bool operator == (ValueColor left, ValueColor right)
+		{
+			return left.Red == right.Red && left.Green == right.Green && left.Blue == right.Blue && left.Alpha == right.Alpha;
+		}
+
+		public static bool operator != (ValueColor left, ValueColor right)
+		{
+			return left.Red != right.Red || left.Green != right.Green || left.Blue != right.Blue || left.Alpha != right.Alpha;
+		}
+	}
+
 	public class Polygon
 	{
 		public readonly List<PointF> Points;
