@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <Version>1.0.0</Version>
+        <TargetFrameworks>netstandard1.2;netstandard2.0;net8.0-ios;net8.0-macos;net8.0-android</TargetFrameworks>
+        <Authors>praeclarum</Authors>
+        <Description>Cross-platform library for rendering vector graphics and writing graphics-rich apps. Supports iOS, OS X, Android, Windows Phone, Windows RT, WPF among a variety of file formats.</Description>
+        <PackageTags>graphics;rendering;vector;draw;svg;wmf</PackageTags>
+        <PackageProjectUrl>https://github.com/praeclarum/CrossGraphics</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <LangVersion>12.0</LangVersion>
+        <Nullable>enable</Nullable>
+        <EnableDefaultItems>false</EnableDefaultItems>
+    </PropertyGroup>
+</Project>
