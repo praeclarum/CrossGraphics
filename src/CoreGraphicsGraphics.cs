@@ -1,7 +1,7 @@
 #nullable enable
 
 //
-// Copyright (c) 2010-2020 Frank A. Krueger
+// Copyright (c) 2010-2024 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -64,7 +64,7 @@ namespace CrossGraphics.CoreGraphics
 	public class CoreGraphicsGraphics : IGraphics
 	{
 		CGContext _c;
-		CGColor _cgcol;
+		ValueColor _lastColor;
 
 		readonly bool flipText;
 		readonly CGAffineTransform textMatrix;
@@ -73,7 +73,7 @@ namespace CrossGraphics.CoreGraphics
 		static readonly Dictionary<(string, int), NativeStringAttributes> cachedNSAttrs = new Dictionary<(string, int), NativeStringAttributes> ();
 		static readonly Dictionary<(string, int), CTStringAttributes> cachedCTAttrs = new Dictionary<(string, int), CTStringAttributes> ();
 
-		static CoreGraphicsGraphics ()
+		static void DumpFonts ()
 		{
 			//foreach (var f in UIFont.FamilyNames) {
 			//	Console.WriteLine (f);
@@ -87,10 +87,9 @@ namespace CrossGraphics.CoreGraphics
 		public CoreGraphicsGraphics (CGContext c, bool highQuality, bool flipText = false)
 		{
 			if (c == null)
-				throw new ArgumentNullException ("c");
+				throw new ArgumentNullException (nameof (c));
 
 			_c = c;
-			_cgcol = NativeColor.Black.CGColor;
 
 			this.flipText = flipText;
 			textMatrix = CGAffineTransform.MakeScale (1, -1);
@@ -114,6 +113,7 @@ namespace CrossGraphics.CoreGraphics
 			var alpha = (nfloat)(c.Alpha / 255.0);
 			_c.SetFillColor (red: red, green: green, blue: blue, alpha: alpha);
 			_c.SetStrokeColor (red: red, green: green, blue: blue, alpha: alpha);
+			_lastColor = new ValueColor ((byte)c.Red, (byte)c.Green, (byte)c.Blue, (byte)c.Alpha);
 		}
 		
 		public void SetRgba (byte r, byte g, byte b, byte a)
@@ -124,6 +124,7 @@ namespace CrossGraphics.CoreGraphics
 			var alpha = (nfloat)(a / 255.0);
 			_c.SetFillColor (red: red, green: green, blue: blue, alpha: alpha);
 			_c.SetStrokeColor (red: red, green: green, blue: blue, alpha: alpha);
+			_lastColor = new ValueColor (r, g, b, a);
 		}
 
 		public void Clear (Color color)
@@ -397,11 +398,13 @@ namespace CrossGraphics.CoreGraphics
 
 			_c.TextMatrix = textMatrix;
 			var _nsattrs = GetNativeStringAttributes (f);
-			_nsattrs.ForegroundColor = NativeColor.FromCGColor (_cgcol);
-			using var astr2 = new NSAttributedString (s, _nsattrs);
 #if MONOMAC
+			_nsattrs.ForegroundColor = NativeColor.FromRgba (_lastColor.Red, _lastColor.Green, _lastColor.Blue, _lastColor.Alpha);
+			using var astr2 = new NSAttributedString (s, _nsattrs);
 			var size = astr2.GetSize ();
 #else
+			_nsattrs.ForegroundColor = NativeColor.FromRGBA (_lastColor.Red, _lastColor.Green, _lastColor.Blue, _lastColor.Alpha);
+			using var astr2 = new NSAttributedString (s, _nsattrs);
 			var size = astr2.Size;
 #endif
 			yy -= (float)((float)size.Height * 0.8333f);
