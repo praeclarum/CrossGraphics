@@ -380,7 +380,6 @@ namespace CrossGraphics.Skia
 	public class AndroidSkiaGLCanvas : SkiaSharp.Views.Android.SKGLSurfaceView, ICanvas
 	{
 		int _fps;
-		global::Android.OS.Handler _handler;
 
 		const double CpuUtilization = 0.25;
 		public int MinFps { get; set; }

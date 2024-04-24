@@ -30,7 +30,9 @@
         <Compile Include="Canvas.cs" />
         <Compile Include="Graphics.cs" />
         <Compile Include="NullGraphics.cs" />
+        <Compile Include="SkiaGraphics.cs" />
         <Compile Include="SvgGraphics.cs" />
+        <PackageReference Include="SkiaSharp" Version="2.88.8" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
@@ -43,16 +45,19 @@
         <Compile Include="AndroidShapeStore.cs" />
         <Compile Include="OpenGLGraphics.cs" />
         <PackageReference Include="Xamarin.Legacy.OpenTK" Version="1.0.2" />
+        <PackageReference Include="SkiaSharp.Views" Version="2.88.8" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
         <Compile Include="CoreGraphicsCanvas.cs" />
         <Compile Include="CoreGraphicsGraphics.cs" />
+        <PackageReference Include="SkiaSharp.Views" Version="2.88.8" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">
         <Compile Include="CoreGraphicsCanvas.cs" />
         <Compile Include="CoreGraphicsGraphics.cs" />
         <Compile Include="SceneKitGraphics.cs" />
+        <PackageReference Include="SkiaSharp.Views" Version="2.88.8" />
     </ItemGroup>
 </Project>
