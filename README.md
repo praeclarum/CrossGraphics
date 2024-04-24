@@ -6,7 +6,7 @@ on a variety of platforms running .NET.
 Currently the following platforms are supported:
 
 * iOS and macOS using [CoreGraphicsGraphics.cs](https://github.com/praeclarum/CrossGraphics/blob/master/CoreGraphicsGraphics.cs)
-* Android using [DroidGraphics.cs](https://github.com/praeclarum/CrossGraphics/blob/master/DroidGraphics.cs)
+* Android using [AndroidGraphics.cs](https://github.com/praeclarum/CrossGraphics/blob/master/AndroidGraphics.cs)
 * Cross-platform SkiaSharp using [SkiaSharpGraphics.cs](https://github.com/praeclarum/CrossGraphics/blob/master/SkiaGraphics.cs)
 * Cross-platform SVG using [SvgGraphics.cs](https://github.com/praeclarum/CrossGraphics/blob/master/SvgGraphics.cs)
 
