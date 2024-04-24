@@ -40,6 +40,9 @@
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
         <Compile Include="AndroidGraphics.cs" />
         <Compile Include="AndroidGraphicsCanvas.cs" />
+        <Compile Include="AndroidShapeStore.cs" />
+        <Compile Include="OpenGLGraphics.cs" />
+        <PackageReference Include="Xamarin.Legacy.OpenTK" Version="1.0.2" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
