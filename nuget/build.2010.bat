@@ -1,1 +1,0 @@
-NuGet Pack CrossGraphics.2010.nuspec -o .\
