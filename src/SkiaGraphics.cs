@@ -32,6 +32,7 @@ namespace CrossGraphics.Skia
 		SKCanvas _c;
 		ColPaints _paints;
 		Font _font;
+		readonly ColorCache _colorCache = new ();
 
 		public SKCanvas Canvas { get { return _c; } }
 
@@ -99,8 +100,8 @@ namespace CrossGraphics.Skia
 		
 		public void SetRgba (byte r, byte g, byte b, byte a)
 		{
-			var valueColor = new ValueColor (red: r, green: g, blue: b, alpha: a);
-			SetSkiaColor (valueColor.ToSkiaColor ());
+			var color = _colorCache.GetColor (r, g, b, a);
+			SetColor (color);
 		}
 
 		SKPath GetPolyPath (Polygon poly)
