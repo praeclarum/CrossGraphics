@@ -84,6 +84,23 @@ namespace CrossGraphics
 				_paints = tpaints;
 			}
 		}
+		
+		public void SetRgba (byte r, byte g, byte b, byte a)
+		{
+			var stroke = new Paint ();
+			stroke.Color = global::Android.Graphics.Color.Argb (alpha: a, red: r, green: g, blue: b);
+			stroke.AntiAlias = true;
+			stroke.SetStyle (Paint.Style.Stroke);
+			var fill = new Paint ();
+			fill.Color = global::Android.Graphics.Color.Argb (alpha: a, red: r, green: g, blue: b);
+			fill.AntiAlias = true;
+			fill.SetStyle (Paint.Style.Fill);
+			var paints = new ColPaints () {
+				Fill = fill,
+				Stroke = stroke
+			};
+			_paints = paints;
+		}
 
 		Path GetPolyPath (Polygon poly)
 		{

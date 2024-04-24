@@ -67,16 +67,11 @@ namespace CrossGraphics.Skia
 		{
 
 		}
-
-		public void SetColor (Color c)
+		
+		ColPaints SetSkiaColor (SKColor c)
 		{
-			if (c.SkiaTag is ColPaints paints) {
-				_paints = paints;
-				return;
-			}
-
 			var stroke = new SKPaint ();
-			stroke.Color = c.ToSkiaColor ();
+			stroke.Color = c;
 			stroke.IsAntialias = true;
 			stroke.Style = SKPaintStyle.Stroke;
 			stroke.StrokeCap = SKStrokeCap.Round;
@@ -85,12 +80,27 @@ namespace CrossGraphics.Skia
 			fill.Color = stroke.Color;
 			fill.IsAntialias = true;
 			fill.Style = SKPaintStyle.Fill;
-			paints = new ColPaints {
+			var paints = new ColPaints {
 				Fill = fill,
 				Stroke = stroke
 			};
-			c.SkiaTag = paints;
 			_paints = paints;
+			return paints;
+		}
+
+		public void SetColor (Color c)
+		{
+			if (c.SkiaTag is ColPaints paints) {
+				_paints = paints;
+				return;
+			}
+			c.SkiaTag = SetSkiaColor (c.ToSkiaColor ());
+		}
+		
+		public void SetRgba (byte r, byte g, byte b, byte a)
+		{
+			var valueColor = new ValueColor (red: r, green: g, blue: b, alpha: a);
+			SetSkiaColor (valueColor.ToSkiaColor ());
 		}
 
 		SKPath GetPolyPath (Polygon poly)
@@ -369,6 +379,7 @@ namespace CrossGraphics.Skia
 	public static partial class Conversions
 	{
 		public static SKColor ToSkiaColor (this Color c) => new SKColor ((byte)c.Red, (byte)c.Green, (byte)c.Blue, (byte)c.Alpha);
+		public static SKColor ToSkiaColor (this ValueColor c) => new SKColor ((byte)c.Red, (byte)c.Green, (byte)c.Blue, (byte)c.Alpha);
 
 #if __IOS__ || __MACOS__
 		public static global::CoreGraphics.CGRect ToCGRect (this SKRect rect) => new global::CoreGraphics.CGRect (rect.Left, rect.Top, rect.Width, rect.Height);

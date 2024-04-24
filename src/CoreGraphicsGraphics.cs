@@ -25,6 +25,7 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+
 using CoreGraphics;
 using CoreText;
 using Foundation;
@@ -110,6 +111,16 @@ namespace CrossGraphics.CoreGraphics
 			_cgcol = c.GetCGColor ();
 			_c.SetFillColor (_cgcol);
 			_c.SetStrokeColor (_cgcol);
+		}
+		
+		public void SetRgba (byte r, byte g, byte b, byte a)
+		{
+			var red = (nfloat)(r / 255.0);
+			var green = (nfloat)(g / 255.0);
+			var blue = (nfloat)(b / 255.0);
+			var alpha = (nfloat)(a / 255.0);
+			_c.SetFillColor (red: red, green: green, blue: blue, alpha: alpha);
+			_c.SetStrokeColor (red: red, green: green, blue: blue, alpha: alpha);
 		}
 
 		public void Clear (Color color)

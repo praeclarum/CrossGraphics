@@ -135,6 +135,11 @@ namespace CrossGraphics.SceneKit
 		{
 			currentColor = c;
 		}
+		
+		public void SetRgba (byte r, byte g, byte b, byte a)
+		{
+			currentColor = new Color (red: r, green: g, blue: b, alpha: a);
+		}
 
 		static NativeColor GetNativeColor (Color c)
 		{

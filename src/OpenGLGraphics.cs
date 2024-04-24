@@ -428,6 +428,16 @@ namespace CrossGraphics.OpenGL
 				A = (byte)c.Alpha,
 			};
 		}
+		
+		public void SetRgba (byte r, byte g, byte b, byte a)
+		{
+			_color = new OpenGLColor {
+				R = r,
+				G = g,
+				B = b,
+				A = a,
+			};
+		}
 
 		public void FillPolygon (Polygon poly)
 		{

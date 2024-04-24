@@ -167,11 +167,22 @@ namespace CrossGraphics
 		{
 			return string.Format("#{0:X2}{1:X2}{2:X2}", c.Red, c.Green, c.Blue);
 		}
+		
+		static string FormatColor (byte r, byte g, byte b)
+		{
+			return string.Format("#{0:X2}{1:X2}{2:X2}", r, g, b);
+		}
 
 		public void SetColor (Color c)
 		{
 			_lastColor = FormatColor (c);
 			_lastColorOpacity = string.Format (icult, "{0}", c.Alpha / 255.0);
+		}
+		
+		public void SetRgba (byte r, byte g, byte b, byte a)
+		{
+			_lastColor = FormatColor (r, g, b);
+			_lastColorOpacity = string.Format (icult, "{0}", a / 255.0);
 		}
 
 		PointF Transform (PointF p)

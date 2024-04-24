@@ -35,6 +35,8 @@ namespace CrossGraphics
 
 		void SetColor(Color c);
 
+		void SetRgba(byte r, byte g, byte b, byte a);
+
 		void Clear (Color c);
 
 		void FillPolygon(Polygon poly);

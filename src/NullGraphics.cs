@@ -43,6 +43,10 @@ namespace CrossGraphics
 		{
 		}
 
+		public void SetRgba (byte r, byte g, byte b, byte a)
+		{
+		}
+
 		public void Clear (Color c)
 		{
 		}
