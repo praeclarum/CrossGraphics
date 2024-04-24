@@ -28,6 +28,8 @@ jobs:
       run: sudo dotnet workload restore
     - name: Build
       run: dotnet build -c Release
+    - name: Test
+      run: dotnet test -c Release --no-build
     - name: Package on push
       if: github.event_name == 'push'
       run: dotnet pack -c Release --no-build -o ./artifacts
