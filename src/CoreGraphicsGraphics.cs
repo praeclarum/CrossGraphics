@@ -108,9 +108,12 @@ namespace CrossGraphics.CoreGraphics
 
 		public void SetColor (Color c)
 		{
-			_cgcol = c.GetCGColor ();
-			_c.SetFillColor (_cgcol);
-			_c.SetStrokeColor (_cgcol);
+			var red = (nfloat)(c.Red / 255.0);
+			var green = (nfloat)(c.Green / 255.0);
+			var blue = (nfloat)(c.Blue / 255.0);
+			var alpha = (nfloat)(c.Alpha / 255.0);
+			_c.SetFillColor (red: red, green: green, blue: blue, alpha: alpha);
+			_c.SetStrokeColor (red: red, green: green, blue: blue, alpha: alpha);
 		}
 		
 		public void SetRgba (byte r, byte g, byte b, byte a)
