@@ -367,7 +367,7 @@ namespace CrossGraphics
 			return string.Format ("[Color: RedValue={0}, GreenValue={1}, BlueValue={2}, AlphaValue={3}]", RedValue, GreenValue, BlueValue, AlphaValue);
 		}
 	}
-
+	
 	public static class Colors
 	{
 		public static readonly Color Yellow = new Color (255, 255, 0);
@@ -380,6 +380,26 @@ namespace CrossGraphics
 		public static readonly Color LightGray = new Color (212, 212, 212);
 		public static readonly Color Gray = new Color (127, 127, 127);
 		public static readonly Color DarkGray = new Color (64, 64, 64);
+	}
+
+	public class ColorCache
+	{
+		private readonly Dictionary<uint, Color> _colors = new ();
+		
+		public Color GetColor (byte r, byte g, byte b, byte a = 255)
+		{
+			var key = ((uint)r << 24) | ((uint)g << 16) | ((uint)b << 8) | a;
+			if (!_colors.TryGetValue (key, out var c)) {
+				c = new Color (r, g, b, a);
+				_colors[key] = c;
+			}
+			return c;
+		}
+		
+		public Color GetColor (ValueColor color)
+		{
+			return GetColor (color.Red, color.Green, color.Blue, color.Alpha);
+		}
 	}
 
 	public struct ValueColor

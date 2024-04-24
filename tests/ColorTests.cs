@@ -50,4 +50,35 @@ public class ColorTests
 		Assert.That (s, Does.Contain ("fill=\"#113355\""));
 		Assert.That (s, Does.Contain ("fill-opacity=\"0.66"));
 	}
+
+	[Test]
+	public void ColorCacheColorsWork ()
+	{
+		var cc = new ColorCache ();
+		var c1 = cc.GetColor (0x11, 0x22, 0x33, 0x44);
+		Assert.Multiple (() => {
+			Assert.That (c1.Red, Is.EqualTo (0x11));
+			Assert.That (c1.Green, Is.EqualTo (0x22));
+			Assert.That (c1.Blue, Is.EqualTo (0x33));
+			Assert.That (c1.Alpha, Is.EqualTo (0x44));
+		});
+	}
+
+	[Test]
+	public void ColorCacheColorsAreTheSameObject ()
+	{
+		var cc = new ColorCache ();
+		var c1 = cc.GetColor (0x11, 0x22, 0x33, 0x44);
+		var c2 = cc.GetColor (0x11, 0x22, 0x33, 0x44);
+		Assert.That (ReferenceEquals (c1, c2));
+	}
+	
+	[Test]
+	public void ColorCacheDifferentColorsAreDifferentObjects ()
+	{
+		var cc = new ColorCache ();
+		var c1 = cc.GetColor (0x11, 0x22, 0x33, 0x44);
+		var c2 = cc.GetColor (0x10, 0x22, 0x33, 0x44);
+		Assert.That (!ReferenceEquals (c1, c2));
+	}
 }
