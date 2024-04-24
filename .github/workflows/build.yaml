@@ -33,7 +33,7 @@ jobs:
       run: dotnet pack -c Release --no-build -o ./artifacts
     - name: Upload Package
       if: github.event_name == 'push'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: CrossGraphicsPackages
         path: ./artifacts/*
