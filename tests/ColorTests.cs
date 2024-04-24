@@ -1,3 +1,7 @@
+using System.Drawing;
+
+using Color = CrossGraphics.Color;
+
 namespace CrossGraphicsTests;
 
 public class ColorTests
@@ -30,5 +34,20 @@ public class ColorTests
 			Assert.That (c.Blue, Is.EqualTo (0x55));
 			Assert.That (c.Alpha, Is.EqualTo (0xAA));
 		});
+	}
+
+	[Test]
+	public void CanSetValueColorOnGraphics ()
+	{
+		var w = new StringWriter ();
+		var g = new SvgGraphics (w, new RectangleF (0, 0, 320, 240));
+		var vc = new ValueColor (0x11, 0x33, 0x55, 0xAA);
+		g.BeginDrawing ();
+		g.SetColor (vc);
+		g.FillRect (10, 20, 100, 150);
+		g.EndDrawing ();
+		var s = w.ToString ();
+		Assert.That (s, Does.Contain ("fill=\"#113355\""));
+		Assert.That (s, Does.Contain ("fill-opacity=\"0.66"));
 	}
 }

@@ -101,6 +101,11 @@ namespace CrossGraphics
 
 	public static class GraphicsEx
 	{
+		public static void SetColor (this IGraphics g, ValueColor c)
+		{
+			g.SetRgba (c.Red, c.Green, c.Blue, c.Alpha);
+		}
+
         public static void DrawString (this IGraphics g, string s, PointF p)
         {
             g.DrawString(s, p.X, p.Y);
