@@ -28,3 +28,12 @@ jobs:
       run: sudo dotnet workload restore
     - name: Build
       run: dotnet build -c Release
+    - name: Package on push
+      if: github.event_name == 'push'
+      run: dotnet pack -c Release --no-build -o ./artifacts
+    - name: Upload Package
+      if: github.event_name == 'push'
+      uses: actions/upload-artifact@v2
+      with:
+        name: CrossGraphicsPackages
+        path: ./artifacts/*
