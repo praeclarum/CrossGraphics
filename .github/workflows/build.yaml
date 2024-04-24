@@ -1,0 +1,30 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: macos-13
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Update Versions
+      env:
+        VERSION_PREFIX: '1.1'
+        VERSION_SUFFIX: ${{github.run_number}}
+      run: |
+        VERSION=$VERSION_PREFIX.$VERSION_SUFFIX
+        sed -i bak "s:<Version>1.0.0</Version>:<Version>$VERSION</Version>:g" src/CrossGraphics.csproj
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+    - name: Restore Workloads
+      run: sudo dotnet workload restore
+    - name: Build
+      run: dotnet build -c Release
