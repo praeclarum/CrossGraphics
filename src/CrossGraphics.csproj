@@ -33,6 +33,7 @@
         <Compile Include="NullGraphics.cs" />
         <Compile Include="SkiaGraphics.cs" />
         <Compile Include="SvgGraphics.cs" />
+        <Compile Include="WmfGraphics.cs" />
         <None Include="..\README.md" Pack="true" PackagePath="\" />
 
         <PackageReference Include="SkiaSharp" Version="2.88.8" />

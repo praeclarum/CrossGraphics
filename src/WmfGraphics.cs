@@ -181,6 +181,11 @@ namespace CrossGraphics
 			_lastColor = c;
 		}
 
+		public void SetRgba (byte r, byte g, byte b, byte a)
+		{
+			_lastColor = new Color (red: r, green: g, blue: b, alpha: a);
+		}
+
 		public void Clear (Color c)
 		{
 		}
