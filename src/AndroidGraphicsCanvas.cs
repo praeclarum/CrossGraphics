@@ -22,12 +22,14 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Threading;
 
 
 namespace CrossGraphics.Android
 {
+	[SuppressMessage("Interoperability", "CA1422:Validate platform compatibility")]
 	public class AndroidGraphicsCanvas : global::Android.Views.View, ICanvas
 	{
 		int _fps;
@@ -220,6 +222,7 @@ namespace CrossGraphics.Android
 		#endregion
 	}
 
+	[SuppressMessage("Interoperability", "CA1422:Validate platform compatibility")]
 	public class AndroidCanvasTouchManager
 	{
 		const int MaxTouchId = 10;
@@ -433,6 +436,7 @@ namespace CrossGraphics.Android
 		}
 	}
 
+	[SuppressMessage("Interoperability", "CA1422:Validate platform compatibility")]
 	public static class ActivityEx
 	{
 		public static float GetDpi (this global::Android.App.Activity activity)

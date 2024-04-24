@@ -24,13 +24,18 @@
 using System;
 using System.Drawing;
 using System.Collections.Generic;
-
+using System.Diagnostics.CodeAnalysis;
 using CoreGraphics;
 using CoreText;
 using Foundation;
 using NativeSize = CoreGraphics.CGSize;
 using NativePoint = CoreGraphics.CGPoint;
+
+#if NET8_0_OR_GREATER
 using NativeRect = CoreGraphics.CGRect;
+#else
+using NativeRect = System.Drawing.RectangleF;
+#endif
 
 #if MONOMAC
 using AppKit;
@@ -54,6 +59,7 @@ namespace CrossGraphics.CoreGraphics
 	}
 #endif
 
+	[SuppressMessage("Interoperability", "CA1422:Validate platform compatibility")]
 	public class CoreGraphicsGraphics : IGraphics
 	{
 		CGContext _c;
@@ -164,7 +170,7 @@ namespace CrossGraphics.CoreGraphics
 				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillRect");
 				return;
 			}
-			_c.FillRect (new RectangleF (x, y, width, height));
+			_c.FillRect (new NativeRect (x, y, width, height));
 		}
 
 		public void FillOval (float x, float y, float width, float height)
@@ -173,7 +179,7 @@ namespace CrossGraphics.CoreGraphics
 				System.Diagnostics.Debug.WriteLine ("NaN in CoreGraphicsGraphics.FillOval");
 				return;
 			}
-			_c.FillEllipseInRect (new RectangleF (x, y, width, height));
+			_c.FillEllipseInRect (new NativeRect (x, y, width, height));
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
@@ -183,7 +189,7 @@ namespace CrossGraphics.CoreGraphics
 				return;
 			}
 			_c.SetLineWidth (w);
-			_c.StrokeEllipseInRect (new RectangleF (x, y, width, height));
+			_c.StrokeEllipseInRect (new NativeRect (x, y, width, height));
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
@@ -193,7 +199,7 @@ namespace CrossGraphics.CoreGraphics
 				return;
 			}
 			_c.SetLineWidth (w);
-			_c.StrokeRect (new RectangleF (x, y, width, height));
+			_c.StrokeRect (new NativeRect (x, y, width, height));
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
@@ -341,7 +347,7 @@ namespace CrossGraphics.CoreGraphics
 
 		public void SetClippingRect (float x, float y, float width, float height)
 		{
-			_c.ClipToRect (new RectangleF (x, y, width, height));
+			_c.ClipToRect (new NativeRect (x, y, width, height));
 		}
 
 		public void DrawString (string s, float x, float y)
@@ -454,7 +460,7 @@ namespace CrossGraphics.CoreGraphics
 		{
 			if (img is UIKitImage) {
 				var uiImg = ((UIKitImage)img).Image;
-				_c.DrawImage (new RectangleF (x, y, width, height), uiImg);
+				_c.DrawImage (new NativeRect (x, y, width, height), uiImg);
 			}
 		}
 
@@ -603,6 +609,7 @@ namespace CrossGraphics.CoreGraphics
 		}
 	}
 
+	[SuppressMessage("Interoperability", "CA1422:Validate platform compatibility")]
 	public class NSStringFontMetrics : IFontMetrics
 	{
 		int _ascent;
