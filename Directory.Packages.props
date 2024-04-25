@@ -1,0 +1,35 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="CLanguage" Version="0.20.74" />
+    <PackageVersion Include="CLanguage.Editor" Version="0.20.74" />
+    <PackageVersion Include="CrossGraphics" Version="1.2.14" />
+    <PackageVersion Include="MarkdownDeep.NET.Core" Version="1.5.0.4" />
+    <PackageVersion Include="Microsoft.AppCenter.Analytics" Version="4.5.0" />
+    <PackageVersion Include="Microsoft.AppCenter.Crashes" Version="4.5.0" />
+    <PackageVersion Include="Microsoft.AppCenter" Version="4.5.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
+    <PackageVersion Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageVersion Include="Newtonsoft.Json.Bson" Version="1.0.2" />
+    <PackageVersion Include="NGraphics" Version="0.6.0-beta2" />
+    <PackageVersion Include="NUnit" Version="3.12.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="3.16.1" />
+    <PackageVersion Include="Praeclarum.Utilities" Version="0.2.43" />
+    <PackageVersion Include="SkiaSharp" Version="2.88.8" />
+    <PackageVersion Include="SkiaSharp.Views" Version="2.88.8" />
+    <PackageVersion Include="SkiaSharp.Views.Maui.Controls" Version="2.88.8" />
+    <PackageVersion Include="System.Numerics.Vectors" Version="4.5.0" />
+    <PackageVersion Include="Teronis.MSBuild.Packaging.ProjectBuildInPackage" Version="1.0.0" />
+    <PackageVersion Include="WindowsAzure.Storage" Version="9.3.3" />
+    <PackageVersion Include="Xamarin.Essentials" Version="1.7.3" />
+    <PackageVersion Include="Xamarin.Google.Android.Material" Version="1.0.0.1" />
+    <PackageVersion Include="Xamarin.Legacy.OpenTK" Version="1.0.2" />
+    <PackageVersion Include="Xamarin.AndroidX.AppCompat" Version="1.5.1.1" />
+    <PackageVersion Include="Xamarin.AndroidX.AppCompat.AppCompatResources" Version="1.5.1.1" />
+    <PackageVersion Include="Xamarin.AndroidX.CardView" Version="1.0.0.17" />
+    <PackageVersion Include="Xamarin.AndroidX.Legacy.Support.V4" Version="1.0.0.15" />
+    <PackageVersion Include="Xamarin.AndroidX.Lifecycle.LiveData" Version="2.5.1.1" />
+  </ItemGroup>
+</Project>

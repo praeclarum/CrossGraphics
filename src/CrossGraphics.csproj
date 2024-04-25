@@ -36,11 +36,11 @@
         <Compile Include="WmfGraphics.cs" />
         <None Include="..\README.md" Pack="true" PackagePath="\" />
 
-        <PackageReference Include="SkiaSharp" Version="2.88.8" />
+        <PackageReference Include="SkiaSharp" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-        <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+        <PackageReference Include="System.Numerics.Vectors" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
@@ -48,26 +48,26 @@
         <Compile Include="AndroidGraphicsCanvas.cs" />
         <Compile Include="AndroidShapeStore.cs" />
         <Compile Include="OpenGLGraphics.cs" />
-        <PackageReference Include="Xamarin.Legacy.OpenTK" Version="1.0.2" />
-        <PackageReference Include="SkiaSharp.Views" Version="2.88.8" />
+        <PackageReference Include="Xamarin.Legacy.OpenTK" />
+        <PackageReference Include="SkiaSharp.Views" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
         <Compile Include="CoreGraphicsCanvas.cs" />
         <Compile Include="CoreGraphicsGraphics.cs" />
-        <PackageReference Include="SkiaSharp.Views" Version="2.88.8" />
+        <PackageReference Include="SkiaSharp.Views" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">
         <Compile Include="CoreGraphicsCanvas.cs" />
         <Compile Include="CoreGraphicsGraphics.cs" />
         <Compile Include="SceneKitGraphics.cs" />
-        <PackageReference Include="SkiaSharp.Views" Version="2.88.8" />
+        <PackageReference Include="SkiaSharp.Views" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
         <Compile Include="CoreGraphicsCanvas.cs" />
         <Compile Include="CoreGraphicsGraphics.cs" />
-        <PackageReference Include="SkiaSharp.Views" Version="2.88.8" />
+        <PackageReference Include="SkiaSharp.Views" />
     </ItemGroup>
 </Project>
