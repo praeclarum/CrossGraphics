@@ -63,7 +63,7 @@ namespace CrossGraphics.CoreGraphics
 	[SuppressMessage("Interoperability", "CA1422:Validate platform compatibility")]
 	public class CoreGraphicsGraphics : IGraphics
 	{
-		CGContext _c;
+		readonly CGContext _c;
 		ValueColor _lastColor;
 
 		readonly bool flipText;
@@ -759,7 +759,7 @@ namespace CrossGraphics.CoreGraphics
 
 	public class MacRomanEncoding
 	{
-		static Dictionary<int, byte> _uniToMac = new Dictionary<int, byte> () {
+		static readonly Dictionary<int, byte> _uniToMac = new Dictionary<int, byte> () {
 			{160, 202}, {161, 193}, {162, 162}, {163, 163}, {165, 180}, {167, 164}, {168, 172}, {169,
 			169}, {170, 187}, {171, 199}, {172, 194}, {174, 168}, {175, 248}, {176, 161}, {177, 177},
 			{180, 171}, {181, 181}, {182, 166}, {183, 225}, {184, 252}, {186, 188}, {187, 200}, {191,
