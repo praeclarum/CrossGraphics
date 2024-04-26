@@ -218,7 +218,7 @@ namespace CrossGraphics
 
 	public class Font
 	{
-		static ConcurrentDictionary<FontRef, Font> _fonts = new ConcurrentDictionary<FontRef, Font> ();
+		readonly static ConcurrentDictionary<FontRef, Font> _fonts = new ConcurrentDictionary<FontRef, Font> ();
 
 		public string FontFamily { get; }
 		
@@ -491,6 +491,145 @@ namespace CrossGraphics
 		public static bool operator != (ValueColor left, ValueColor right)
 		{
 			return left.Red != right.Red || left.Green != right.Green || left.Blue != right.Blue || left.Alpha != right.Alpha;
+		}
+	}
+
+	public static class ColorConversions
+	{
+		static double PiecewiseGaussian (double x, double mu, double sigma1, double sigma2)
+		{
+			var dx2 = (x - mu) * (x - mu);
+			return x < mu ? Math.Exp (-0.5*dx2/(sigma1*sigma1)) : Math.Exp (-0.5*dx2/(sigma2*sigma2));
+		}
+
+		/// <summary>
+		/// From https://en.wikipedia.org/wiki/CIE_1931_color_space#Analytical_approximation
+		/// </summary>
+		public static void WavelengthToXyz (double wavelengthInMeters, out double x, out double y, out double z)
+		{
+			// lambda = wavelengthInNanometers
+			var lambda = 1.0e9 * wavelengthInMeters;
+			x = 1.056* PiecewiseGaussian (lambda, 599.8, 37.9, 31.0) +
+				0.362* PiecewiseGaussian (lambda, 442.0, 16.0, 26.7) -
+				0.065* PiecewiseGaussian (lambda, 501.1,  20.4, 26.2);
+			y = 0.821* PiecewiseGaussian (lambda, 568.8, 46.9, 40.5) +
+			    0.286* PiecewiseGaussian (lambda, 530.9, 16.3, 31.1);
+			z = 1.217* PiecewiseGaussian (lambda, 437.0, 11.8, 36.0) +
+			    0.681* PiecewiseGaussian (lambda, 459.0, 26.0, 13.8);
+		}
+		
+		/// <summary>
+		/// From https://www.image-engineering.de/library/technotes/958-how-to-convert-between-srgb-and-ciexyz
+		/// </summary>
+		public static void XyzToLinearRgb (double x, double y, double z, out double r, out double g, out double b)
+		{
+			r = Math.Max (0, 3.2404542*x - 1.5371385*y - 0.4985314*z);
+			g = Math.Max (0, -0.9692660*x + 1.8760108*y + 0.0415560*z);
+			b = Math.Max (0, 0.0556434*x - 0.2040259*y + 1.0572252*z);
+		}
+		
+		static double ApplyGamma (double v)
+		{
+			if (v <= 0.0031308) {
+				return 12.92 * v;
+			}
+			return 1.055 * Math.Pow (v, 1.0/2.4) - 0.055;
+		}
+		
+		/// <summary>
+		/// From https://www.image-engineering.de/library/technotes/958-how-to-convert-between-srgb-and-ciexyz
+		/// </summary>
+		public static void LinearRgbToSrgb (double r, double g, double b, out byte sr, out byte sg, out byte sb)
+		{
+			sr = (byte)Math.Max (0, Math.Min (255, (int)(0.5 + ApplyGamma (r) * 255)));
+			sg = (byte)Math.Max (0, Math.Min (255, (int)(0.5 + ApplyGamma (g) * 255)));
+			sb = (byte)Math.Max (0, Math.Min (255, (int)(0.5 + ApplyGamma (b) * 255)));
+		}
+		
+		public static double SrgbToHue(byte sr, byte sg, byte sb) {
+			double r = sr / 255.0;
+			double g = sg / 255.0;
+			double b = sb / 255.0;
+			double max = Math.Max(Math.Max(r, g), b);
+			double min = Math.Min(Math.Min(r, g), b);
+			double diff = max - min;
+			double h = 0.0;
+			if (diff == 0)
+				h = 0;
+			else if (max == r)
+				h = 60 * (((g - b) / diff) % 6);
+			else if (max == g)
+				h = 60 * (((b - r) / diff) + 2);
+			else if (max == b)
+				h = 60 * (((r - g) / diff) + 4);
+			if (h < 0)
+				h += 360;
+			return h;
+		}
+		
+		public static void HsvToSrgb(double h, double s, double v, out byte sr, out byte sg, out byte sb) {
+			double c = v * s;
+			double x = c * (1 - Math.Abs((h / 60) % 2 - 1));
+			double m = v - c;
+			double r = 0, g = 0, b = 0;
+			if (h < 60) {
+				r = c;
+				g = x;
+			} else if (h < 120) {
+				r = x;
+				g = c;
+			} else if (h < 180) {
+				g = c;
+				b = x;
+			} else if (h < 240) {
+				g = x;
+				b = c;
+			} else if (h < 300) {
+				r = x;
+				b = c;
+			} else if (h < 360) {
+				r = c;
+				b = x;
+			}
+			sr = (byte)Math.Max (0, Math.Min (255, (int)(0.5 + (r + m) * 255)));
+			sg = (byte)Math.Max (0, Math.Min (255, (int)(0.5 + (g + m) * 255)));
+			sb = (byte)Math.Max (0, Math.Min (255, (int)(0.5 + (b + m) * 255)));
+		}
+
+		/// <summary>
+		/// Convert to XYZ
+		/// Then to sRGB' then to sRGB
+		/// </summary>
+		public static void WavelengthToSrgb (double wavelengthInMeters, out byte sr, out byte sg, out byte sb)
+		{
+			WavelengthToXyz (wavelengthInMeters, out var x, out var y, out var z);
+			XyzToLinearRgb (x, y, z, out var r, out var g, out var b);
+			LinearRgbToSrgb (r, g, b, out sr, out sg, out sb);
+		}
+		
+		/// <summary>
+		/// Convert to XYZ
+		/// Then to sRGB' then to sRGB
+		/// Get the hue
+		/// Generate a new fully saturated color with that hue
+		/// </summary>
+		public static void WavelengthToSaturatedSrgb (double wavelengthInMeters, out byte sr, out byte sg, out byte sb)
+		{
+			WavelengthToSrgb (wavelengthInMeters, out sr, out sg, out sb);
+			var hue = SrgbToHue (sr, sg, sb);
+			HsvToSrgb (hue, 1, 1, out sr, out sg, out sb);
+		}
+		
+		public static Color WavelengthToColor (double wavelengthInMeters)
+		{
+			WavelengthToSrgb (wavelengthInMeters, out var r, out var g, out var b);
+			return new Color (r, g, b);
+		}
+
+		public static ValueColor WavelengthToValueColor (double wavelengthInMeters)
+		{
+			WavelengthToSrgb (wavelengthInMeters, out var r, out var g, out var b);
+			return new ValueColor (r, g, b);
 		}
 	}
 
