@@ -25,6 +25,8 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
+using Metal;
+
 namespace CrossGraphics.Metal
 {
 	public class MetalGraphics : IGraphics
@@ -41,6 +43,10 @@ namespace CrossGraphics.Metal
 		}
 
 		private readonly List<State> _states = new List<State> () { new State () { Transform = Matrix3x2.Identity } };
+
+		public MetalGraphics (IMTLDevice device, IMTLRenderCommandEncoder renderEncoder)
+		{
+		}
 
 		public void BeginEntity (object entity)
 		{
@@ -185,6 +191,10 @@ namespace CrossGraphics.Metal
 		public void DrawString (string s, float x, float y)
 		{
 			// TODO: Implement
+		}
+
+		public void EndDrawing ()
+		{
 		}
 	}
 }

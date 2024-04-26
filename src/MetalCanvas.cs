@@ -52,15 +52,22 @@ namespace CrossGraphics.Metal
 			FramebufferOnly = true;
 			PresentsWithTransaction = false;
 			Paused = false;
-			Delegate = new MetalCanvasDelegate ();
+			Delegate = new MetalCanvasDelegate (this);
+		}
+
+		public virtual void DrawMetalGraphics (MetalGraphics g)
+		{
 		}
 	}
 
 	public class MetalCanvasDelegate : MTKViewDelegate
 	{
+		WeakReference<MetalCanvas> _canvas;
+		MetalCanvas? Canvas => _canvas.TryGetTarget (out var c) ? c : null;
 		public readonly IMTLCommandQueue? CommandQueue = MTLDevice.SystemDefault?.CreateCommandQueue ();
-		public MetalCanvasDelegate ()
+		public MetalCanvasDelegate (MetalCanvas canvas)
 		{
+			_canvas = new WeakReference<MetalCanvas> (canvas);
 		}
 		public override void DrawableSizeWillChange (MTKView view, global::CoreGraphics.CGSize size)
 		{
@@ -75,6 +82,10 @@ namespace CrossGraphics.Metal
 			using var commandBuffer = CommandQueue?.CommandBuffer ();
 			if (commandBuffer is not null) {
 				using var renderEncoder = commandBuffer.CreateRenderCommandEncoder (renderPassDescriptor);
+				var g = new MetalGraphics (device, renderEncoder);
+				Canvas?.DrawMetalGraphics (g);
+				view.ClearColor = new MTLClearColor (g.ClearColor.RedValue, g.ClearColor.GreenValue, g.ClearColor.BlueValue, g.ClearColor.AlphaValue);
+				g.EndDrawing ();
 				renderEncoder.EndEncoding ();
 				commandBuffer.PresentDrawable (drawable);
 				commandBuffer.Commit ();
