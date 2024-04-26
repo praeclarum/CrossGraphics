@@ -65,6 +65,7 @@ namespace CrossGraphics.Metal
 		WeakReference<MetalCanvas> _canvas;
 		MetalCanvas? Canvas => _canvas.TryGetTarget (out var c) ? c : null;
 		public readonly IMTLCommandQueue? CommandQueue = MTLDevice.SystemDefault?.CreateCommandQueue ();
+		MetalGraphics.Buffers? _buffers = null;
 		public MetalCanvasDelegate (MetalCanvas canvas)
 		{
 			_canvas = new WeakReference<MetalCanvas> (canvas);
@@ -82,7 +83,10 @@ namespace CrossGraphics.Metal
 			using var commandBuffer = CommandQueue?.CommandBuffer ();
 			if (commandBuffer is not null) {
 				using var renderEncoder = commandBuffer.CreateRenderCommandEncoder (renderPassDescriptor);
-				var g = new MetalGraphics (device, renderEncoder);
+				if (_buffers is null) {
+					_buffers = new MetalGraphics.Buffers (device);
+				}
+				var g = new MetalGraphics (device, renderEncoder, _buffers);
 				Canvas?.DrawMetalGraphics (g);
 				view.ClearColor = new MTLClearColor (g.ClearColor.RedValue, g.ClearColor.GreenValue, g.ClearColor.BlueValue, g.ClearColor.AlphaValue);
 				g.EndDrawing ();

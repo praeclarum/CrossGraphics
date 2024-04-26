@@ -42,10 +42,13 @@ namespace CrossGraphics.Metal
 			public Matrix3x2 Transform;
 		}
 
-		private readonly List<State> _states = new List<State> () { new State () { Transform = Matrix3x2.Identity } };
+		readonly List<State> _states = new List<State> () { new State () { Transform = Matrix3x2.Identity } };
 
-		public MetalGraphics (IMTLDevice device, IMTLRenderCommandEncoder renderEncoder)
+		private readonly Buffers _buffers;
+
+		public MetalGraphics (IMTLDevice device, IMTLRenderCommandEncoder renderEncoder, Buffers buffers)
 		{
+			_buffers = buffers;
 		}
 
 		public void BeginEntity (object entity)
@@ -125,12 +128,139 @@ namespace CrossGraphics.Metal
 
 		public void FillRect (float x, float y, float width, float height)
 		{
-			// TODO: Implement
+			DoRect (x, y, width, height, 0, true);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			// TODO: Implement
+			DoRect (x, y, width, height, w, false);
+		}
+
+		public const int VertexPositionByteSize = 2 * sizeof (float);
+		public const int VertexUvByteSize = 2 * sizeof (float);
+		public const int VertexColorByteSize = 4 * sizeof (float);
+		public const int VertexByteSize = VertexPositionByteSize + VertexUvByteSize + VertexColorByteSize;
+
+		public class Buffer
+		{
+			public readonly IMTLDevice Device;
+			public readonly IMTLBuffer? VertexBuffer;
+			public readonly IMTLBuffer? IndexBuffer;
+			public const int MaxVertices = 0x10000;
+			public const int MaxIndices = 0x10000;
+
+			public int NumVertices = 0;
+			public int NumIndices = 0;
+			public int RemainingVertices => MaxVertices - NumVertices;
+			public int RemainingIndices => MaxIndices - NumIndices;
+			public Buffer (IMTLDevice device)
+			{
+				Device = device;
+				VertexBuffer = Device.CreateBuffer ((nuint)(MaxVertices * VertexByteSize), MTLResourceOptions.CpuCacheModeDefault);
+				IndexBuffer = Device.CreateBuffer ((nuint)(MaxIndices * sizeof (ushort)), MTLResourceOptions.CpuCacheModeDefault);
+			}
+			public void Reset ()
+			{
+				NumVertices = 0;
+				NumIndices = 0;
+			}
+			public int AddVertex (float x, float y, float u, float v, ValueColor color)
+			{
+				var index = NumVertices;
+				if (VertexBuffer is not null) {
+					unsafe {
+						var p = (float*)VertexBuffer.Contents;
+						p += index * VertexByteSize / sizeof(float);
+						p[0] = x;
+						p[1] = y;
+						p[2] = u;
+						p[3] = v;
+						p[4] = color.Red / 255f;
+						p[5] = color.Green / 255f;
+						p[6] = color.Blue / 255f;
+						p[7] = color.Alpha / 255f;
+					}
+				}
+				NumVertices++;
+				return index;
+			}
+			public void AddTriangle (int v0, int v1, int v2)
+			{
+				var index = NumIndices;
+				if (IndexBuffer is not null) {
+					unsafe {
+						var p = (ushort*)IndexBuffer.Contents;
+						p += index;
+						p[0] = (ushort)v0;
+						p[1] = (ushort)v1;
+						p[2] = (ushort)v2;
+					}
+				}
+				NumIndices += 3;
+			}
+		}
+
+		public class Buffers
+		{
+			public IMTLDevice Device;
+			readonly List<Buffer> buffers;
+			int currentBufferIndex = 0;
+			public Buffers (IMTLDevice device)
+			{
+				Device = device;
+				buffers = new List<Buffer> ();
+				buffers.Add (new Buffer (Device));
+			}
+			public Buffer GetBuffer (int numVertices, int numIndices)
+			{
+				var b = buffers[currentBufferIndex];
+				if (b.RemainingVertices >= numVertices && b.RemainingIndices >= numIndices) {
+					return b;
+				}
+				var buffer = new Buffer (Device);
+				buffers.Add (buffer);
+				return buffer;
+			}
+			public void Reset ()
+			{
+				foreach (var b in buffers) {
+					b.Reset ();
+				}
+				currentBufferIndex = 0;
+			}
+		}
+
+		struct BoundingBox {
+			public float MinX, MinY, MaxX, MaxY;
+			public static BoundingBox FromRect (float x, float y, float width, float height, float w)
+			{
+				var left = x;
+				var right = x + width;
+				var top = y;
+				var bottom = y + height;
+				var r = w / 2;
+				var minX = Math.Min (left, right) - r;
+				var minY = Math.Min (top, bottom) - r;
+				var maxX = Math.Max (left, right) + r;
+				var maxY = Math.Max (top, bottom) + r;
+				return new BoundingBox { MinX = minX, MinY = minY, MaxX = maxX, MaxY = maxY };
+			}
+			override public string ToString ()
+			{
+				return $"BB({MinX}, {MinY}, {MaxX}, {MaxY})";
+			}
+		}
+
+		public void DoRect (float x, float y, float width, float height, float w, bool fill)
+		{
+			var buffer = _buffers.GetBuffer (4, 6);
+			var bb = BoundingBox.FromRect (x, y, width, height, w);
+			var v0 = buffer.AddVertex(bb.MinX, bb.MinY, 0, 0, _currentColor);
+			var v1 = buffer.AddVertex(bb.MaxX, bb.MinY, 1, 0, _currentColor);
+			var v2 = buffer.AddVertex(bb.MaxX, bb.MaxY, 1, 1, _currentColor);
+			var v3 = buffer.AddVertex(bb.MinX, bb.MaxY, 0, 1, _currentColor);
+			buffer.AddTriangle(v0, v1, v2);
+			buffer.AddTriangle(v2, v3, v0);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
