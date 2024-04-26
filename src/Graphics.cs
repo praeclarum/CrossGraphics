@@ -620,15 +620,15 @@ namespace CrossGraphics
 			HsvToSrgb (hue, 1, 1, out sr, out sg, out sb);
 		}
 		
-		public static Color WavelengthToColor (double wavelengthInMeters)
+		public static Color WavelengthToSaturatedColor (double wavelengthInMeters)
 		{
-			WavelengthToSrgb (wavelengthInMeters, out var r, out var g, out var b);
+			WavelengthToSaturatedSrgb (wavelengthInMeters, out var r, out var g, out var b);
 			return new Color (r, g, b);
 		}
 
-		public static ValueColor WavelengthToValueColor (double wavelengthInMeters)
+		public static ValueColor WavelengthToSaturatedValueColor (double wavelengthInMeters)
 		{
-			WavelengthToSrgb (wavelengthInMeters, out var r, out var g, out var b);
+			WavelengthToSaturatedSrgb (wavelengthInMeters, out var r, out var g, out var b);
 			return new ValueColor (r, g, b);
 		}
 	}

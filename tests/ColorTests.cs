@@ -1,6 +1,7 @@
 using System.Drawing;
 
 using Color = CrossGraphics.Color;
+using static CrossGraphics.ColorConversions;
 
 namespace CrossGraphicsTests;
 
@@ -80,5 +81,32 @@ public class ColorTests
 		var c1 = cc.GetColor (0x11, 0x22, 0x33, 0x44);
 		var c2 = cc.GetColor (0x10, 0x22, 0x33, 0x44);
 		Assert.That (!ReferenceEquals (c1, c2));
+	}
+
+	[Test]
+	public void RedWavelength ()
+	{
+		var result = WavelengthToSaturatedColor (700.0e-9);
+		Assert.That(result.Red, Is.EqualTo(255).Within(8));
+		Assert.That(result.Green, Is.EqualTo(82).Within(8));
+		Assert.That(result.Blue, Is.EqualTo(0).Within(8));
+	}
+	
+	[Test]
+	public void GreenWavelength ()
+	{
+		var result = WavelengthToSaturatedColor (532.0e-9);
+		Assert.That(result.Red, Is.EqualTo(0).Within(8));
+		Assert.That(result.Green, Is.EqualTo(255).Within(8));
+		Assert.That(result.Blue, Is.EqualTo(0).Within(8));
+	}
+	
+	[Test]
+	public void BlueWavelength ()
+	{
+		var result = WavelengthToSaturatedColor (445.0e-9);
+		Assert.That(result.Red, Is.EqualTo(134).Within(8));
+		Assert.That(result.Green, Is.EqualTo(0).Within(8));
+		Assert.That(result.Blue, Is.EqualTo(255).Within(8));
 	}
 }
