@@ -88,7 +88,13 @@ namespace CrossGraphics.Metal
 			};
 			pipelineDescriptor.ColorAttachments[0] = new MTLRenderPipelineColorAttachmentDescriptor {
 				PixelFormat = DefaultPixelFormat,
-				BlendingEnabled = false,
+				BlendingEnabled = true,
+				SourceRgbBlendFactor = MTLBlendFactor.SourceAlpha,
+				DestinationRgbBlendFactor = MTLBlendFactor.OneMinusSourceAlpha,
+				RgbBlendOperation = MTLBlendOperation.Add,
+				SourceAlphaBlendFactor = MTLBlendFactor.SourceAlpha,
+				DestinationAlphaBlendFactor = MTLBlendFactor.OneMinusSourceAlpha,
+				AlphaBlendOperation = MTLBlendOperation.Add,
 			};
 			pipelineDescriptor.VertexBuffers[0] = new MTLPipelineBufferDescriptor() {
 				Mutability = MTLMutability.Immutable,
