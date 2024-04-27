@@ -314,9 +314,9 @@ namespace CrossGraphics.Metal
 				CTLine? drawLine = null;
 				for (var tri = 0; tri < maxTries; tri++) {
 					using var atext = new NSMutableAttributedString (s, new CTStringAttributes {
-						ForegroundColorFromContext = false,
+						ForegroundColorFromContext = true,
 						// StrokeColor = _whiteCGColor,
-						ForegroundColor = _whiteCGColor,
+						// ForegroundColor = _whiteCGColor,
 						Font = new CTFont (_currentFont.FontFamily, renderFontSize),
 					});
 					using var l = new CTLine (atext);
@@ -336,14 +336,21 @@ namespace CrossGraphics.Metal
 				var drawWidth = (float)len;
 				var drawHeight = (float)renderFontSize;
 				regionO = _buffers.DrawSdfTextureRegion (s, font, drawWidth, drawHeight, (cgContext) => {
+					// cgContext.SetFillColor ((nfloat)0.5, (nfloat)0.5, (nfloat)0.5, 1);
+					// if (s.Length > 5) {
+					// 	cgContext.FillEllipseInRect (new CGRect (0, 0, drawWidth, drawHeight));
+					// }
+					// else {
+					// 	cgContext.FillRect (new CGRect (0, 0, drawWidth, drawHeight));
+					// }
 					cgContext.SetFillColor (1, 1, 1, 1);
-					cgContext.FillEllipseInRect (new CGRect (0, 0, drawWidth, drawHeight));
-					// cgContext.FillRect (new CGRect (0, 0, drawWidth, drawHeight));
-					cgContext.SetStrokeColor (1, 1, 1, 1);
-					cgContext.SetLineWidth (1);
-					cgContext.SetTextDrawingMode (CGTextDrawingMode.Fill);
-					cgContext.TextPosition = new CGPoint (0, 0);
-					drawLine.Draw (cgContext);
+					// cgContext.SetStrokeColor (1, 1, 1, 1);
+					// cgContext.SetLineWidth (1);
+					// cgContext.SetTextDrawingMode (CGTextDrawingMode.Fill);
+					cgContext.TextPosition = new CGPoint (0, renderFontSize * 0.15);
+					cgContext.SelectFont ("Helvetica", renderFontSize, CGTextEncoding.MacRoman);
+					cgContext.ShowText (s);
+					// drawLine.Draw (cgContext);
 				});
 			}
 
@@ -811,6 +818,7 @@ fragment float4 fragmentShader(
 			// cgContext.TranslateCTM (0, subRect.Height);
 			// cgContext.ScaleCTM (1, -1);
 			draw (cgContext);
+			cgContext.Flush ();
 			var data = cgContext.Data;
 			if (data != IntPtr.Zero) {
 				var region = MTLRegion.Create2D ((nuint)subRect.X, (nuint)subRect.Y, (nuint)subRect.Width,
