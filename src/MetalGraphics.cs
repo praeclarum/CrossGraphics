@@ -654,6 +654,101 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 		}
 	}
 
+	public class MetalSdfTexture
+	{
+		const int MaxWidth = 2048;
+		const int MaxHeight = 2048;
+
+		public class SubRect
+		{
+			public readonly int X;
+			public readonly int Y;
+			public readonly int Width;
+			public readonly int Height;
+			public SubRect (int x, int y, int width, int height)
+			{
+				X = x;
+				Y = y;
+				Width = width;
+				Height = height;
+			}
+			public Vector4 UVBoundingBox => new Vector4 (X / (float)MaxWidth, Y / (float)MaxHeight, (X + Width) / (float)MaxWidth, (Y + Height) / (float)MaxHeight);
+		}
+		readonly List<SubRect> _free = new List<SubRect> { new SubRect (0, 0, MaxWidth, MaxHeight) };
+
+		public IMTLTexture? Texture { get; }
+
+		public MetalSdfTexture (IMTLDevice device)
+		{
+			var tdesc = new MTLTextureDescriptor {
+				TextureType = MTLTextureType.k2D,
+				PixelFormat = MTLPixelFormat.R16Float,
+				Width = (nuint)MaxWidth,
+				Height = (nuint)MaxHeight,
+				Depth = 1,
+				MipmapLevelCount = 1,
+				SampleCount = 1,
+				ArrayLength = 1,
+				ResourceOptions = MTLResourceOptions.CpuCacheModeDefault,
+				Usage = MTLTextureUsage.ShaderRead | MTLTextureUsage.ShaderWrite,
+			};
+			Texture = device.CreateTexture (tdesc);
+		}
+
+		public SubRect? Alloc (float desiredWidth, float desiredHeight)
+		{
+			var idesiredWidth = (int)MathF.Ceiling(desiredWidth);
+			var idesiredHeight = (int)MathF.Ceiling(desiredHeight);
+			if (idesiredWidth > MaxWidth / 4) {
+				var nidesiredWidth = MaxWidth / 4;
+				idesiredHeight = (int)MathF.Ceiling (idesiredHeight * (float)nidesiredWidth / desiredWidth);
+				idesiredWidth = nidesiredWidth;
+			}
+			if (idesiredHeight > MaxHeight / 4) {
+				var nidesiredHeight = MaxHeight / 4;
+				idesiredWidth = (int)MathF.Ceiling (idesiredWidth * (float)nidesiredHeight / desiredHeight);
+				idesiredHeight = nidesiredHeight;
+			}
+			for (var freeIndex = 0; freeIndex < _free.Count; freeIndex++) {
+				var freeRect = _free[freeIndex];
+				if (freeRect.Width >= idesiredWidth && freeRect.Height >= idesiredHeight) {
+					_free.RemoveAt (freeIndex);
+					if (freeRect.Height > idesiredHeight) {
+						_free.Insert (0, new SubRect (freeRect.X, freeRect.Y + idesiredHeight, idesiredWidth, freeRect.Height - idesiredHeight));
+					}
+					if (freeRect.Width > idesiredWidth) {
+						_free.Insert (0, new SubRect (freeRect.X + idesiredWidth, freeRect.Y, freeRect.Width - idesiredWidth, freeRect.Height));
+					}
+					return new SubRect (freeRect.X, freeRect.Y, idesiredWidth, idesiredHeight);
+				}
+			}
+			return null;
+		}
+
+		public Vector4? TryDraw (float width, float height, Action<CGContext> draw)
+		{
+			if (Texture is null) {
+				return null;
+			}
+			var subRect = Alloc (width, height);
+			if (subRect is null) {
+				return null;
+			}
+			var bytesPerRow = subRect.Width * 2;
+			using var cgContext = new CGBitmapContext (null, subRect.Width, subRect.Height, 16, bytesPerRow, CGColorSpace.CreateDeviceGray (), CGBitmapFlags.FloatComponents);
+			cgContext.TranslateCTM (0, subRect.Height);
+			cgContext.ScaleCTM (1, -1);
+			draw (cgContext);
+			var data = cgContext.Data;
+			if (data == IntPtr.Zero) {
+				return null;
+			}
+			var region = MTLRegion.Create2D ((nuint)subRect.X, (nuint)subRect.Y, (nuint)subRect.Width, (nuint)subRect.Height);
+			Texture.ReplaceRegion (region: region, level: 0, pixelBytes: data, bytesPerRow: (nuint)bytesPerRow);
+			return subRect.UVBoundingBox;
+		}
+	}
+
 	public class MetalGraphicsBuffers
 	{
 		public IMTLDevice Device;
