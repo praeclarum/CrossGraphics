@@ -80,16 +80,23 @@ namespace CrossGraphics.Metal
 			    view.CurrentDrawable is not { } drawable) {
 				return;
 			}
+
 			using var commandBuffer = CommandQueue?.CommandBuffer ();
 			if (commandBuffer is not null) {
 				using var renderEncoder = commandBuffer.CreateRenderCommandEncoder (renderPassDescriptor);
 				if (_buffers is null) {
 					_buffers = new MetalGraphics.Buffers (device);
 				}
-				var g = new MetalGraphics (device, renderEncoder, _buffers);
-				Canvas?.DrawMetalGraphics (g);
-				view.ClearColor = new MTLClearColor (g.ClearColor.RedValue, g.ClearColor.GreenValue, g.ClearColor.BlueValue, g.ClearColor.AlphaValue);
-				g.EndDrawing ();
+				try {
+					var g = new MetalGraphics (device, renderEncoder, _buffers);
+					Canvas?.DrawMetalGraphics (g);
+					view.ClearColor = new MTLClearColor (g.ClearColor.RedValue, g.ClearColor.GreenValue,
+						g.ClearColor.BlueValue, g.ClearColor.AlphaValue);
+					g.EndDrawing ();
+				}
+				catch (Exception ex) {
+					Console.WriteLine (ex);
+				}
 				renderEncoder.EndEncoding ();
 				commandBuffer.PresentDrawable (drawable);
 				commandBuffer.Commit ();

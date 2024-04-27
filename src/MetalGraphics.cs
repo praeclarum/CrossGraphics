@@ -25,6 +25,8 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
+using Foundation;
+
 using Metal;
 
 namespace CrossGraphics.Metal
@@ -44,11 +46,41 @@ namespace CrossGraphics.Metal
 
 		readonly List<State> _states = new List<State> () { new State () { Transform = Matrix3x2.Identity } };
 
-		private readonly Buffers _buffers;
+		readonly Buffers _buffers;
+		readonly IMTLRenderCommandEncoder _renderEncoder;
+		readonly IMTLRenderPipelineState? _pipeline;
 
 		public MetalGraphics (IMTLDevice device, IMTLRenderCommandEncoder renderEncoder, Buffers buffers)
 		{
+			_renderEncoder = renderEncoder;
 			_buffers = buffers;
+			_pipeline = CreatePipeline (device);
+		}
+
+		static IMTLRenderPipelineState CreatePipeline (IMTLDevice device)
+		{
+			IMTLLibrary? library = device.CreateLibrary (source: MetalCode, options: new MTLCompileOptions(), error: out Foundation.NSError? error);
+			if (library is null) {
+				if (error is not null) {
+					throw new NSErrorException (error);
+				}
+				else {
+					throw new Exception ("Could not create library");
+				}
+			}
+			var vertexFunction = library?.CreateFunction ("vertexShader");
+			var fragmentFunction = library?.CreateFunction ("fragmentShader");
+			if (vertexFunction is null || fragmentFunction is null) {
+				throw new Exception ("Could not create vertex or fragment function");
+			}
+			var pipelineDescriptor = new MTLRenderPipelineDescriptor {
+				VertexFunction = vertexFunction, FragmentFunction = fragmentFunction,
+			};
+			var pipeline = device.CreateRenderPipelineState (pipelineDescriptor, error: out error);
+			if (error is not null) {
+				throw new NSErrorException (error);
+			}
+			return pipeline;
 		}
 
 		public void BeginEntity (object entity)
@@ -204,6 +236,7 @@ namespace CrossGraphics.Metal
 		{
 			public IMTLDevice Device;
 			readonly List<Buffer> buffers;
+			public List<Buffer> All => buffers;
 			int currentBufferIndex = 0;
 			public Buffers (IMTLDevice device)
 			{
@@ -219,6 +252,7 @@ namespace CrossGraphics.Metal
 				}
 				var buffer = new Buffer (Device);
 				buffers.Add (buffer);
+				currentBufferIndex++;
 				return buffer;
 			}
 			public void Reset ()
@@ -325,6 +359,53 @@ namespace CrossGraphics.Metal
 
 		public void EndDrawing ()
 		{
+			if (_pipeline is not null) {
+				foreach (var buffer in _buffers.All) {
+					if (buffer.NumIndices <= 0) {
+						break;
+					}
+
+					if (buffer.VertexBuffer is null || buffer.IndexBuffer is null) {
+						continue;
+					}
+
+					Console.WriteLine ($"Drawing {buffer.NumVertices} vertices and {buffer.NumIndices} indices");
+					_renderEncoder.SetRenderPipelineState (_pipeline);
+					_renderEncoder.SetVertexBuffer (buffer.VertexBuffer, 0, 0);
+					// _renderEncoder.DrawIndexedPrimitives (MTLPrimitiveType.Triangle, (nuint)buffer.NumIndices, MTLIndexType.UInt16, buffer.IndexBuffer, 0);
+				}
+			}
+			_buffers.Reset ();
 		}
+
+		const string MetalCode = @"
+typedef struct
+{
+    float2 position [[attribute(0)]];
+    float2 texCoord [[attribute(1)]];
+	float4 color [[attribute(2)]];
+} Vertex;
+
+typedef struct
+{
+    float4 position [[position]];
+    float2 texCoord;
+    float4 color;
+} ColorInOut;
+
+vertex ColorInOut vertexShader(Vertex in [[stage_in]])
+{
+	ColorInOut out;
+	out.position = float4(in.position, 1.0);
+	out.texCoord = in.texCoord;
+	out.color = in.color;
+	return out;
+}
+
+fragment float4 fragmentShader(ColorInOut in [[stage_in]])
+{
+	return in.color;
+}
+";
 	}
 }
