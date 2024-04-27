@@ -47,6 +47,7 @@ namespace CrossGraphics.Metal
 		{
 			Device = CanvasDevice;
 			ColorPixelFormat = MetalGraphics.DefaultPixelFormat;
+			SampleCount = 4;
 			ClearColor = new MTLClearColor (0.5, 0, 0.75, 1);
 			AutoResizeDrawable = true;
 			PreferredFramesPerSecond = 30;
