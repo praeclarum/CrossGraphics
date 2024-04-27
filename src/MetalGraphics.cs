@@ -313,13 +313,13 @@ namespace CrossGraphics.Metal
 				double len = 0;
 				CTLine? drawLine = null;
 				for (var tri = 0; tri < maxTries; tri++) {
-					using var atext = new NSMutableAttributedString (s, new CTStringAttributes {
+					var atext = new NSMutableAttributedString (s, new CTStringAttributes {
 						ForegroundColorFromContext = true,
 						// StrokeColor = _whiteCGColor,
 						// ForegroundColor = _whiteCGColor,
-						Font = new CTFont (_currentFont.FontFamily, renderFontSize),
+						Font = new CTFont ("Helvetica", renderFontSize),
 					});
-					using var l = new CTLine (atext);
+					var l = new CTLine (atext);
 					len = l.GetTypographicBounds (out ascent, out descent, out leading);
 					if (len > maxLength) {
 						renderFontSize *= (nfloat)(maxLength / len * 0.98);
@@ -344,14 +344,13 @@ namespace CrossGraphics.Metal
 					// 	cgContext.FillRect (new CGRect (0, 0, drawWidth, drawHeight));
 					// }
 					cgContext.SetFillColor (1, 1, 1, 1);
-					// cgContext.SetStrokeColor (1, 1, 1, 1);
-					// cgContext.SetLineWidth (1);
-					// cgContext.SetTextDrawingMode (CGTextDrawingMode.Fill);
-					cgContext.TextPosition = new CGPoint (0, renderFontSize * 0.15);
-					cgContext.SelectFont ("Helvetica", renderFontSize, CGTextEncoding.MacRoman);
-					cgContext.ShowText (s);
-					// drawLine.Draw (cgContext);
+					cgContext.SetStrokeColor (1, 1, 1, 1);
+					cgContext.TextMatrix = CGAffineTransform.MakeScale (1, 1);
+					cgContext.TranslateCTM (0, (nfloat)(renderFontSize * 0.15));
+					drawLine.Draw (cgContext);
 				});
+
+				drawLine.Dispose ();
 			}
 
 			if (regionO is SdfTextureRegion region) {
