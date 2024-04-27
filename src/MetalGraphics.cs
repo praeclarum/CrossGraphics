@@ -341,32 +341,32 @@ namespace CrossGraphics.Metal
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
-			// TODO: Implement
+			DoRect (x, y, width, height, 0, true);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
-			// TODO: Implement
+			DoRect (x, y, width, height, w, false);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
 		{
-			// TODO: Implement
+			DoRect (x, y, width, height, 0, true);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
-			// TODO: Implement
+			DoRect (x, y, width, height, w, false);
 		}
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
-			throw new NotImplementedException ();
+			DoRect (cx - radius, cy - radius, radius * 2, radius * 2, 0, true);
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
-			throw new NotImplementedException ();
+			DoRect (cx - radius, cy - radius, radius * 2, radius * 2, w, false);
 		}
 
 		public void BeginLines (bool rounded)
@@ -376,15 +376,22 @@ namespace CrossGraphics.Metal
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			if (sy == ey) {
-				DoRect (sx, sy - w / 2, ex - sx, w, 0, true);
+			var buffer = _buffers.GetBuffer (4, 6);
+			var dx = ex - sx;
+			var dy = ey - sy;
+			var len = MathF.Sqrt (dx * dx + dy * dy);
+			if (len <= 1e-6f) {
+				return;
 			}
-			else if (sx == ex) {
-				DoRect (sx - w / 2, sy, w, ey - sy, 0, true);
-			}
-			else {
-				// TODO: Implement
-			}
+			var nx = dy / len;
+			var ny = -dx / len;
+			var w2 = w / 2;
+			var v0 = buffer.AddVertex (sx - nx * w2, sy - ny * w2, 0, 0, _currentColor);
+			var v1 = buffer.AddVertex (sx + nx * w2, sy + ny * w2, 1, 0, _currentColor);
+			var v2 = buffer.AddVertex (ex + nx * w2, ey + ny * w2, 1, 1, _currentColor);
+			var v3 = buffer.AddVertex (ex - nx * w2, ey - ny * w2, 0, 1, _currentColor);
+			buffer.AddTriangle (v0, v1, v2);
+			buffer.AddTriangle (v2, v3, v0);
 		}
 
 		public void EndLines ()
