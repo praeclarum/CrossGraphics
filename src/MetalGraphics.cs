@@ -81,7 +81,12 @@ namespace CrossGraphics.Metal
 				throw new Exception ("Could not create vertex or fragment function");
 			}
 			var pipelineDescriptor = new MTLRenderPipelineDescriptor {
-				VertexFunction = vertexFunction, FragmentFunction = fragmentFunction,
+				VertexFunction = vertexFunction,
+				FragmentFunction = fragmentFunction,
+			};
+			pipelineDescriptor.ColorAttachments[0] = new MTLRenderPipelineColorAttachmentDescriptor {
+				PixelFormat = MTLPixelFormat.BGRA8Unorm,
+				BlendingEnabled = false,
 			};
 			pipelineDescriptor.VertexBuffers[0] = new MTLPipelineBufferDescriptor() {
 				Mutability = MTLMutability.Immutable,
@@ -324,10 +329,16 @@ namespace CrossGraphics.Metal
 		{
 			var buffer = _buffers.GetBuffer (4, 6);
 			var bb = BoundingBox.FromRect (x, y, width, height, w);
-			var v0 = buffer.AddVertex(bb.MinX, bb.MinY, 0, 0, _currentColor);
-			var v1 = buffer.AddVertex(bb.MaxX, bb.MinY, 1, 0, _currentColor);
-			var v2 = buffer.AddVertex(bb.MaxX, bb.MaxY, 1, 1, _currentColor);
-			var v3 = buffer.AddVertex(bb.MinX, bb.MaxY, 0, 1, _currentColor);
+			// var v0 = buffer.AddVertex(bb.MinX, bb.MinY, 0, 0, _currentColor);
+			// var v1 = buffer.AddVertex(bb.MaxX, bb.MinY, 1, 0, _currentColor);
+			// var v2 = buffer.AddVertex(bb.MaxX, bb.MaxY, 1, 1, _currentColor);
+			// var v3 = buffer.AddVertex(bb.MinX, bb.MaxY, 0, 1, _currentColor);
+			float t = 1.0f;
+			_currentColor = new ValueColor (255, 255, 255, 255);
+			var v0 = buffer.AddVertex(-t, -t, 0, 0, _currentColor);
+			var v1 = buffer.AddVertex(t, -t, 1, 0, _currentColor);
+			var v2 = buffer.AddVertex(t, t, 1, 1, _currentColor);
+			var v3 = buffer.AddVertex(-t, t, 0, 1, _currentColor);
 			buffer.AddTriangle(v0, v1, v2);
 			buffer.AddTriangle(v2, v3, v0);
 		}

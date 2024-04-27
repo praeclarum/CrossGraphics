@@ -84,6 +84,7 @@ namespace CrossGraphics.Metal
 			using var commandBuffer = CommandQueue?.CommandBuffer ();
 			if (commandBuffer is not null) {
 				using var renderEncoder = commandBuffer.CreateRenderCommandEncoder (renderPassDescriptor);
+				Console.WriteLine ($"Render pixel format: {view.ColorPixelFormat}");
 				if (_buffers is null) {
 					_buffers = new MetalGraphics.Buffers (device);
 				}
