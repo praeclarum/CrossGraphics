@@ -47,7 +47,24 @@ namespace CrossGraphics.Metal
 		{
 			Device = CanvasDevice;
 			ColorPixelFormat = MetalGraphics.DefaultPixelFormat;
-			SampleCount = 4;
+			var maxSamples = Device!.GetMaxArgumentBufferSamplerCount ();
+			if (Device is {} d) {
+				if (d.SupportsTextureSampleCount (16)) {
+					SampleCount = 16;
+				}
+				else if (d.SupportsTextureSampleCount (8)) {
+					SampleCount = 8;
+				}
+				else if (d.SupportsTextureSampleCount (4)) {
+					SampleCount = 4;
+				}
+				else if (d.SupportsTextureSampleCount (2)) {
+					SampleCount = 2;
+				}
+				else {
+					SampleCount = 1;
+				}
+			}
 			ClearColor = new MTLClearColor (0.5, 0, 0.75, 1);
 			AutoResizeDrawable = true;
 			PreferredFramesPerSecond = 30;
@@ -67,7 +84,7 @@ namespace CrossGraphics.Metal
 		WeakReference<MetalCanvas> _canvas;
 		MetalCanvas? Canvas => _canvas.TryGetTarget (out var c) ? c : null;
 		public readonly IMTLCommandQueue? CommandQueue = MTLDevice.SystemDefault?.CreateCommandQueue ();
-		MetalGraphics.Buffers? _buffers = null;
+		MetalGraphicsBuffers? _buffers = null;
 		public MetalCanvasDelegate (MetalCanvas canvas)
 		{
 			_canvas = new WeakReference<MetalCanvas> (canvas);
@@ -87,10 +104,10 @@ namespace CrossGraphics.Metal
 			if (commandBuffer is not null) {
 				using var renderEncoder = commandBuffer.CreateRenderCommandEncoder (renderPassDescriptor);
 				if (_buffers is null) {
-					_buffers = new MetalGraphics.Buffers (device);
+					_buffers = new MetalGraphicsBuffers (device);
 				}
 				try {
-					var g = new MetalGraphics (device, renderEncoder, _buffers);
+					var g = new MetalGraphics (renderEncoder, _buffers);
 					Canvas?.DrawMetalGraphics (g);
 					view.ClearColor = new MTLClearColor (g.ClearColor.RedValue, g.ClearColor.GreenValue,
 						g.ClearColor.BlueValue, g.ClearColor.AlphaValue);

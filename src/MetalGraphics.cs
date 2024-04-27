@@ -48,9 +48,11 @@ namespace CrossGraphics.Metal
 
 		readonly List<State> _states = new List<State> () { new State () { Transform = Matrix3x2.Identity } };
 
-		readonly Buffers _buffers;
+		readonly MetalGraphicsBuffers _buffers;
 		readonly IMTLRenderCommandEncoder _renderEncoder;
 		static readonly Lazy<IMTLRenderPipelineState?> _pipeline;
+
+		Matrix4x4 _modelToViewport = Matrix4x4.Identity;
 
 		static MetalGraphics ()
 		{
@@ -60,73 +62,10 @@ namespace CrossGraphics.Metal
 			});
 		}
 
-		public MetalGraphics (IMTLDevice device, IMTLRenderCommandEncoder renderEncoder, Buffers buffers)
+		public MetalGraphics (IMTLRenderCommandEncoder renderEncoder, MetalGraphicsBuffers buffers)
 		{
-			_renderEncoder = renderEncoder;
-			_buffers = buffers;
-		}
-
-		static IMTLRenderPipelineState CreatePipeline (IMTLDevice device)
-		{
-			IMTLLibrary? library = device.CreateLibrary (source: MetalCode, options: new MTLCompileOptions(), error: out Foundation.NSError? error);
-			if (library is null) {
-				if (error is not null) {
-					throw new NSErrorException (error);
-				}
-				else {
-					throw new Exception ("Could not create library");
-				}
-			}
-			var vertexFunction = library?.CreateFunction ("vertexShader");
-			var fragmentFunction = library?.CreateFunction ("fragmentShader");
-			if (vertexFunction is null || fragmentFunction is null) {
-				throw new Exception ("Could not create vertex or fragment function");
-			}
-			var pipelineDescriptor = new MTLRenderPipelineDescriptor {
-				VertexFunction = vertexFunction,
-				FragmentFunction = fragmentFunction,
-			};
-			pipelineDescriptor.ColorAttachments[0] = new MTLRenderPipelineColorAttachmentDescriptor {
-				PixelFormat = DefaultPixelFormat,
-				BlendingEnabled = true,
-				SourceRgbBlendFactor = MTLBlendFactor.SourceAlpha,
-				DestinationRgbBlendFactor = MTLBlendFactor.OneMinusSourceAlpha,
-				RgbBlendOperation = MTLBlendOperation.Add,
-				SourceAlphaBlendFactor = MTLBlendFactor.SourceAlpha,
-				DestinationAlphaBlendFactor = MTLBlendFactor.OneMinusSourceAlpha,
-				AlphaBlendOperation = MTLBlendOperation.Add,
-			};
-			pipelineDescriptor.VertexBuffers[0] = new MTLPipelineBufferDescriptor() {
-				Mutability = MTLMutability.Immutable,
-			};
-			var vdesc = new MTLVertexDescriptor ();
-			vdesc.Layouts[0] = new MTLVertexBufferLayoutDescriptor {
-				Stride = VertexByteSize,
-			};
-			vdesc.Attributes[0] = new MTLVertexAttributeDescriptor {
-				BufferIndex = 0, Format = MTLVertexFormat.Float2, Offset = 0,
-			};
-			vdesc.Attributes[1] = new MTLVertexAttributeDescriptor {
-				BufferIndex = 0, Format = MTLVertexFormat.Float2, Offset = 2 * sizeof (float),
-			};
-			vdesc.Attributes[2] = new MTLVertexAttributeDescriptor {
-				BufferIndex = 0, Format = MTLVertexFormat.Float4, Offset = 4 * sizeof (float),
-			};
-			vdesc.Attributes[3] = new MTLVertexAttributeDescriptor {
-				BufferIndex = 0, Format = MTLVertexFormat.Float4, Offset = 8 * sizeof (float),
-			};
-			vdesc.Attributes[4] = new MTLVertexAttributeDescriptor {
-				BufferIndex = 0, Format = MTLVertexFormat.Float4, Offset = 12 * sizeof (float),
-			};
-			vdesc.Attributes[5] = new MTLVertexAttributeDescriptor {
-				BufferIndex = 0, Format = MTLVertexFormat.UInt, Offset = 16 * sizeof (float),
-			};
-			pipelineDescriptor.VertexDescriptor = vdesc;
-			var pipeline = device.CreateRenderPipelineState (pipelineDescriptor, error: out error);
-			if (error is not null) {
-				throw new NSErrorException (error);
-			}
-			return pipeline;
+			_renderEncoder = renderEncoder ?? throw new ArgumentNullException (nameof(renderEncoder));
+			_buffers = buffers ?? throw new ArgumentNullException (nameof(buffers));
 		}
 
 		public void SetViewport (float viewWidth, float viewHeight, float modelToViewScale, float modelToViewTranslationX, float modelToViewTranslationY)
@@ -206,145 +145,6 @@ namespace CrossGraphics.Metal
 			return null;
 		}
 
-		public const int VertexPositionByteSize = 2 * sizeof (float);
-		public const int VertexUvByteSize = 2 * sizeof (float);
-		public const int VertexColorByteSize = 4 * sizeof (float);
-		public const int VertexBBByteSize = 4 * sizeof (float);
-		public const int VertexArgsByteSize = 4 * sizeof (float);
-		public const int VertexOpByteSize = 1 * sizeof (uint);
-		public const int VertexByteSize = VertexPositionByteSize + VertexUvByteSize + VertexColorByteSize + VertexBBByteSize + VertexArgsByteSize + VertexOpByteSize;
-
-		public const int UniformModelToViewByteSize = 16 * sizeof (float);
-		public const int UniformByteSize = UniformModelToViewByteSize;
-
-		public class Buffer
-		{
-			public readonly IMTLDevice Device;
-			public readonly IMTLBuffer? VertexBuffer;
-			public readonly IMTLBuffer? IndexBuffer;
-			public const int MaxVertices = 0x10000;
-			public const int MaxIndices = 0x10000;
-
-			public int NumVertices = 0;
-			public int NumIndices = 0;
-			public int RemainingVertices => MaxVertices - NumVertices;
-			public int RemainingIndices => MaxIndices - NumIndices;
-			public Buffer (IMTLDevice device)
-			{
-				Device = device;
-				VertexBuffer = Device.CreateBuffer ((nuint)(MaxVertices * VertexByteSize), MTLResourceOptions.CpuCacheModeDefault);
-				IndexBuffer = Device.CreateBuffer ((nuint)(MaxIndices * sizeof (ushort)), MTLResourceOptions.CpuCacheModeDefault);
-			}
-			public void Reset ()
-			{
-				NumVertices = 0;
-				NumIndices = 0;
-			}
-			public int AddVertex (float x, float y, float u, float v, ValueColor color, Vector4 bb, Vector4 args, DrawOp op)
-			{
-				var index = NumVertices;
-				if (VertexBuffer is not null) {
-					unsafe {
-						var p = (float*)VertexBuffer.Contents;
-						p += index * VertexByteSize / sizeof(float);
-						p[0] = x;
-						p[1] = y;
-						p[2] = u;
-						p[3] = v;
-						p[4] = color.Red / 255f;
-						p[5] = color.Green / 255f;
-						p[6] = color.Blue / 255f;
-						p[7] = color.Alpha / 255f;
-						p[8] = bb.X;
-						p[9] = bb.Y;
-						p[10] = bb.Z;
-						p[11] = bb.W;
-						p[12] = args.X;
-						p[13] = args.Y;
-						p[14] = args.Z;
-						p[15] = args.W;
-						*((uint*)(p + 16)) = (uint)op;
-					}
-				}
-				NumVertices++;
-				return index;
-			}
-			public void AddTriangle (int v0, int v1, int v2)
-			{
-				var index = NumIndices;
-				if (IndexBuffer is not null) {
-					unsafe {
-						var p = (ushort*)IndexBuffer.Contents;
-						p += index;
-						p[0] = (ushort)v0;
-						p[1] = (ushort)v1;
-						p[2] = (ushort)v2;
-					}
-				}
-				NumIndices += 3;
-			}
-		}
-		Matrix4x4 _modelToViewport = Matrix4x4.Identity;
-
-		public class Buffers
-		{
-			public IMTLDevice Device;
-			readonly List<Buffer> buffers;
-			public List<Buffer> All => buffers;
-			int currentBufferIndex = 0;
-			readonly IMTLBuffer? _uniformBuffer;
-			public IMTLBuffer? Uniforms => _uniformBuffer;
-			public Buffers (IMTLDevice device)
-			{
-				Device = device;
-				buffers = new List<Buffer> ();
-				buffers.Add (new Buffer (Device));
-				_uniformBuffer = Device.CreateBuffer ((nuint)(UniformByteSize), MTLResourceOptions.CpuCacheModeDefault);
-			}
-			public Buffer GetBuffer (int numVertices, int numIndices)
-			{
-				var b = buffers[currentBufferIndex];
-				if (b.RemainingVertices >= numVertices && b.RemainingIndices >= numIndices) {
-					return b;
-				}
-				var buffer = new Buffer (Device);
-				buffers.Add (buffer);
-				currentBufferIndex++;
-				return buffer;
-			}
-			public void Reset ()
-			{
-				foreach (var b in buffers) {
-					b.Reset ();
-				}
-				currentBufferIndex = 0;
-			}
-			public void SetUniforms (Matrix4x4 modelToView)
-			{
-				if (_uniformBuffer is not null) {
-					unsafe {
-						var p = (float*)_uniformBuffer.Contents;
-						p[0] = modelToView.M11;
-						p[1] = modelToView.M12;
-						p[2] = modelToView.M13;
-						p[3] = modelToView.M14;
-						p[4] = modelToView.M21;
-						p[5] = modelToView.M22;
-						p[6] = modelToView.M23;
-						p[7] = modelToView.M24;
-						p[8] = modelToView.M31;
-						p[9] = modelToView.M32;
-						p[10] = modelToView.M33;
-						p[11] = modelToView.M34;
-						p[12] = modelToView.M41;
-						p[13] = modelToView.M42;
-						p[14] = modelToView.M43;
-						p[15] = modelToView.M44;
-					}
-				}
-			}
-		}
-
 		struct BoundingBox {
 			public float MinX, MinY, MaxX, MaxY;
 			public static BoundingBox FromRect (float x, float y, float width, float height, float w)
@@ -368,7 +168,7 @@ namespace CrossGraphics.Metal
 
 		void DoRect (float x, float y, float width, float height, float w, DrawOp op, float argy = 0)
 		{
-			var buffer = _buffers.GetBuffer (4, 6);
+			var buffer = _buffers.GetPrimitivesBuffer(numVertices: 4, numIndices: 6);
 			var bb = BoundingBox.FromRect (x, y, width, height, w);
 			var bbv = new Vector4 (bb.MinX, bb.MinY, bb.MaxX, bb.MaxY);
 			var args = new Vector4 (w, argy, 0, 0);
@@ -437,7 +237,7 @@ namespace CrossGraphics.Metal
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			var buffer = _buffers.GetBuffer (4, 6);
+			var buffer = _buffers.GetPrimitivesBuffer(numVertices: 4, numIndices: 6);
 			var dx = ex - sx;
 			var dy = ey - sy;
 			var len = MathF.Sqrt (dx * dx + dy * dy);
@@ -481,10 +281,10 @@ namespace CrossGraphics.Metal
 		{
 			if (_pipeline.Value is {} pipeline) {
 				_buffers.SetUniforms (_modelToViewport);
-				if (_buffers.Uniforms is not null) {
-					_renderEncoder.SetVertexBuffer (_buffers.Uniforms, 0, 1);
+				if (_buffers.Uniforms is {} u) {
+					_renderEncoder.SetVertexBuffer (buffer: u, offset: 0, index: 1);
 				}
-				foreach (var buffer in _buffers.All) {
+				foreach (var buffer in _buffers.Primitives) {
 					if (buffer.NumIndices <= 0) {
 						break;
 					}
@@ -494,11 +294,85 @@ namespace CrossGraphics.Metal
 					}
 
 					_renderEncoder.SetRenderPipelineState (pipeline);
-					_renderEncoder.SetVertexBuffer (buffer.VertexBuffer, 0, 0);
+					_renderEncoder.SetVertexBuffer (buffer: buffer.VertexBuffer, offset: 0, index: 0);
 					_renderEncoder.DrawIndexedPrimitives (MTLPrimitiveType.Triangle, (nuint)buffer.NumIndices, MTLIndexType.UInt16, buffer.IndexBuffer, 0);
 				}
 			}
 			_buffers.Reset ();
+		}
+
+		const int VertexPositionByteSize = 2 * sizeof (float);
+		const int VertexUvByteSize = 2 * sizeof (float);
+		const int VertexColorByteSize = 4 * sizeof (float);
+		const int VertexBBByteSize = 4 * sizeof (float);
+		const int VertexArgsByteSize = 4 * sizeof (float);
+		const int VertexOpByteSize = 1 * sizeof (uint);
+		public const int VertexByteSize = VertexPositionByteSize + VertexUvByteSize + VertexColorByteSize + VertexBBByteSize + VertexArgsByteSize + VertexOpByteSize;
+
+		const int UniformModelToViewByteSize = 16 * sizeof (float);
+		public const int UniformsByteSize = UniformModelToViewByteSize;
+
+		static IMTLRenderPipelineState CreatePipeline (IMTLDevice device)
+		{
+			IMTLLibrary? library = device.CreateLibrary (source: MetalCode, options: new MTLCompileOptions(), error: out Foundation.NSError? error);
+			if (library is null) {
+				if (error is not null) {
+					throw new NSErrorException (error);
+				}
+				else {
+					throw new Exception ("Could not create library");
+				}
+			}
+			var vertexFunction = library?.CreateFunction ("vertexShader");
+			var fragmentFunction = library?.CreateFunction ("fragmentShader");
+			if (vertexFunction is null || fragmentFunction is null) {
+				throw new Exception ("Could not create vertex or fragment function");
+			}
+			var pipelineDescriptor = new MTLRenderPipelineDescriptor {
+				VertexFunction = vertexFunction,
+				FragmentFunction = fragmentFunction,
+			};
+			pipelineDescriptor.ColorAttachments[0] = new MTLRenderPipelineColorAttachmentDescriptor {
+				PixelFormat = DefaultPixelFormat,
+				BlendingEnabled = true,
+				SourceRgbBlendFactor = MTLBlendFactor.SourceAlpha,
+				DestinationRgbBlendFactor = MTLBlendFactor.OneMinusSourceAlpha,
+				RgbBlendOperation = MTLBlendOperation.Add,
+				SourceAlphaBlendFactor = MTLBlendFactor.SourceAlpha,
+				DestinationAlphaBlendFactor = MTLBlendFactor.OneMinusSourceAlpha,
+				AlphaBlendOperation = MTLBlendOperation.Add,
+			};
+			pipelineDescriptor.VertexBuffers[0] = new MTLPipelineBufferDescriptor() {
+				Mutability = MTLMutability.Immutable,
+			};
+			var vdesc = new MTLVertexDescriptor ();
+			vdesc.Layouts[0] = new MTLVertexBufferLayoutDescriptor {
+				Stride = VertexByteSize,
+			};
+			vdesc.Attributes[0] = new MTLVertexAttributeDescriptor {
+				BufferIndex = 0, Format = MTLVertexFormat.Float2, Offset = 0,
+			};
+			vdesc.Attributes[1] = new MTLVertexAttributeDescriptor {
+				BufferIndex = 0, Format = MTLVertexFormat.Float2, Offset = 2 * sizeof (float),
+			};
+			vdesc.Attributes[2] = new MTLVertexAttributeDescriptor {
+				BufferIndex = 0, Format = MTLVertexFormat.Float4, Offset = 4 * sizeof (float),
+			};
+			vdesc.Attributes[3] = new MTLVertexAttributeDescriptor {
+				BufferIndex = 0, Format = MTLVertexFormat.Float4, Offset = 8 * sizeof (float),
+			};
+			vdesc.Attributes[4] = new MTLVertexAttributeDescriptor {
+				BufferIndex = 0, Format = MTLVertexFormat.Float4, Offset = 12 * sizeof (float),
+			};
+			vdesc.Attributes[5] = new MTLVertexAttributeDescriptor {
+				BufferIndex = 0, Format = MTLVertexFormat.UInt, Offset = 16 * sizeof (float),
+			};
+			pipelineDescriptor.VertexDescriptor = vdesc;
+			var pipeline = device.CreateRenderPipelineState (pipelineDescriptor, error: out error);
+			if (error is not null) {
+				throw new NSErrorException (error);
+			}
+			return pipeline;
 		}
 
 		public enum DrawOp
@@ -665,5 +539,133 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 	return float4(in.color.xyz, in.color.w * mask);
 }
 ";
+	}
+
+	public class MetalPrimitivesBuffer
+	{
+		public readonly IMTLDevice Device;
+		public readonly IMTLBuffer? VertexBuffer;
+		public readonly IMTLBuffer? IndexBuffer;
+		public const int MaxVertices = 0x10000;
+		public const int MaxIndices = 0x10000;
+
+		public int NumVertices = 0;
+		public int NumIndices = 0;
+		public int RemainingVertices => MaxVertices - NumVertices;
+		public int RemainingIndices => MaxIndices - NumIndices;
+		public MetalPrimitivesBuffer (IMTLDevice device)
+		{
+			Device = device;
+			VertexBuffer = Device.CreateBuffer ((nuint)(MaxVertices * MetalGraphics.VertexByteSize), MTLResourceOptions.CpuCacheModeDefault);
+			IndexBuffer = Device.CreateBuffer ((nuint)(MaxIndices * sizeof (ushort)), MTLResourceOptions.CpuCacheModeDefault);
+		}
+		public void Reset ()
+		{
+			NumVertices = 0;
+			NumIndices = 0;
+		}
+		public int AddVertex (float x, float y, float u, float v, ValueColor color, Vector4 bb, Vector4 args, MetalGraphics.DrawOp op)
+		{
+			var index = NumVertices;
+			if (VertexBuffer is not null) {
+				unsafe {
+					var p = (float*)VertexBuffer.Contents;
+					p += index * MetalGraphics.VertexByteSize / sizeof(float);
+					p[0] = x;
+					p[1] = y;
+					p[2] = u;
+					p[3] = v;
+					p[4] = color.Red / 255f;
+					p[5] = color.Green / 255f;
+					p[6] = color.Blue / 255f;
+					p[7] = color.Alpha / 255f;
+					p[8] = bb.X;
+					p[9] = bb.Y;
+					p[10] = bb.Z;
+					p[11] = bb.W;
+					p[12] = args.X;
+					p[13] = args.Y;
+					p[14] = args.Z;
+					p[15] = args.W;
+					*((uint*)(p + 16)) = (uint)op;
+				}
+			}
+			NumVertices++;
+			return index;
+		}
+		public void AddTriangle (int v0, int v1, int v2)
+		{
+			var index = NumIndices;
+			if (IndexBuffer is not null) {
+				unsafe {
+					var p = (ushort*)IndexBuffer.Contents;
+					p += index;
+					p[0] = (ushort)v0;
+					p[1] = (ushort)v1;
+					p[2] = (ushort)v2;
+				}
+			}
+			NumIndices += 3;
+		}
+	}
+
+	public class MetalGraphicsBuffers
+	{
+		public IMTLDevice Device;
+		readonly List<MetalPrimitivesBuffer> _primitiveBuffers;
+		public List<MetalPrimitivesBuffer> Primitives => _primitiveBuffers;
+		int _currentPrimitiveBufferIndex = 0;
+
+		readonly IMTLBuffer? _uniformsBuffer;
+		public IMTLBuffer? Uniforms => _uniformsBuffer;
+
+		public MetalGraphicsBuffers (IMTLDevice device)
+		{
+			Device = device;
+			_primitiveBuffers = new List<MetalPrimitivesBuffer> { new MetalPrimitivesBuffer (Device) };
+			_uniformsBuffer = Device.CreateBuffer ((nuint)(MetalGraphics.UniformsByteSize), MTLResourceOptions.CpuCacheModeDefault);
+		}
+		public void Reset ()
+		{
+			foreach (var b in _primitiveBuffers) {
+				b.Reset ();
+			}
+			_currentPrimitiveBufferIndex = 0;
+		}
+		public MetalPrimitivesBuffer GetPrimitivesBuffer (int numVertices, int numIndices)
+		{
+			var b = _primitiveBuffers[_currentPrimitiveBufferIndex];
+			if (b.RemainingVertices >= numVertices && b.RemainingIndices >= numIndices) {
+				return b;
+			}
+			var buffer = new MetalPrimitivesBuffer (Device);
+			_primitiveBuffers.Add (buffer);
+			_currentPrimitiveBufferIndex++;
+			return buffer;
+		}
+		public void SetUniforms (Matrix4x4 modelToView)
+		{
+			if (_uniformsBuffer is not null) {
+				unsafe {
+					var p = (float*)_uniformsBuffer.Contents;
+					p[0] = modelToView.M11;
+					p[1] = modelToView.M12;
+					p[2] = modelToView.M13;
+					p[3] = modelToView.M14;
+					p[4] = modelToView.M21;
+					p[5] = modelToView.M22;
+					p[6] = modelToView.M23;
+					p[7] = modelToView.M24;
+					p[8] = modelToView.M31;
+					p[9] = modelToView.M32;
+					p[10] = modelToView.M33;
+					p[11] = modelToView.M34;
+					p[12] = modelToView.M41;
+					p[13] = modelToView.M42;
+					p[14] = modelToView.M43;
+					p[15] = modelToView.M44;
+				}
+			}
+		}
 	}
 }
