@@ -302,7 +302,7 @@ namespace CrossGraphics.Metal
 			var font = _currentFont.FontFamily;
 			var regionO = _buffers.FindExistingSdfTextureRegion (s, font);
 
-			var renderFontSize = (nfloat)16.0;
+			var renderFontSize = (nfloat)32.0;
 
 			var hpadding = renderFontSize * 0.1;
 			var vpadding = renderFontSize * 0.2;
