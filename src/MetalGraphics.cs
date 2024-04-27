@@ -336,13 +336,13 @@ namespace CrossGraphics.Metal
 				var drawWidth = (float)len;
 				var drawHeight = (float)renderFontSize;
 				regionO = _buffers.DrawSdfTextureRegion (s, font, drawWidth, drawHeight, (cgContext) => {
-					// cgContext.SetFillColor ((nfloat)0.5, (nfloat)0.5, (nfloat)0.5, 1);
-					// if (s.Length > 5) {
-					// 	cgContext.FillEllipseInRect (new CGRect (0, 0, drawWidth, drawHeight));
-					// }
-					// else {
-					// 	cgContext.FillRect (new CGRect (0, 0, drawWidth, drawHeight));
-					// }
+					cgContext.SetFillColor ((nfloat)0.5, (nfloat)0.5, (nfloat)0.5, 1);
+					if (s.Length > 5) {
+						cgContext.FillEllipseInRect (new CGRect (0, 0, drawWidth, drawHeight));
+					}
+					else {
+						cgContext.FillRect (new CGRect (0, 0, drawWidth, drawHeight));
+					}
 					cgContext.SetFillColor (1, 1, 1, 1);
 					cgContext.SetStrokeColor (1, 1, 1, 1);
 					cgContext.TextMatrix = CGAffineTransform.MakeScale (1, 1);
@@ -765,6 +765,7 @@ fragment float4 fragmentShader(
 			Texture = device.CreateTexture (tdesc);
 		}
 
+
 		SubRect? Alloc (float desiredWidth, float desiredHeight)
 		{
 			var idesiredWidth = (int)MathF.Ceiling(desiredWidth);
@@ -795,12 +796,16 @@ fragment float4 fragmentShader(
 			return null;
 		}
 
+		const int padding = 4;
+
 		public Vector4? AllocAndDraw (float width, float height, Action<CGContext> draw)
 		{
 			if (Texture is null) {
 				return null;
 			}
-			var subRect = Alloc (width, height);
+			var paddedWidth = width + padding * 2;
+			var paddedHeight = height + padding * 2;
+			var subRect = Alloc (paddedWidth, paddedHeight);
 			if (subRect is null) {
 				return null;
 			}
@@ -814,7 +819,7 @@ fragment float4 fragmentShader(
 			}
 			using var cs = CGColorSpace.CreateDeviceGray ();
 			using var cgContext = new CGBitmapContext (null, subRect.Width, subRect.Height, bitsPerComponent, bytesPerRow, cs, bitmapFlags);
-			// cgContext.TranslateCTM (0, subRect.Height);
+			cgContext.TranslateCTM (padding, padding);
 			// cgContext.ScaleCTM (1, -1);
 			draw (cgContext);
 			cgContext.Flush ();
@@ -824,7 +829,8 @@ fragment float4 fragmentShader(
 					(nuint)subRect.Height);
 				Texture.ReplaceRegion (region: region, level: 0, pixelBytes: data, bytesPerRow: (nuint)bytesPerRow);
 			}
-			return subRect.UVBoundingBox;
+			var unPaddedSubRect = new SubRect (subRect.X + padding, subRect.Y + padding, subRect.Width - padding * 2, subRect.Height - padding * 2);
+			return unPaddedSubRect.UVBoundingBox;
 		}
 	}
 
