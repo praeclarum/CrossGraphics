@@ -295,10 +295,11 @@ namespace CrossGraphics.Metal
 		public void DrawString (string s, float x, float y)
 		{
 			var font = _currentFont.FontFamily;
-			var region = _buffers.FindExistingSdfTextureRegion (s, font);
+			var regionO = _buffers.FindExistingSdfTextureRegion (s, font);
 
-			if (region is null) {
-				var renderFontSize = (nfloat)16.0;
+			var renderFontSize = (nfloat)16.0;
+
+			if (regionO is null) {
 				const double maxLength = 2048.0;
 				const int maxTries = 3;
 				nfloat ascent = 0;
@@ -329,7 +330,7 @@ namespace CrossGraphics.Metal
 
 				var drawWidth = (float)len;
 				var drawHeight = (float)renderFontSize;
-				region = _buffers.DrawSdfTextureRegion (s, font, drawWidth, drawHeight, (cgContext) => {
+				regionO = _buffers.DrawSdfTextureRegion (s, font, drawWidth, drawHeight, (cgContext) => {
 					cgContext.SetFillColor (1, 1, 1, 1);
 					cgContext.SetStrokeColor (1, 1, 1, 1);
 					cgContext.SetLineWidth (1);
@@ -339,28 +340,41 @@ namespace CrossGraphics.Metal
 				});
 			}
 
-			if (region is null) {
-				return;
+			if (regionO is SdfTextureRegion region) {
+				var fontScale = (float)(_currentFont.Size / renderFontSize);
+				var width = region.DrawSize.X * fontScale;
+				var height = region.DrawSize.Y * fontScale;
+				DoRect (x, y, width, height, 0, DrawOp.DrawString);
 			}
 		}
+
+		const int MaxSdfTextures = 1;
 
 		public void EndDrawing ()
 		{
 			if (_pipeline.Value is {} pipeline) {
+				_renderEncoder.SetRenderPipelineState (pipeline);
+
 				_buffers.SetUniforms (_modelToViewport);
 				if (_buffers.Uniforms is {} u) {
 					_renderEncoder.SetVertexBuffer (buffer: u, offset: 0, index: 1);
 				}
+
+				for (var textureIndex = 0; textureIndex < Math.Min (MaxSdfTextures, _buffers.SdfTextures.Count); textureIndex++) {
+					var texture = _buffers.SdfTextures[textureIndex].Texture;
+					if (texture is null) {
+						continue;
+					}
+					_renderEncoder.SetFragmentTexture (texture, index: (nuint)textureIndex);
+				}
+
 				foreach (var buffer in _buffers.Primitives) {
 					if (buffer.NumIndices <= 0) {
 						break;
 					}
-
 					if (buffer.VertexBuffer is null || buffer.IndexBuffer is null) {
 						continue;
 					}
-
-					_renderEncoder.SetRenderPipelineState (pipeline);
 					_renderEncoder.SetVertexBuffer (buffer: buffer.VertexBuffer, offset: 0, index: 0);
 					_renderEncoder.DrawIndexedPrimitives (MTLPrimitiveType.Triangle, (nuint)buffer.NumIndices, MTLIndexType.UInt16, buffer.IndexBuffer, 0);
 				}
@@ -560,6 +574,11 @@ float fillRoundedRect(ColorInOut in)
 	}
 }
 
+float drawString(ColorInOut in)
+{
+	return 1.0;
+}
+
 vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
                                constant Uniforms &uniforms [[ buffer(1) ]])
 {
@@ -576,7 +595,9 @@ vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
 	return out;
 }
 
-fragment float4 fragmentShader(ColorInOut in [[stage_in]])
+fragment float4 fragmentShader(
+	ColorInOut in [[stage_in]],
+	texture2d<float> sdf0 [[ texture(0) ]])
 {
     uint op = in.op;
     float mask = 0.0;
@@ -595,6 +616,9 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 		break;
 	case 6: // FillArc
 		mask = fillRect(in);
+		break;
+	case 13: // DrawString
+		mask = drawString(in);
 		break;
 	case 14: // DrawLine
 		mask = fillRect(in);
@@ -809,11 +833,13 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 	public readonly struct SdfTextureRegion
 	{
 		public readonly int TextureIndex;
-		public readonly Vector4 UV;
-		public SdfTextureRegion (int textureIndex, Vector4 uv)
+		public readonly Vector4 UVBoundingBox;
+		public readonly Vector2 DrawSize;
+		public SdfTextureRegion (int textureIndex, Vector4 uv, Vector2 drawSize)
 		{
 			TextureIndex = textureIndex;
-			UV = uv;
+			UVBoundingBox = uv;
+			DrawSize = drawSize;
 		}
 	}
 
@@ -874,13 +900,13 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 			var key = new SdfKey (text, font);
 			var textureIndex = 0;
 			var texture = _sdfTextures[textureIndex];
-			var uv = texture.AllocAndDraw (width, height, draw);
-			if (uv is null) {
-				return null;
+			var uvO = texture.AllocAndDraw (width, height, draw);
+			if (uvO is Vector4 uv) {
+				var region = new SdfTextureRegion (textureIndex, uv, new Vector2 (width, height));
+				_sdfValues[key] = region;
+				return region;
 			}
-			var region = new SdfTextureRegion (textureIndex, uv.Value);
-			_sdfValues[key] = region;
-			return region;
+			return null;
 		}
 
 		public void SetUniforms (Matrix4x4 modelToView)
