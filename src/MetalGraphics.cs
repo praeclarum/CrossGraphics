@@ -25,6 +25,10 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
+using CoreGraphics;
+
+using CoreText;
+
 using Foundation;
 
 using Metal;
@@ -89,9 +93,11 @@ namespace CrossGraphics.Metal
 			return new NullGraphicsFontMetrics (_currentFont.Size, isBold: _currentFont.IsBold);
 		}
 
-		public void SetFont (Font f)
+		public void SetFont (Font? f)
 		{
-			_currentFont = f;
+			if (f is not null) {
+				_currentFont = f;
+			}
 		}
 
 		public void SetColor (Color c)
@@ -269,12 +275,51 @@ namespace CrossGraphics.Metal
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			// TODO: Implement
+			if (_currentFont == null)
+				return;
+			var fm = GetFontMetrics ();
+			var xx = x;
+			var yy = y;
+			if (align == TextAlignment.Center) {
+				xx = (x + width / 2) - (fm.StringWidth (s) / 2);
+			}
+			else if (align == TextAlignment.Right) {
+				xx = (x + width) - fm.StringWidth (s);
+			}
+
+			DrawString (s, xx, yy);
 		}
+
+		readonly CGColor _whiteCGColor = new CGColor (1, 1, 1, 1);
 
 		public void DrawString (string s, float x, float y)
 		{
-			// TODO: Implement
+			var renderFontSize = (nfloat)16.0;
+			const double maxLength = 2048.0;
+			const int maxTries = 3;
+			for (var tri = 0; tri < maxTries; tri++) {
+				using var atext = new NSMutableAttributedString (s, new CTStringAttributes {
+					ForegroundColorFromContext = false,
+					// StrokeColor = _whiteCGColor,
+					ForegroundColor = _whiteCGColor,
+					Font = new CTFont (_currentFont.FontFamily, renderFontSize),
+				});
+				using var l = new CTLine (atext);
+				var len = l.GetTypographicBounds (out var ascent, out var descent, out var leading);
+				if (len > maxLength) {
+					renderFontSize *= (nfloat)(maxLength / len * 0.98);
+				}
+				else {
+					break;
+				}
+			}
+
+			var pt = new CGPoint (x, y);
+			// context.SaveState ();
+			// context.TranslateCTM ((nfloat)(pt.X), (nfloat)(pt.Y));
+			// context.TextPosition = CGPoint.Empty;
+			// l.Draw (context);
+			// context.RestoreState ();
 		}
 
 		public void EndDrawing ()
