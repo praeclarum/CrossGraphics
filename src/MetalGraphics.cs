@@ -564,6 +564,33 @@ float strokeRect(ColorInOut in)
 	return onedge ? 1.0 : 0.0;
 }
 
+float fillOval(ColorInOut in)
+{
+	float2 p = in.modelPosition;
+	float2 bbMin = in.bb.xy;
+	float2 bbMax = in.bb.zw;
+	float2 center = (bbMin + bbMax) / 2;
+	float2 radius = (bbMax - bbMin) / 2;
+	float2 d = (p - center) / radius;
+	float r = length(d);
+	return r <= 1.0 ? 1.0 : 0.0;
+}
+
+float strokeOval(ColorInOut in)
+{
+	float2 p = in.modelPosition;
+	float2 bbMin = in.bb.xy;
+	float2 bbMax = in.bb.zw;
+	float w = in.args.x;
+	float2 center = (bbMin + bbMax) / 2;
+	float2 outerRadius = (bbMax - bbMin) / 2 - float2(2.0*w, 2.0*w);
+	float2 innerRadius = outerRadius - float2(w, w);
+	float2 d = (p - center);
+	float r = length(d);
+	bool onedge = r >= length(innerRadius) && r <= length(outerRadius);
+	return onedge ? 1.0 : 0.0;
+}
+
 vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
                                constant Uniforms &uniforms [[ buffer(1) ]])
 {
@@ -586,8 +613,17 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
     float mask = 0.0;
 	switch (op) {
 	case 0: // FillRect
+		mask = fillRect(in);
+		break;
 	case 2: // FillRoundedRect
+		mask = fillRect(in);
+		break;
 	case 4: // FillOval
+		mask = fillOval(in);
+		break;
+	case 5: // StrokeOval
+		mask = strokeOval(in);
+		break;
 	case 6: // FillArc
 		mask = fillRect(in);
 		break;
