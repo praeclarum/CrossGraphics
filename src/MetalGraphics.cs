@@ -541,26 +541,27 @@ typedef struct
 typedef struct
 {
     float4 projectedPosition [[position]];
-    float4 modelPosition;
+    float2 modelPosition;
     float2 texCoord;
     float4 color;
+	float4 bb;
+	float4 args;
+	uint op;
 } ColorInOut;
 
-float fillRect(Vertex in)
+float fillRect(ColorInOut in)
 {
 	return 1.0;
 }
 
-float strokeRect(Vertex in)
+float strokeRect(ColorInOut in)
 {
-	float2 p = in.position;
-	float2 size = in.bb.zw - in.bb.xy;
-	float2 halfSize = size / 2;
-	float2 center = in.bb.xy + halfSize;
-	float2 d = abs(p - center) - halfSize + in.args.xy;
-	float2 q = max(d, 0.0);
-	//return 1.0 - step(in.args.x, length(q));
-	return 0.0;
+	float2 p = in.modelPosition;
+	float2 bbMin = in.bb.xy;
+	float2 bbMax = in.bb.zw;
+	float w = in.args.x;
+	bool onedge = p.x < bbMin.x + w || p.x > bbMax.x - w || p.y < bbMin.y + w || p.y > bbMax.y - w;
+	return onedge ? 1.0 : 0.0;
 }
 
 vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
@@ -568,6 +569,19 @@ vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
 {
 	float4 modelPosition = float4(in.position, 0.0, 1.0);
 	float4 projectedPosition = uniforms.modelViewProjectionMatrix * modelPosition;
+	ColorInOut out;
+	out.projectedPosition = projectedPosition;
+	out.modelPosition = in.position;
+	out.texCoord = in.texCoord;
+	out.color = in.color;
+	out.bb = in.bb;
+	out.args = in.args;
+	out.op = in.op;
+	return out;
+}
+
+fragment float4 fragmentShader(ColorInOut in [[stage_in]])
+{
     uint op = in.op;
     float mask = 0.0;
 	switch (op) {
@@ -584,17 +598,7 @@ vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
 		mask = strokeRect(in);
 		break;
 	}
-	ColorInOut out;
-	out.projectedPosition = projectedPosition;
-	out.modelPosition = modelPosition;
-	out.texCoord = in.texCoord;
-	out.color = float4(in.color.xyz, in.color.w * mask);
-	return out;
-}
-
-fragment float4 fragmentShader(ColorInOut in [[stage_in]])
-{
-	return in.color;
+	return float4(in.color.xyz, in.color.w * mask);
 }
 ";
 	}
