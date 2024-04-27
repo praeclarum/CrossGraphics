@@ -304,6 +304,9 @@ namespace CrossGraphics.Metal
 
 			var renderFontSize = (nfloat)16.0;
 
+			var hpadding = renderFontSize * 0.1;
+			var vpadding = renderFontSize * 0.2;
+
 			if (regionO is null) {
 				const double maxLength = 2048.0;
 				const int maxTries = 3;
@@ -315,8 +318,6 @@ namespace CrossGraphics.Metal
 				for (var tri = 0; tri < maxTries; tri++) {
 					var atext = new NSMutableAttributedString (s, new CTStringAttributes {
 						ForegroundColorFromContext = true,
-						// StrokeColor = _whiteCGColor,
-						// ForegroundColor = _whiteCGColor,
 						Font = new CTFont ("Helvetica", renderFontSize),
 					});
 					var l = new CTLine (atext);
@@ -333,20 +334,19 @@ namespace CrossGraphics.Metal
 					return;
 				}
 
-				var drawWidth = (float)len;
-				var drawHeight = (float)renderFontSize;
+				var drawWidth = (float)(len + 2.0 * hpadding);
+				var drawHeight = (float)(renderFontSize + 2.0 * vpadding);
 				regionO = _buffers.DrawSdfTextureRegion (s, font, drawWidth, drawHeight, (cgContext) => {
-					cgContext.SetFillColor ((nfloat)0.5, (nfloat)0.5, (nfloat)0.5, 1);
-					if (s.Length > 5) {
-						cgContext.FillEllipseInRect (new CGRect (0, 0, drawWidth, drawHeight));
-					}
-					else {
-						cgContext.FillRect (new CGRect (0, 0, drawWidth, drawHeight));
-					}
+					// cgContext.SetFillColor ((nfloat)0.5, (nfloat)0.5, (nfloat)0.5, 1);
+					// if (s.Length > 5) {
+					// 	cgContext.FillEllipseInRect (new CGRect (0, 0, drawWidth, drawHeight));
+					// }
+					// else {
+					// 	cgContext.FillRect (new CGRect (0, 0, drawWidth, drawHeight));
+					// }
 					cgContext.SetFillColor (1, 1, 1, 1);
-					cgContext.SetStrokeColor (1, 1, 1, 1);
 					cgContext.TextMatrix = CGAffineTransform.MakeScale (1, 1);
-					cgContext.TranslateCTM (0, (nfloat)(renderFontSize * 0.15));
+					cgContext.TranslateCTM ((nfloat)hpadding, (nfloat)(renderFontSize * 0.15 + vpadding));
 					drawLine.Draw (cgContext);
 				});
 
@@ -358,7 +358,7 @@ namespace CrossGraphics.Metal
 				var width = region.DrawSize.X * fontScale;
 				var height = region.DrawSize.Y * fontScale;
 				var buffer = _buffers.GetPrimitivesBuffer(numVertices: 4, numIndices: 6);
-				var bb = BoundingBox.FromSafeRect (x, y, width, height);
+				var bb = BoundingBox.FromSafeRect (x - (float)hpadding * fontScale, y - (float)vpadding * fontScale, width, height);
 				var bbv = new Vector4 (bb.MinX, bb.MinY, bb.MaxX, bb.MaxY);
 				var args = new Vector4 (0, 0, 0, 0);
 				var uMin = region.UVBoundingBox.X;
