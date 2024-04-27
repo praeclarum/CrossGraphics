@@ -366,12 +366,12 @@ namespace CrossGraphics.Metal
 			}
 		}
 
-		void DoRect (float x, float y, float width, float height, float w, DrawOp op)
+		void DoRect (float x, float y, float width, float height, float w, DrawOp op, float argy = 0)
 		{
 			var buffer = _buffers.GetBuffer (4, 6);
 			var bb = BoundingBox.FromRect (x, y, width, height, w);
 			var bbv = new Vector4 (bb.MinX, bb.MinY, bb.MaxX, bb.MaxY);
-			var args = new Vector4 (w, 0, 0, 0);
+			var args = new Vector4 (w, argy, 0, 0);
 			var v0 = buffer.AddVertex(bb.MinX, bb.MinY, 0, 0, _currentColor, bb: bbv, args: args, op: op);
 			var v1 = buffer.AddVertex(bb.MaxX, bb.MinY, 1, 0, _currentColor, bb: bbv, args: args, op: op);
 			var v2 = buffer.AddVertex(bb.MaxX, bb.MaxY, 1, 1, _currentColor, bb: bbv, args: args, op: op);
@@ -402,7 +402,7 @@ namespace CrossGraphics.Metal
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
-			DoRect (x, y, width, height, 0, DrawOp.FillRoundedRect);
+			DoRect (x, y, width, height, 0, DrawOp.FillRoundedRect, argy: radius);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
@@ -591,6 +591,34 @@ float strokeOval(ColorInOut in)
 	return onedge ? 1.0 : 0.0;
 }
 
+float fillRoundedRect(ColorInOut in)
+{
+	float2 p = in.modelPosition;
+	float2 bbMin = in.bb.xy;
+	float2 bbMax = in.bb.zw;
+	float w = in.args.x;
+	float r = in.args.y;
+	if (p.x < bbMin.x + r && p.y < bbMin.y + r) {
+		float pr = length(p - bbMin - float2(r, r));
+		return pr <= r ? 1.0 : 0.0;
+	}
+	else if (p.x > bbMax.x - r && p.y < bbMin.y + r) {
+		float pr = length(p - float2(bbMax.x, bbMin.y) - float2(-r, r));
+		return pr <= r ? 1.0 : 0.0;
+	}
+	else if (p.x > bbMax.x - r && p.y > bbMax.y - r) {
+		float pr = length(p - bbMax - float2(-r, -r));
+		return pr <= r ? 1.0 : 0.0;
+	}
+	else if (p.x < bbMin.x + r && p.y > bbMax.y - r) {
+		float pr = length(p - float2(bbMin.x, bbMax.y) - float2(r, -r));
+		return pr <= r ? 1.0 : 0.0;
+	}
+	else {
+		return 1.0;
+	}
+}
+
 vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
                                constant Uniforms &uniforms [[ buffer(1) ]])
 {
@@ -616,7 +644,7 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 		mask = fillRect(in);
 		break;
 	case 2: // FillRoundedRect
-		mask = fillRect(in);
+		mask = fillRoundedRect(in);
 		break;
 	case 4: // FillOval
 		mask = fillOval(in);
