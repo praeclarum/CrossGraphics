@@ -294,32 +294,54 @@ namespace CrossGraphics.Metal
 
 		public void DrawString (string s, float x, float y)
 		{
-			var renderFontSize = (nfloat)16.0;
-			const double maxLength = 2048.0;
-			const int maxTries = 3;
-			for (var tri = 0; tri < maxTries; tri++) {
-				using var atext = new NSMutableAttributedString (s, new CTStringAttributes {
-					ForegroundColorFromContext = false,
-					// StrokeColor = _whiteCGColor,
-					ForegroundColor = _whiteCGColor,
-					Font = new CTFont (_currentFont.FontFamily, renderFontSize),
+			var font = _currentFont.FontFamily;
+			var region = _buffers.FindExistingSdfTextureRegion (s, font);
+
+			if (region is null) {
+				var renderFontSize = (nfloat)16.0;
+				const double maxLength = 2048.0;
+				const int maxTries = 3;
+				nfloat ascent = 0;
+				nfloat descent = 0;
+				nfloat leading = 0;
+				double len = 0;
+				CTLine? drawLine = null;
+				for (var tri = 0; tri < maxTries; tri++) {
+					using var atext = new NSMutableAttributedString (s, new CTStringAttributes {
+						ForegroundColorFromContext = false,
+						// StrokeColor = _whiteCGColor,
+						ForegroundColor = _whiteCGColor,
+						Font = new CTFont (_currentFont.FontFamily, renderFontSize),
+					});
+					using var l = new CTLine (atext);
+					len = l.GetTypographicBounds (out ascent, out descent, out leading);
+					if (len > maxLength) {
+						renderFontSize *= (nfloat)(maxLength / len * 0.98);
+					}
+					else {
+						drawLine = l;
+						break;
+					}
+				}
+				if (drawLine is null) {
+					return;
+				}
+
+				var drawWidth = (float)len;
+				var drawHeight = (float)renderFontSize;
+				region = _buffers.DrawSdfTextureRegion (s, font, drawWidth, drawHeight, (cgContext) => {
+					cgContext.SetFillColor (1, 1, 1, 1);
+					cgContext.SetStrokeColor (1, 1, 1, 1);
+					cgContext.SetLineWidth (1);
+					cgContext.SetTextDrawingMode (CGTextDrawingMode.Fill);
+					cgContext.TextPosition = new CGPoint (0, 0);
+					drawLine.Draw (cgContext);
 				});
-				using var l = new CTLine (atext);
-				var len = l.GetTypographicBounds (out var ascent, out var descent, out var leading);
-				if (len > maxLength) {
-					renderFontSize *= (nfloat)(maxLength / len * 0.98);
-				}
-				else {
-					break;
-				}
 			}
 
-			var pt = new CGPoint (x, y);
-			// context.SaveState ();
-			// context.TranslateCTM ((nfloat)(pt.X), (nfloat)(pt.Y));
-			// context.TextPosition = CGPoint.Empty;
-			// l.Draw (context);
-			// context.RestoreState ();
+			if (region is null) {
+				return;
+			}
 		}
 
 		public void EndDrawing ()
@@ -659,7 +681,7 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 		const int MaxWidth = 2048;
 		const int MaxHeight = 2048;
 
-		public class SubRect
+		class SubRect
 		{
 			public readonly int X;
 			public readonly int Y;
@@ -682,7 +704,7 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 		{
 			var tdesc = new MTLTextureDescriptor {
 				TextureType = MTLTextureType.k2D,
-				PixelFormat = MTLPixelFormat.R16Float,
+				PixelFormat = MTLPixelFormat.R32Float,
 				Width = (nuint)MaxWidth,
 				Height = (nuint)MaxHeight,
 				Depth = 1,
@@ -695,7 +717,7 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 			Texture = device.CreateTexture (tdesc);
 		}
 
-		public SubRect? Alloc (float desiredWidth, float desiredHeight)
+		SubRect? Alloc (float desiredWidth, float desiredHeight)
 		{
 			var idesiredWidth = (int)MathF.Ceiling(desiredWidth);
 			var idesiredHeight = (int)MathF.Ceiling(desiredHeight);
@@ -714,10 +736,10 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 				if (freeRect.Width >= idesiredWidth && freeRect.Height >= idesiredHeight) {
 					_free.RemoveAt (freeIndex);
 					if (freeRect.Height > idesiredHeight) {
-						_free.Insert (0, new SubRect (freeRect.X, freeRect.Y + idesiredHeight, idesiredWidth, freeRect.Height - idesiredHeight));
+						_free.Insert (0, new SubRect (freeRect.X, freeRect.Y + idesiredHeight, freeRect.Width, freeRect.Height - idesiredHeight));
 					}
 					if (freeRect.Width > idesiredWidth) {
-						_free.Insert (0, new SubRect (freeRect.X + idesiredWidth, freeRect.Y, freeRect.Width - idesiredWidth, freeRect.Height));
+						_free.Insert (0, new SubRect (freeRect.X + idesiredWidth, freeRect.Y, freeRect.Width - idesiredWidth, idesiredHeight));
 					}
 					return new SubRect (freeRect.X, freeRect.Y, idesiredWidth, idesiredHeight);
 				}
@@ -725,7 +747,7 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 			return null;
 		}
 
-		public Vector4? TryDraw (float width, float height, Action<CGContext> draw)
+		public Vector4? AllocAndDraw (float width, float height, Action<CGContext> draw)
 		{
 			if (Texture is null) {
 				return null;
@@ -734,27 +756,78 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 			if (subRect is null) {
 				return null;
 			}
-			var bytesPerRow = subRect.Width * 2;
-			using var cgContext = new CGBitmapContext (null, subRect.Width, subRect.Height, 16, bytesPerRow, CGColorSpace.CreateDeviceGray (), CGBitmapFlags.FloatComponents);
+			var bytesPerRow = subRect.Width * 4;
+			using var cgContext = new CGBitmapContext (null, subRect.Width, subRect.Height, 32, bytesPerRow, CGColorSpace.CreateDeviceGray (), CGBitmapFlags.FloatComponents);
 			cgContext.TranslateCTM (0, subRect.Height);
 			cgContext.ScaleCTM (1, -1);
 			draw (cgContext);
 			var data = cgContext.Data;
-			if (data == IntPtr.Zero) {
-				return null;
+			if (data != IntPtr.Zero) {
+				var region = MTLRegion.Create2D ((nuint)subRect.X, (nuint)subRect.Y, (nuint)subRect.Width,
+					(nuint)subRect.Height);
+				Texture.ReplaceRegion (region: region, level: 0, pixelBytes: data, bytesPerRow: (nuint)bytesPerRow);
 			}
-			var region = MTLRegion.Create2D ((nuint)subRect.X, (nuint)subRect.Y, (nuint)subRect.Width, (nuint)subRect.Height);
-			Texture.ReplaceRegion (region: region, level: 0, pixelBytes: data, bytesPerRow: (nuint)bytesPerRow);
 			return subRect.UVBoundingBox;
+		}
+	}
+
+	readonly struct SdfKey
+	{
+		public readonly string Text;
+		public readonly string Font;
+		public SdfKey (string text, string font)
+		{
+			Text = text;
+			Font = font;
+		}
+		public override bool Equals (object? obj)
+		{
+			if (obj is SdfKey key) {
+				return key.Text == Text && key.Font == Font;
+			}
+			return false;
+		}
+		public override int GetHashCode ()
+		{
+			return HashCode.Combine (Text, Font);
+		}
+	}
+
+	class SdfKeyComparer : IEqualityComparer<SdfKey>
+	{
+		public static readonly SdfKeyComparer Shared = new SdfKeyComparer ();
+		public bool Equals (SdfKey x, SdfKey y)
+		{
+			return x.Text == y.Text && x.Font == y.Font;
+		}
+		public int GetHashCode (SdfKey obj)
+		{
+			return HashCode.Combine (obj.Text, obj.Font);
+		}
+	}
+
+	public readonly struct SdfTextureRegion
+	{
+		public readonly int TextureIndex;
+		public readonly Vector4 UV;
+		public SdfTextureRegion (int textureIndex, Vector4 uv)
+		{
+			TextureIndex = textureIndex;
+			UV = uv;
 		}
 	}
 
 	public class MetalGraphicsBuffers
 	{
-		public IMTLDevice Device;
-		readonly List<MetalPrimitivesBuffer> _primitiveBuffers;
-		public List<MetalPrimitivesBuffer> Primitives => _primitiveBuffers;
+		public readonly IMTLDevice Device;
+
 		int _currentPrimitiveBufferIndex = 0;
+		readonly List<MetalPrimitivesBuffer> _primitiveBuffers;
+		readonly List<MetalSdfTexture> _sdfTextures;
+
+		public List<MetalPrimitivesBuffer> Primitives => _primitiveBuffers;
+		public List<MetalSdfTexture> SdfTextures => _sdfTextures;
+		private readonly Dictionary<SdfKey, SdfTextureRegion> _sdfValues = new(comparer: SdfKeyComparer.Shared);
 
 		readonly IMTLBuffer? _uniformsBuffer;
 		public IMTLBuffer? Uniforms => _uniformsBuffer;
@@ -763,8 +836,10 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 		{
 			Device = device;
 			_primitiveBuffers = new List<MetalPrimitivesBuffer> { new MetalPrimitivesBuffer (Device) };
+			_sdfTextures = new List<MetalSdfTexture> { new MetalSdfTexture (Device) };
 			_uniformsBuffer = Device.CreateBuffer ((nuint)(MetalGraphics.UniformsByteSize), MTLResourceOptions.CpuCacheModeDefault);
 		}
+
 		public void Reset ()
 		{
 			foreach (var b in _primitiveBuffers) {
@@ -772,6 +847,7 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 			}
 			_currentPrimitiveBufferIndex = 0;
 		}
+
 		public MetalPrimitivesBuffer GetPrimitivesBuffer (int numVertices, int numIndices)
 		{
 			var b = _primitiveBuffers[_currentPrimitiveBufferIndex];
@@ -783,6 +859,30 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]])
 			_currentPrimitiveBufferIndex++;
 			return buffer;
 		}
+
+		public SdfTextureRegion? FindExistingSdfTextureRegion (string text, string font)
+		{
+			var key = new SdfKey (text, font);
+			if (_sdfValues.TryGetValue (key, out var value)) {
+				return value;
+			}
+			return null;
+		}
+
+		public SdfTextureRegion? DrawSdfTextureRegion (string text, string font, float width, float height, Action<CGContext> draw)
+		{
+			var key = new SdfKey (text, font);
+			var textureIndex = 0;
+			var texture = _sdfTextures[textureIndex];
+			var uv = texture.AllocAndDraw (width, height, draw);
+			if (uv is null) {
+				return null;
+			}
+			var region = new SdfTextureRegion (textureIndex, uv.Value);
+			_sdfValues[key] = region;
+			return region;
+		}
+
 		public void SetUniforms (Matrix4x4 modelToView)
 		{
 			if (_uniformsBuffer is not null) {
