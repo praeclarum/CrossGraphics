@@ -48,13 +48,20 @@ namespace CrossGraphics.Metal
 
 		readonly Buffers _buffers;
 		readonly IMTLRenderCommandEncoder _renderEncoder;
-		readonly IMTLRenderPipelineState? _pipeline;
+		static readonly Lazy<IMTLRenderPipelineState?> _pipeline;
+
+		static MetalGraphics ()
+		{
+			_pipeline = new Lazy<IMTLRenderPipelineState?> (() => {
+				var device = MTLDevice.SystemDefault;
+				return device != null ? CreatePipeline (device) : null;
+			});
+		}
 
 		public MetalGraphics (IMTLDevice device, IMTLRenderCommandEncoder renderEncoder, Buffers buffers)
 		{
 			_renderEncoder = renderEncoder;
 			_buffers = buffers;
-			_pipeline = CreatePipeline (device);
 		}
 
 		static IMTLRenderPipelineState CreatePipeline (IMTLDevice device)
@@ -76,6 +83,34 @@ namespace CrossGraphics.Metal
 			var pipelineDescriptor = new MTLRenderPipelineDescriptor {
 				VertexFunction = vertexFunction, FragmentFunction = fragmentFunction,
 			};
+			pipelineDescriptor.VertexBuffers[0] = new MTLPipelineBufferDescriptor() {
+				Mutability = MTLMutability.Immutable,
+			};
+			var vdesc = new MTLVertexDescriptor ();
+			vdesc.Layouts[0] = new MTLVertexBufferLayoutDescriptor {
+				Stride = VertexByteSize,
+			};
+			vdesc.Attributes[0] = new MTLVertexAttributeDescriptor {
+				BufferIndex = 0, Format = MTLVertexFormat.Float2, Offset = 0,
+			};
+			vdesc.Attributes[1] = new MTLVertexAttributeDescriptor {
+				BufferIndex = 0, Format = MTLVertexFormat.Float2, Offset = 2 * sizeof (float),
+			};
+			vdesc.Attributes[2] = new MTLVertexAttributeDescriptor {
+				BufferIndex = 0, Format = MTLVertexFormat.Float4, Offset = 4 * sizeof (float),
+			};
+			pipelineDescriptor.VertexDescriptor = vdesc;
+			// 	new MTLVertexAttributeDescriptor {
+			// 		BufferIndex = 0,
+			// 		Format = MTLVertexFormat.Float2,
+			// 		Offset = 2 * sizeof (float),
+			// 	},
+			// 	new MTLVertexAttributeDescriptor {
+			// 		BufferIndex = 0,
+			// 		Format = MTLVertexFormat.Float4,
+			// 		Offset = 4 * sizeof (float),
+			// 	},
+			// };
 			var pipeline = device.CreateRenderPipelineState (pipelineDescriptor, error: out error);
 			if (error is not null) {
 				throw new NSErrorException (error);
@@ -359,7 +394,7 @@ namespace CrossGraphics.Metal
 
 		public void EndDrawing ()
 		{
-			if (_pipeline is not null) {
+			if (_pipeline.Value is {} pipeline) {
 				foreach (var buffer in _buffers.All) {
 					if (buffer.NumIndices <= 0) {
 						break;
@@ -370,9 +405,9 @@ namespace CrossGraphics.Metal
 					}
 
 					Console.WriteLine ($"Drawing {buffer.NumVertices} vertices and {buffer.NumIndices} indices");
-					_renderEncoder.SetRenderPipelineState (_pipeline);
+					_renderEncoder.SetRenderPipelineState (pipeline);
 					_renderEncoder.SetVertexBuffer (buffer.VertexBuffer, 0, 0);
-					// _renderEncoder.DrawIndexedPrimitives (MTLPrimitiveType.Triangle, (nuint)buffer.NumIndices, MTLIndexType.UInt16, buffer.IndexBuffer, 0);
+					_renderEncoder.DrawIndexedPrimitives (MTLPrimitiveType.Triangle, (nuint)buffer.NumIndices, MTLIndexType.UInt16, buffer.IndexBuffer, 0);
 				}
 			}
 			_buffers.Reset ();
