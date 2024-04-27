@@ -107,22 +107,23 @@ namespace CrossGraphics.Metal
 				BufferIndex = 0, Format = MTLVertexFormat.Float4, Offset = 4 * sizeof (float),
 			};
 			pipelineDescriptor.VertexDescriptor = vdesc;
-			// 	new MTLVertexAttributeDescriptor {
-			// 		BufferIndex = 0,
-			// 		Format = MTLVertexFormat.Float2,
-			// 		Offset = 2 * sizeof (float),
-			// 	},
-			// 	new MTLVertexAttributeDescriptor {
-			// 		BufferIndex = 0,
-			// 		Format = MTLVertexFormat.Float4,
-			// 		Offset = 4 * sizeof (float),
-			// 	},
-			// };
 			var pipeline = device.CreateRenderPipelineState (pipelineDescriptor, error: out error);
 			if (error is not null) {
 				throw new NSErrorException (error);
 			}
 			return pipeline;
+		}
+
+		public void SetViewport (float viewWidth, float viewHeight, float modelToViewScale, float modelToViewTranslationX, float modelToViewTranslationY)
+		{
+			var t = Matrix4x4.CreateTranslation (modelToViewTranslationX, modelToViewTranslationY, 0);
+			var s = Matrix4x4.CreateScale (modelToViewScale, modelToViewScale, 1);
+			var modelToView = s * t;
+			// Now calculate the viewport transform
+			// View is (0,0) to (viewWidth, viewHeight)
+			// Viewport is (-1,-1) to (1,1)
+			var viewToViewport = Matrix4x4.CreateScale (2 / viewWidth, -2 / viewHeight, 1) * Matrix4x4.CreateTranslation (-1, 1, 0);
+			_modelToViewport = modelToView * viewToViewport;
 		}
 
 		public void BeginEntity (object entity)
@@ -215,6 +216,9 @@ namespace CrossGraphics.Metal
 		public const int VertexColorByteSize = 4 * sizeof (float);
 		public const int VertexByteSize = VertexPositionByteSize + VertexUvByteSize + VertexColorByteSize;
 
+		public const int UniformModelToViewByteSize = 16 * sizeof (float);
+		public const int UniformByteSize = UniformModelToViewByteSize;
+
 		public class Buffer
 		{
 			public readonly IMTLDevice Device;
@@ -245,8 +249,8 @@ namespace CrossGraphics.Metal
 					unsafe {
 						var p = (float*)VertexBuffer.Contents;
 						p += index * VertexByteSize / sizeof(float);
-						p[0] = x * 5.0e-4f;
-						p[1] = y * 5.0e-4f;
+						p[0] = x;
+						p[1] = y;
 						p[2] = u;
 						p[3] = v;
 						p[4] = color.Red / 255f;
@@ -273,6 +277,7 @@ namespace CrossGraphics.Metal
 				NumIndices += 3;
 			}
 		}
+		Matrix4x4 _modelToViewport = Matrix4x4.Identity;
 
 		public class Buffers
 		{
@@ -280,11 +285,14 @@ namespace CrossGraphics.Metal
 			readonly List<Buffer> buffers;
 			public List<Buffer> All => buffers;
 			int currentBufferIndex = 0;
+			readonly IMTLBuffer? _uniformBuffer;
+			public IMTLBuffer? Uniforms => _uniformBuffer;
 			public Buffers (IMTLDevice device)
 			{
 				Device = device;
 				buffers = new List<Buffer> ();
 				buffers.Add (new Buffer (Device));
+				_uniformBuffer = Device.CreateBuffer ((nuint)(UniformByteSize), MTLResourceOptions.CpuCacheModeDefault);
 			}
 			public Buffer GetBuffer (int numVertices, int numIndices)
 			{
@@ -303,6 +311,30 @@ namespace CrossGraphics.Metal
 					b.Reset ();
 				}
 				currentBufferIndex = 0;
+			}
+			public void SetUniforms (Matrix4x4 modelToView)
+			{
+				if (_uniformBuffer is not null) {
+					unsafe {
+						var p = (float*)_uniformBuffer.Contents;
+						p[0] = modelToView.M11;
+						p[1] = modelToView.M12;
+						p[2] = modelToView.M13;
+						p[3] = modelToView.M14;
+						p[4] = modelToView.M21;
+						p[5] = modelToView.M22;
+						p[6] = modelToView.M23;
+						p[7] = modelToView.M24;
+						p[8] = modelToView.M31;
+						p[9] = modelToView.M32;
+						p[10] = modelToView.M33;
+						p[11] = modelToView.M34;
+						p[12] = modelToView.M41;
+						p[13] = modelToView.M42;
+						p[14] = modelToView.M43;
+						p[15] = modelToView.M44;
+					}
+				}
 			}
 		}
 
@@ -417,6 +449,10 @@ namespace CrossGraphics.Metal
 		public void EndDrawing ()
 		{
 			if (_pipeline.Value is {} pipeline) {
+				_buffers.SetUniforms (_modelToViewport);
+				if (_buffers.Uniforms is not null) {
+					_renderEncoder.SetVertexBuffer (_buffers.Uniforms, 0, 1);
+				}
 				foreach (var buffer in _buffers.All) {
 					if (buffer.NumIndices <= 0) {
 						break;
@@ -437,6 +473,11 @@ namespace CrossGraphics.Metal
 		const string MetalCode = @"
 typedef struct
 {
+    metal::float4x4 modelViewProjectionMatrix;
+} Uniforms;
+
+typedef struct
+{
     float2 position [[attribute(0)]];
     float2 texCoord [[attribute(1)]];
 	float4 color [[attribute(2)]];
@@ -444,15 +485,20 @@ typedef struct
 
 typedef struct
 {
-    float4 position [[position]];
+    float4 projectedPosition [[position]];
+    float4 modelPosition;
     float2 texCoord;
     float4 color;
 } ColorInOut;
 
-vertex ColorInOut vertexShader(Vertex in [[stage_in]])
+vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
+                               constant Uniforms &uniforms [[ buffer(1) ]])
 {
+	float4 modelPosition = float4(in.position, 0.0, 1.0);
+	float4 projectedPosition = uniforms.modelViewProjectionMatrix * modelPosition;
 	ColorInOut out;
-	out.position = float4(in.position, 1.0);
+	out.projectedPosition = projectedPosition;
+	out.modelPosition = modelPosition;
 	out.texCoord = in.texCoord;
 	out.color = in.color;
 	return out;
