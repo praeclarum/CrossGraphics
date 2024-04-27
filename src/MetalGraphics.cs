@@ -376,7 +376,15 @@ namespace CrossGraphics.Metal
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			// TODO: Implement
+			if (sy == ey) {
+				DoRect (sx, sy - w / 2, ex - sx, w, 0, true);
+			}
+			else if (sx == ex) {
+				DoRect (sx - w / 2, sy, w, ey - sy, 0, true);
+			}
+			else {
+				// TODO: Implement
+			}
 		}
 
 		public void EndLines ()
