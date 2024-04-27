@@ -166,9 +166,14 @@ namespace CrossGraphics.Metal
 				var maxY = Math.Max (top, bottom) + r;
 				return new BoundingBox { MinX = minX, MinY = minY, MaxX = maxX, MaxY = maxY };
 			}
-			override public string ToString ()
+
+			public static BoundingBox FromSafeRect (float x, float y, float width, float height)
 			{
-				return $"BB({MinX}, {MinY}, {MaxX}, {MaxY})";
+				var minX = x;
+				var minY = y;
+				var maxX = x + width;
+				var maxY = y + height;
+				return new BoundingBox { MinX = minX, MinY = minY, MaxX = maxX, MaxY = maxY };
 			}
 		}
 
@@ -332,6 +337,8 @@ namespace CrossGraphics.Metal
 				var drawHeight = (float)renderFontSize;
 				regionO = _buffers.DrawSdfTextureRegion (s, font, drawWidth, drawHeight, (cgContext) => {
 					cgContext.SetFillColor (1, 1, 1, 1);
+					cgContext.FillEllipseInRect (new CGRect (0, 0, drawWidth, drawHeight));
+					// cgContext.FillRect (new CGRect (0, 0, drawWidth, drawHeight));
 					cgContext.SetStrokeColor (1, 1, 1, 1);
 					cgContext.SetLineWidth (1);
 					cgContext.SetTextDrawingMode (CGTextDrawingMode.Fill);
@@ -344,7 +351,21 @@ namespace CrossGraphics.Metal
 				var fontScale = (float)(_currentFont.Size / renderFontSize);
 				var width = region.DrawSize.X * fontScale;
 				var height = region.DrawSize.Y * fontScale;
-				DoRect (x, y, width, height, 0, DrawOp.DrawString);
+				var buffer = _buffers.GetPrimitivesBuffer(numVertices: 4, numIndices: 6);
+				var bb = BoundingBox.FromSafeRect (x, y, width, height);
+				var bbv = new Vector4 (bb.MinX, bb.MinY, bb.MaxX, bb.MaxY);
+				var args = new Vector4 (0, 0, 0, 0);
+				var uMin = region.UVBoundingBox.X;
+				var vMin = region.UVBoundingBox.Y;
+				var uMax = region.UVBoundingBox.Z;
+				var vMax = region.UVBoundingBox.W;
+				var op = DrawOp.DrawString;
+				var v0 = buffer.AddVertex(bb.MinX, bb.MinY, uMin, vMin, _currentColor, bb: bbv, args: args, op: op);
+				var v1 = buffer.AddVertex(bb.MaxX, bb.MinY, uMax, vMin, _currentColor, bb: bbv, args: args, op: op);
+				var v2 = buffer.AddVertex(bb.MaxX, bb.MaxY, uMax, vMax, _currentColor, bb: bbv, args: args, op: op);
+				var v3 = buffer.AddVertex(bb.MinX, bb.MaxY, uMin, vMax, _currentColor, bb: bbv, args: args, op: op);
+				buffer.AddTriangle(v0, v1, v2);
+				buffer.AddTriangle(v2, v3, v0);
 			}
 		}
 
@@ -478,6 +499,8 @@ namespace CrossGraphics.Metal
 		const string MetalCode = @"
 using namespace metal;
 
+constexpr sampler sdfSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+
 typedef struct
 {
     float4x4 modelViewProjectionMatrix;
@@ -574,9 +597,11 @@ float fillRoundedRect(ColorInOut in)
 	}
 }
 
-float drawString(ColorInOut in)
+float drawString(ColorInOut in, texture2d<float> sdf)
 {
-	return 1.0;
+    float2 uv = in.texCoord;
+	float mask = sdf.sample(sdfSampler, uv).r;
+	return mask;
 }
 
 vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
@@ -618,7 +643,7 @@ fragment float4 fragmentShader(
 		mask = fillRect(in);
 		break;
 	case 13: // DrawString
-		mask = drawString(in);
+		mask = drawString(in, sdf0);
 		break;
 	case 14: // DrawLine
 		mask = fillRect(in);
@@ -724,20 +749,13 @@ fragment float4 fragmentShader(
 
 		public IMTLTexture? Texture { get; }
 
+		// private const MTLPixelFormat TexturePixelFormat = MTLPixelFormat.R32Float;
+		private const MTLPixelFormat TexturePixelFormat = MTLPixelFormat.R8Unorm;
+
 		public MetalSdfTexture (IMTLDevice device)
 		{
-			var tdesc = new MTLTextureDescriptor {
-				TextureType = MTLTextureType.k2D,
-				PixelFormat = MTLPixelFormat.R32Float,
-				Width = (nuint)MaxWidth,
-				Height = (nuint)MaxHeight,
-				Depth = 1,
-				MipmapLevelCount = 1,
-				SampleCount = 1,
-				ArrayLength = 1,
-				ResourceOptions = MTLResourceOptions.CpuCacheModeDefault,
-				Usage = MTLTextureUsage.ShaderRead | MTLTextureUsage.ShaderWrite,
-			};
+			var tdesc = MTLTextureDescriptor.CreateTexture2DDescriptor (TexturePixelFormat, (nuint)MaxWidth,
+				(nuint)MaxHeight, mipmapped: false);
 			Texture = device.CreateTexture (tdesc);
 		}
 
@@ -780,10 +798,18 @@ fragment float4 fragmentShader(
 			if (subRect is null) {
 				return null;
 			}
-			var bytesPerRow = subRect.Width * 4;
-			using var cgContext = new CGBitmapContext (null, subRect.Width, subRect.Height, 32, bytesPerRow, CGColorSpace.CreateDeviceGray (), CGBitmapFlags.FloatComponents);
-			cgContext.TranslateCTM (0, subRect.Height);
-			cgContext.ScaleCTM (1, -1);
+			var bitsPerComponent = 32;
+			var bytesPerRow = (subRect.Width * bitsPerComponent) / 8;
+			var bitmapFlags = CGBitmapFlags.FloatComponents;
+			if (TexturePixelFormat == MTLPixelFormat.R8Unorm) {
+				bitsPerComponent = 8;
+				bytesPerRow = subRect.Width;
+				bitmapFlags = CGBitmapFlags.None;
+			}
+			using var cs = CGColorSpace.CreateDeviceGray ();
+			using var cgContext = new CGBitmapContext (null, subRect.Width, subRect.Height, bitsPerComponent, bytesPerRow, cs, bitmapFlags);
+			// cgContext.TranslateCTM (0, subRect.Height);
+			// cgContext.ScaleCTM (1, -1);
 			draw (cgContext);
 			var data = cgContext.Data;
 			if (data != IntPtr.Zero) {
