@@ -33,6 +33,8 @@ namespace CrossGraphics.Metal
 {
 	public class MetalGraphics : IGraphics
 	{
+		public const MTLPixelFormat DefaultPixelFormat = MTLPixelFormat.BGRA8Unorm;
+
 		Font _currentFont = CrossGraphics.Font.SystemFontOfSize (16);
 		ValueColor _currentColor = new ValueColor (0, 0, 0, 255);
 
@@ -85,7 +87,7 @@ namespace CrossGraphics.Metal
 				FragmentFunction = fragmentFunction,
 			};
 			pipelineDescriptor.ColorAttachments[0] = new MTLRenderPipelineColorAttachmentDescriptor {
-				PixelFormat = MTLPixelFormat.BGRA8Unorm,
+				PixelFormat = DefaultPixelFormat,
 				BlendingEnabled = false,
 			};
 			pipelineDescriptor.VertexBuffers[0] = new MTLPipelineBufferDescriptor() {
@@ -243,8 +245,8 @@ namespace CrossGraphics.Metal
 					unsafe {
 						var p = (float*)VertexBuffer.Contents;
 						p += index * VertexByteSize / sizeof(float);
-						p[0] = x;
-						p[1] = y;
+						p[0] = x * 5.0e-4f;
+						p[1] = y * 5.0e-4f;
 						p[2] = u;
 						p[3] = v;
 						p[4] = color.Red / 255f;
@@ -329,16 +331,10 @@ namespace CrossGraphics.Metal
 		{
 			var buffer = _buffers.GetBuffer (4, 6);
 			var bb = BoundingBox.FromRect (x, y, width, height, w);
-			// var v0 = buffer.AddVertex(bb.MinX, bb.MinY, 0, 0, _currentColor);
-			// var v1 = buffer.AddVertex(bb.MaxX, bb.MinY, 1, 0, _currentColor);
-			// var v2 = buffer.AddVertex(bb.MaxX, bb.MaxY, 1, 1, _currentColor);
-			// var v3 = buffer.AddVertex(bb.MinX, bb.MaxY, 0, 1, _currentColor);
-			float t = 1.0f;
-			_currentColor = new ValueColor (255, 255, 255, 255);
-			var v0 = buffer.AddVertex(-t, -t, 0, 0, _currentColor);
-			var v1 = buffer.AddVertex(t, -t, 1, 0, _currentColor);
-			var v2 = buffer.AddVertex(t, t, 1, 1, _currentColor);
-			var v3 = buffer.AddVertex(-t, t, 0, 1, _currentColor);
+			var v0 = buffer.AddVertex(bb.MinX, bb.MinY, 0, 0, _currentColor);
+			var v1 = buffer.AddVertex(bb.MaxX, bb.MinY, 1, 0, _currentColor);
+			var v2 = buffer.AddVertex(bb.MaxX, bb.MaxY, 1, 1, _currentColor);
+			var v3 = buffer.AddVertex(bb.MinX, bb.MaxY, 0, 1, _currentColor);
 			buffer.AddTriangle(v0, v1, v2);
 			buffer.AddTriangle(v2, v3, v0);
 		}
@@ -415,7 +411,6 @@ namespace CrossGraphics.Metal
 						continue;
 					}
 
-					Console.WriteLine ($"Drawing {buffer.NumVertices} vertices and {buffer.NumIndices} indices");
 					_renderEncoder.SetRenderPipelineState (pipeline);
 					_renderEncoder.SetVertexBuffer (buffer.VertexBuffer, 0, 0);
 					_renderEncoder.DrawIndexedPrimitives (MTLPrimitiveType.Triangle, (nuint)buffer.NumIndices, MTLIndexType.UInt16, buffer.IndexBuffer, 0);

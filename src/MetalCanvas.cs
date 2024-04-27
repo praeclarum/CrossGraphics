@@ -46,6 +46,7 @@ namespace CrossGraphics.Metal
 		void Initialize ()
 		{
 			Device = CanvasDevice;
+			ColorPixelFormat = MetalGraphics.DefaultPixelFormat;
 			ClearColor = new MTLClearColor (0.5, 0, 0.75, 1);
 			AutoResizeDrawable = true;
 			PreferredFramesPerSecond = 30;
@@ -84,7 +85,6 @@ namespace CrossGraphics.Metal
 			using var commandBuffer = CommandQueue?.CommandBuffer ();
 			if (commandBuffer is not null) {
 				using var renderEncoder = commandBuffer.CreateRenderCommandEncoder (renderPassDescriptor);
-				Console.WriteLine ($"Render pixel format: {view.ColorPixelFormat}");
 				if (_buffers is null) {
 					_buffers = new MetalGraphics.Buffers (device);
 				}
