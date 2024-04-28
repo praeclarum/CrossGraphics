@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 using CoreGraphics;
 
@@ -1056,6 +1057,15 @@ fragment float4 fragmentShader(
 		}
 
 		const int padding = 4;
+		IntPtr _drawingData = IntPtr.Zero;
+		int _drawingDataSize = 0;
+
+		~MetalSdfTexture ()
+		{
+			if (_drawingData != IntPtr.Zero) {
+				Marshal.FreeHGlobal (_drawingData);
+			}
+		}
 
 		public SdfTextureRegion? AllocAndDraw (float width, float height, Action<CGContext> draw)
 		{
@@ -1076,8 +1086,19 @@ fragment float4 fragmentShader(
 				bytesPerRow = subRect.Width;
 				bitmapFlags = CGBitmapFlags.None;
 			}
+			var dataSize = bytesPerRow * subRect.Height;
+			if (dataSize > _drawingDataSize) {
+				if (_drawingData != IntPtr.Zero) {
+					_drawingData = Marshal.ReAllocHGlobal (_drawingData, (IntPtr)dataSize);
+				}
+				else {
+					_drawingData = Marshal.AllocHGlobal (dataSize);
+				}
+				_drawingDataSize = dataSize;
+			}
 			using var cs = CGColorSpace.CreateDeviceGray ();
-			using var cgContext = new CGBitmapContext (null, subRect.Width, subRect.Height, bitsPerComponent, bytesPerRow, cs, bitmapFlags);
+			using var cgContext = new CGBitmapContext (_drawingData, subRect.Width, subRect.Height, bitsPerComponent, bytesPerRow, cs, bitmapFlags);
+			cgContext.ClearRect (new CGRect (0, 0, subRect.Width, subRect.Height));
 			cgContext.TranslateCTM (padding, padding);
 			// cgContext.ScaleCTM (1, -1);
 			draw (cgContext);
