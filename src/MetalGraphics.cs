@@ -743,6 +743,11 @@ fragment float4 fragmentShader(
 			public readonly int Y;
 			public readonly int Width;
 			public readonly int Height;
+			public override string ToString () => $"({X}, {Y}, {Width}, {Height})";
+			public int Left => X;
+			public int Right => X + Width;
+			public int Top => Y;
+			public int Bottom => Y + Height;
 			public SubRect (int x, int y, int width, int height)
 			{
 				X = x;
@@ -752,7 +757,11 @@ fragment float4 fragmentShader(
 			}
 			public Vector4 UVBoundingBox => new Vector4 (X / (float)MaxWidth, Y / (float)MaxHeight, (X + Width) / (float)MaxWidth, (Y + Height) / (float)MaxHeight);
 		}
-		readonly List<SubRect> _free = new List<SubRect> { new SubRect (0, 0, MaxWidth, MaxHeight) };
+		readonly List<SubRect> _free = new ();
+		readonly Dictionary<int, List<SubRect>> _freeLeft = new ();
+		readonly Dictionary<int, List<SubRect>> _freeRight = new ();
+		readonly Dictionary<int, List<SubRect>> _freeTop = new ();
+		readonly Dictionary<int, List<SubRect>> _freeBottom = new ();
 
 		public IMTLTexture? Texture { get; }
 
@@ -767,6 +776,7 @@ fragment float4 fragmentShader(
 				(nuint)MaxHeight, mipmapped: false);
 			Texture = device.CreateTexture (tdesc);
 			TextureIndex = textureIndex;
+			Dealloc (new SubRect (0, 0, MaxWidth, MaxHeight));
 		}
 
 		SubRect? Alloc (float desiredWidth, float desiredHeight)
@@ -787,11 +797,15 @@ fragment float4 fragmentShader(
 				var freeRect = _free[freeIndex];
 				if (freeRect.Width >= idesiredWidth && freeRect.Height >= idesiredHeight) {
 					_free.RemoveAt (freeIndex);
+					RemoveFromFreeList (freeRect, freeRect.Left, _freeLeft);
+					RemoveFromFreeList (freeRect, freeRect.Right, _freeRight);
+					RemoveFromFreeList (freeRect, freeRect.Top, _freeTop);
+					RemoveFromFreeList (freeRect, freeRect.Bottom, _freeBottom);
 					if (freeRect.Height > idesiredHeight) {
-						_free.Insert (0, new SubRect (freeRect.X, freeRect.Y + idesiredHeight, freeRect.Width, freeRect.Height - idesiredHeight));
+						Dealloc (new SubRect (freeRect.X, freeRect.Y + idesiredHeight, freeRect.Width, freeRect.Height - idesiredHeight));
 					}
 					if (freeRect.Width > idesiredWidth) {
-						_free.Insert (0, new SubRect (freeRect.X + idesiredWidth, freeRect.Y, freeRect.Width - idesiredWidth, idesiredHeight));
+						Dealloc (new SubRect (freeRect.X + idesiredWidth, freeRect.Y, freeRect.Width - idesiredWidth, idesiredHeight));
 					}
 					return new SubRect (freeRect.X, freeRect.Y, idesiredWidth, idesiredHeight);
 				}
@@ -799,9 +813,113 @@ fragment float4 fragmentShader(
 			return null;
 		}
 
+		void AddToFreeList(SubRect rect, int key, Dictionary<int, List<SubRect>> list)
+		{
+			if (!list.TryGetValue(key, out var l)) {
+				l = new List<SubRect> { rect };
+				list[key] = l;
+			}
+			else {
+				l.Add (rect);
+			}
+		}
+
+		void RemoveFromFreeList(SubRect rect, int key, Dictionary<int, List<SubRect>> list)
+		{
+			if (list.TryGetValue(key, out var l)) {
+				l.Remove (rect);
+				if (l.Count == 0) {
+					list.Remove (key);
+				}
+			}
+		}
+
+		void RemoveFromFreeLists (SubRect alreadyFree)
+		{
+			_free.Remove (alreadyFree);
+			RemoveFromFreeList (alreadyFree, alreadyFree.Left, _freeLeft);
+			RemoveFromFreeList (alreadyFree, alreadyFree.Right, _freeRight);
+			RemoveFromFreeList (alreadyFree, alreadyFree.Top, _freeTop);
+			RemoveFromFreeList (alreadyFree, alreadyFree.Bottom, _freeBottom);
+		}
+
+		List<SubRect>? GetFreeList(int key, Dictionary<int, List<SubRect>> list)
+		{
+			if (list.TryGetValue(key, out var l)) {
+				return l;
+			}
+			return null;
+		}
+
 		public void Dealloc (SubRect allocatedRect)
 		{
-			_free.Add (allocatedRect);
+			var mergedRect = allocatedRect;
+			var merged = true;
+			while (merged) {
+				merged = false;
+				//
+				// Look for free rects that are to the left
+				//
+				if (GetFreeList (mergedRect.Left, _freeRight) is {} leftList) {
+					foreach (var freeRect in leftList) {
+						if (freeRect.Top == mergedRect.Top && freeRect.Bottom == mergedRect.Bottom) {
+							var newRect = new SubRect (freeRect.X, mergedRect.Y, freeRect.Width + mergedRect.Width, mergedRect.Height);
+							RemoveFromFreeLists (freeRect);
+							mergedRect = newRect;
+							merged = true;
+							break;
+						}
+					}
+				}
+				//
+				// Look for free rects that are above
+				//
+				if (GetFreeList (mergedRect.Top, _freeBottom) is {} topList) {
+					foreach (var freeRect in topList) {
+						if (freeRect.Left == mergedRect.Left && freeRect.Right == mergedRect.Right) {
+							var newRect = new SubRect (mergedRect.X, freeRect.Y, mergedRect.Width, freeRect.Height + mergedRect.Height);
+							RemoveFromFreeLists (freeRect);
+							mergedRect = newRect;
+							merged = true;
+							break;
+						}
+					}
+				}
+				//
+				// Look for free rects that are to the right
+				//
+				if (GetFreeList (mergedRect.Right, _freeLeft) is {} rightList) {
+					foreach (var freeRect in rightList) {
+						if (freeRect.Top == mergedRect.Top && freeRect.Bottom == mergedRect.Bottom) {
+							var newRect = new SubRect (mergedRect.X, mergedRect.Y, mergedRect.Width + freeRect.Width, mergedRect.Height);
+							RemoveFromFreeLists (freeRect);
+							mergedRect = newRect;
+							merged = true;
+							break;
+						}
+					}
+				}
+				//
+				// Look for free rects that are below
+				//
+				if (GetFreeList (mergedRect.Bottom, _freeTop) is {} bottomList) {
+					foreach (var freeRect in bottomList) {
+						if (freeRect.Left == mergedRect.Left && freeRect.Right == mergedRect.Right) {
+							var newRect = new SubRect (mergedRect.X, mergedRect.Y, mergedRect.Width, mergedRect.Height + freeRect.Height);
+							RemoveFromFreeLists (freeRect);
+							mergedRect = newRect;
+							merged = true;
+							break;
+						}
+					}
+				}
+			}
+
+			_free.Add (mergedRect);
+			AddToFreeList (mergedRect, mergedRect.Left, _freeLeft);
+			AddToFreeList (mergedRect, mergedRect.Right, _freeRight);
+			AddToFreeList (mergedRect, mergedRect.Top, _freeTop);
+			AddToFreeList (mergedRect, mergedRect.Bottom, _freeBottom);
 		}
 
 		const int padding = 4;
@@ -973,7 +1091,6 @@ fragment float4 fragmentShader(
 			var vals = _sdfValues.ToArray ();
 			foreach (var (key, region) in vals) {
 				if (region.LastUsedFrame < _frame - 2) {
-					Console.WriteLine ($"Deallocating SDF texture region for {key.Text} ({region.AllocatedRect.Width}x{region.AllocatedRect.Height})");
 					SdfTextures[region.TextureIndex].Dealloc (region.AllocatedRect);
 					_sdfValues.Remove (key);
 				}
