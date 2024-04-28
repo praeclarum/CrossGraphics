@@ -272,15 +272,17 @@ namespace CrossGraphics.Metal
 			if (len <= 1e-6f) {
 				return;
 			}
-			var nx = dy / len;
-			var ny = -dx / len;
 			var w2 = w / 2;
-			var bbv = new Vector4 (Math.Min (sx, ex) - w2, Math.Min (sy, ey) - w2, Math.Max (sx, ex) + w2, Math.Max (sy, ey) + w2);
+			var bbv = new Vector4 (sx, sy, ex, ey);
 			var args = new Vector4 (w, 0, 0, 0);
-			var v0 = buffer.AddVertex (sx - nx * w2, sy - ny * w2, 0, 0, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
-			var v1 = buffer.AddVertex (sx + nx * w2, sy + ny * w2, 1, 0, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
-			var v2 = buffer.AddVertex (ex + nx * w2, ey + ny * w2, 1, 1, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
-			var v3 = buffer.AddVertex (ex - nx * w2, ey - ny * w2, 0, 1, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
+			var ox = dx / len * w2;
+			var oy = dy / len * w2;
+			var nx = oy;
+			var ny = -ox;
+			var v0 = buffer.AddVertex (sx - ox - nx, sy - oy - ny, 0, 0, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
+			var v1 = buffer.AddVertex (sx - ox  + nx, sy - oy + ny, 1, 0, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
+			var v2 = buffer.AddVertex (ex + ox + nx, ey + oy + ny, 1, 1, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
+			var v3 = buffer.AddVertex (ex + ox - nx, ey + oy - ny, 0, 1, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
 			buffer.AddTriangle (v0, v1, v2);
 			buffer.AddTriangle (v2, v3, v0);
 		}
