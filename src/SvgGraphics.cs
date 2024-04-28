@@ -409,7 +409,7 @@ namespace CrossGraphics
 
 	class SvgGraphicsFontMetrics : NullGraphicsFontMetrics
 	{
-		public SvgGraphicsFontMetrics (Font font) : base (font.Size)
+		public SvgGraphicsFontMetrics (Font font) : base (size: font.Size, isBold: font.IsBold, isMonospace: font.IsMonospace)
 		{
 		}
 	}

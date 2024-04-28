@@ -91,7 +91,7 @@ namespace CrossGraphics.Metal
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			return new NullGraphicsFontMetrics (_currentFont.Size, isBold: _currentFont.IsBold);
+			return new NullGraphicsFontMetrics (_currentFont.Size, isBold: _currentFont.IsBold, isMonospace: _currentFont.IsMonospace);
 		}
 
 		public void SetFont (Font? f)

@@ -165,7 +165,7 @@ namespace CrossGraphics.SceneKit
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			return new NullGraphicsFontMetrics (currentFont.Size, isBold: currentFont.IsBold);
+			return new NullGraphicsFontMetrics (currentFont.Size, isBold: currentFont.IsBold, isMonospace: currentFont.IsMonospace);
 		}
 
 		public void SetFont (Font f)

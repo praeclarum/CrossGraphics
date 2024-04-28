@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 using System;
+using System.Linq;
 
 namespace CrossGraphics
 {
@@ -162,11 +163,13 @@ namespace CrossGraphics
 		int _height;
 		int _charWidth;
 		bool isBold;
+		bool _isMonospace;
 
-		public NullGraphicsFontMetrics (int size, bool isBold = false)
+		public NullGraphicsFontMetrics (int size, bool isBold = false, bool isMonospace = false)
 		{
 			_height = size;
 			_charWidth = (855 * size) / 1600;
+			_isMonospace = isMonospace;
 			this.isBold = isBold;
 		}
 
@@ -186,6 +189,10 @@ namespace CrossGraphics
 
 			var props = isBold ? BoldCharacterProportions : CharacterProportions;
 			var avgp = isBold ? BoldAverageCharProportion : AverageCharProportion;
+			if (_isMonospace) {
+				props = isBold ? BoldMonospaceCharProportions : MonospaceCharProportions;
+				avgp = props[0];
+			}
 
 			var px = 0.0;
 			var lines = 1;
@@ -248,6 +255,7 @@ namespace CrossGraphics
 			0.5180000066757202, 0.5000001192092896, 0.4800001382827759, 0.3330000638961792, 0.22200000286102295, 0.3330000638961792, 0.6000000238418579, 0
 		};
 		const double AverageCharProportion = 0.5131400561332703;
+		static readonly double[] MonospaceCharProportions = Enumerable.Repeat (AverageCharProportion * 1.15, 128).ToArray ();
 
 		static readonly double[] BoldCharacterProportions = {
 			0, 0, 0, 0, 0, 0, 0, 0,
@@ -268,6 +276,7 @@ namespace CrossGraphics
 			0.5370000600814819, 0.5190001726150513, 0.5190001726150513, 0.3330000638961792, 0.223000168800354, 0.3330000638961792, 0.6000000238418579, 0
 		};
 		const double BoldAverageCharProportion = 0.5346300601959229;
+		static readonly double[] BoldMonospaceCharProportions = Enumerable.Repeat (BoldAverageCharProportion * 1.1, 128).ToArray ();
 	}
 }
 

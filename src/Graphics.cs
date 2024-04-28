@@ -232,6 +232,8 @@ namespace CrossGraphics
 
 		public bool IsBold => (Options & FontOptions.Bold) != 0;
 
+		public bool IsMonospace => FontFamily == "Monospace";
+
 		public Font (string fontFamily, FontOptions options, int size)
 		{
 			FontFamily = fontFamily;
