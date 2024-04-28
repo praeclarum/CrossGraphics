@@ -295,7 +295,7 @@ namespace CrossGraphics.CoreGraphics
 		const string DefaultFontName = "Helvetica";
 		const string DefaultBoldFontName = "Helvetica-Bold";
 
-		static string GetFontName (Font f)
+		public static string GetFontName (Font f)
 		{
 			var name = DefaultFontName;
 			if (f.FontFamily == "Monospace") {

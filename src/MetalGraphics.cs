@@ -299,7 +299,7 @@ namespace CrossGraphics.Metal
 
 		public void DrawString (string s, float x, float y)
 		{
-			var font = _currentFont.FontFamily;
+			var font = CrossGraphics.CoreGraphics.CoreGraphicsGraphics.GetFontName (_currentFont);
 			var regionO = _buffers.FindExistingSdfTextureRegion (s, font);
 
 			var renderFontSize = (nfloat)32.0;
@@ -318,7 +318,7 @@ namespace CrossGraphics.Metal
 				for (var tri = 0; tri < maxTries; tri++) {
 					var atext = new NSMutableAttributedString (s, new CTStringAttributes {
 						ForegroundColorFromContext = true,
-						Font = new CTFont ("Helvetica", renderFontSize),
+						Font = new CTFont (font, renderFontSize),
 					});
 					var l = new CTLine (atext);
 					len = l.GetTypographicBounds (out ascent, out descent, out leading);
