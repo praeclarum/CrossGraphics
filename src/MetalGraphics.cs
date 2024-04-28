@@ -178,12 +178,12 @@ namespace CrossGraphics.Metal
 			}
 		}
 
-		void DoRect (float x, float y, float width, float height, float w, DrawOp op, float argy = 0)
+		void DoRect (float x, float y, float width, float height, float w, DrawOp op, float argy = 0, float argz = 0)
 		{
 			var buffer = _buffers.GetPrimitivesBuffer(numVertices: 4, numIndices: 6);
 			var bb = BoundingBox.FromRect (x, y, width, height, w);
 			var bbv = new Vector4 (bb.MinX, bb.MinY, bb.MaxX, bb.MaxY);
-			var args = new Vector4 (w, argy, 0, 0);
+			var args = new Vector4 (w, argy, argz, 0);
 			var v0 = buffer.AddVertex(bb.MinX, bb.MinY, 0, 0, _currentColor, bb: bbv, args: args, op: op);
 			var v1 = buffer.AddVertex(bb.MaxX, bb.MinY, 1, 0, _currentColor, bb: bbv, args: args, op: op);
 			var v2 = buffer.AddVertex(bb.MaxX, bb.MaxY, 1, 1, _currentColor, bb: bbv, args: args, op: op);
@@ -235,7 +235,7 @@ namespace CrossGraphics.Metal
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
-			DoRect (x, y, width, height, w, DrawOp.StrokeRoundedRect);
+			DoRect (x, y, width, height, w, DrawOp.StrokeRoundedRect, argy: radius);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
@@ -250,12 +250,12 @@ namespace CrossGraphics.Metal
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
-			DoRect (cx - radius, cy - radius, radius * 2, radius * 2, 0, DrawOp.FillArc);
+			DoRect (cx - radius, cy - radius, radius * 2, radius * 2, 0, DrawOp.FillArc, argy: startAngle, argz: endAngle);
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
-			DoRect (cx - radius, cy - radius, radius * 2, radius * 2, w, DrawOp.StrokeArc);
+			DoRect (cx - radius, cy - radius, radius * 2, radius * 2, w, DrawOp.StrokeArc, argy: startAngle, argz: endAngle);
 		}
 
 		public void BeginLines (bool rounded)
@@ -656,6 +656,45 @@ float drawLine(ColorInOut in)
 	}
 }
 
+float strokeArc(ColorInOut in)
+{
+	float2 p = in.modelPosition;
+	float2 bbMin = in.bb.xy;
+	float2 bbMax = in.bb.zw;
+	float2 center = (bbMin + bbMax) / 2;
+	float w = in.args.x;
+	float startAngle = in.args.y;
+	float endAngle = in.args.z;
+	float w2 = w / 2;
+	float radius = bbMax.x - center.x - w2;
+	float2 dir = p - center;
+	float distance = length(dir);
+	//float2 norm = dir / distance;
+	bool onedge = distance >= radius - w2 && distance <= radius + w2;
+	if (onedge) {
+		startAngle = atan2(sin(startAngle), cos(startAngle));
+		if (startAngle < 0) {
+			startAngle += 2 * 3.14159265359;
+		}
+		endAngle = atan2(sin(endAngle), cos(endAngle));
+		if (endAngle < 0) {
+			endAngle += 2 * 3.14159265359;
+		}
+		if (endAngle < startAngle) {
+			float t = startAngle;
+			startAngle = endAngle;
+			endAngle = t;
+		}
+		float angle = -atan2(dir.y, dir.x);
+		if (angle < 0) {
+			angle += 2 * 3.14159265359;
+		}
+		onedge = angle >= startAngle && angle <= endAngle;
+		//return angle / (2.0 * 3.14159265359);
+	}
+	return onedge ? 1.0 : 0.0;
+}
+
 vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
                                constant Uniforms &uniforms [[ buffer(1) ]])
 {
@@ -693,6 +732,9 @@ fragment float4 fragmentShader(
 		break;
 	case 6: // FillArc
 		mask = fillRect(in);
+		break;
+	case 7: // StrokeArc
+		mask = strokeArc(in);
 		break;
 	case 8: // FillPolygon
 		mask = fillRect(in);
