@@ -669,28 +669,18 @@ float strokeArc(ColorInOut in)
 	float radius = bbMax.x - center.x - w2;
 	float2 dir = p - center;
 	float distance = length(dir);
-	//float2 norm = dir / distance;
 	bool onedge = distance >= radius - w2 && distance <= radius + w2;
 	if (onedge) {
 		startAngle = atan2(sin(startAngle), cos(startAngle));
-		if (startAngle < 0) {
-			startAngle += 2 * 3.14159265359;
-		}
 		endAngle = atan2(sin(endAngle), cos(endAngle));
-		if (endAngle < 0) {
-			endAngle += 2 * 3.14159265359;
-		}
-		if (endAngle < startAngle) {
-			float t = startAngle;
-			startAngle = endAngle;
-			endAngle = t;
-		}
 		float angle = -atan2(dir.y, dir.x);
-		if (angle < 0) {
-			angle += 2 * 3.14159265359;
+		if (endAngle < startAngle) {
+			endAngle += 2.0 * 3.14159265359;
+		}
+		if (angle < startAngle) {
+			angle += 2.0 * 3.14159265359;
 		}
 		onedge = angle >= startAngle && angle <= endAngle;
-		//return angle / (2.0 * 3.14159265359);
 	}
 	return onedge ? 1.0 : 0.0;
 }
