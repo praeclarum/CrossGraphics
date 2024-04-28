@@ -797,7 +797,9 @@ fragment float4 fragmentShader(
 	{
 		public readonly IMTLDevice Device;
 		public readonly IMTLBuffer? VertexBuffer;
+		private readonly IntPtr _vertexBufferPointer;
 		public readonly IMTLBuffer? IndexBuffer;
+		private readonly IntPtr _indexBufferPointer;
 		public const int MaxVertices = 0x10000;
 		public const int MaxIndices = 0x10000;
 
@@ -809,7 +811,9 @@ fragment float4 fragmentShader(
 		{
 			Device = device;
 			VertexBuffer = Device.CreateBuffer ((nuint)(MaxVertices * MetalGraphics.VertexByteSize), MTLResourceOptions.CpuCacheModeDefault);
+			_vertexBufferPointer = VertexBuffer?.Contents ?? IntPtr.Zero;
 			IndexBuffer = Device.CreateBuffer ((nuint)(MaxIndices * sizeof (ushort)), MTLResourceOptions.CpuCacheModeDefault);
+			_indexBufferPointer = IndexBuffer?.Contents ?? IntPtr.Zero;
 		}
 		public void Reset ()
 		{
@@ -819,9 +823,9 @@ fragment float4 fragmentShader(
 		public int AddVertex (float x, float y, float u, float v, ValueColor color, Vector4 bb, Vector4 args, MetalGraphics.DrawOp op)
 		{
 			var index = NumVertices;
-			if (VertexBuffer is not null) {
+			if (_vertexBufferPointer != IntPtr.Zero) {
 				unsafe {
-					var p = (float*)VertexBuffer.Contents;
+					var p = (float*)_vertexBufferPointer;
 					p += index * MetalGraphics.VertexByteSize / sizeof(float);
 					p[0] = x;
 					p[1] = y;
@@ -848,9 +852,9 @@ fragment float4 fragmentShader(
 		public void AddTriangle (int v0, int v1, int v2)
 		{
 			var index = NumIndices;
-			if (IndexBuffer is not null) {
+			if (_indexBufferPointer != IntPtr.Zero) {
 				unsafe {
-					var p = (ushort*)IndexBuffer.Contents;
+					var p = (ushort*)_indexBufferPointer;
 					p += index;
 					p[0] = (ushort)v0;
 					p[1] = (ushort)v1;
@@ -1153,6 +1157,7 @@ fragment float4 fragmentShader(
 		private readonly Dictionary<SdfKey, SdfTextureRegion> _sdfValues = new(comparer: SdfKeyComparer.Shared);
 
 		readonly IMTLBuffer? _uniformsBuffer;
+		readonly IntPtr _uniformsBufferPointer;
 		public IMTLBuffer? Uniforms => _uniformsBuffer;
 
 		int _frame = 0;
@@ -1163,6 +1168,7 @@ fragment float4 fragmentShader(
 			_primitiveBuffers = new List<MetalPrimitivesBuffer> { new MetalPrimitivesBuffer (Device) };
 			_sdfTextures = new List<MetalSdfTexture> { new MetalSdfTexture (Device, textureIndex: 0) };
 			_uniformsBuffer = Device.CreateBuffer ((nuint)(MetalGraphics.UniformsByteSize), MTLResourceOptions.CpuCacheModeDefault);
+			_uniformsBufferPointer = _uniformsBuffer?.Contents ?? IntPtr.Zero;
 		}
 
 		public void Reset ()
@@ -1228,9 +1234,9 @@ fragment float4 fragmentShader(
 
 		public void SetUniforms (Matrix4x4 modelToView)
 		{
-			if (_uniformsBuffer is not null) {
+			if (_uniformsBufferPointer != IntPtr.Zero) {
 				unsafe {
-					var p = (float*)_uniformsBuffer.Contents;
+					var p = (float*)_uniformsBufferPointer;
 					p[0] = modelToView.M11;
 					p[1] = modelToView.M12;
 					p[2] = modelToView.M13;
