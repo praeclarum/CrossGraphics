@@ -298,7 +298,7 @@ namespace CrossGraphics.CoreGraphics
 		public static string GetFontName (Font f)
 		{
 			var name = DefaultFontName;
-			if (f.FontFamily == "Monospace") {
+			if (f.IsMonospace) {
 				if (f.IsBold) {
 					name = "Courier-Bold";
 				}
