@@ -671,8 +671,10 @@ float strokeArc(ColorInOut in)
 	float distance = length(dir);
 	bool onedge = distance >= radius - w2 && distance <= radius + w2;
 	if (onedge) {
-		startAngle = atan2(sin(startAngle), cos(startAngle));
-		endAngle = atan2(sin(endAngle), cos(endAngle));
+		float2 startNorm = float2(cos(startAngle), -sin(startAngle));
+		float2 endNorm = float2(cos(endAngle), -sin(endAngle));
+		startAngle = -atan2(startNorm.y, startNorm.x);
+		endAngle = -atan2(endNorm.y, endNorm.x);
 		float angle = -atan2(dir.y, dir.x);
 		if (endAngle < startAngle) {
 			endAngle += 2.0 * 3.14159265359;
@@ -680,9 +682,19 @@ float strokeArc(ColorInOut in)
 		if (angle < startAngle) {
 			angle += 2.0 * 3.14159265359;
 		}
-		onedge = angle >= startAngle && angle <= endAngle;
+		if (angle >= startAngle && angle <= endAngle) {
+			return 1.0;
+		}
+		float2 startPoint = center + startNorm * radius;
+		if (length(p - startPoint) <= w2) {
+			return 1.0;
+		}
+		float2 endPoint = center + endNorm * radius;
+		if (length(p - endPoint) <= w2) {
+			return 1.0;
+		}
 	}
-	return onedge ? 1.0 : 0.0;
+	return 0.0;
 }
 
 vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
