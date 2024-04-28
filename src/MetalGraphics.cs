@@ -585,12 +585,13 @@ float strokeOval(ColorInOut in)
 	float2 bbMin = in.bb.xy;
 	float2 bbMax = in.bb.zw;
 	float w = in.args.x;
+	float w2 = w / 2;
 	float2 center = (bbMin + bbMax) / 2;
-	float2 outerRadius = (bbMax - bbMin) / 2 - float2(2.0*w, 2.0*w);
-	float2 innerRadius = outerRadius - float2(w, w);
+	float2 radius = (bbMax - bbMin) / 2 - w2;
 	float2 d = (p - center);
-	float r = length(d);
-	bool onedge = r >= length(innerRadius) && r <= length(outerRadius);
+	float r = length(d / radius);
+	float nw2 = w2 / min(radius.x, radius.y);
+	bool onedge = r >= 1.0 - nw2 && r <= 1.0 + nw2;
 	return onedge ? 1.0 : 0.0;
 }
 
