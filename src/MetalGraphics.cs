@@ -629,6 +629,33 @@ float drawString(ColorInOut in, texture2d<float> sdf)
 	return mask;
 }
 
+float drawLine(ColorInOut in)
+{
+	float2 p3 = in.modelPosition;
+	float2 p1 = in.bb.xy;
+	float2 p2 = in.bb.zw;
+	float w = in.args.x;
+	float w2 = w / 2.0;
+	float2 d21 = p2 - p1;
+	float denom = dot(d21, d21);
+	if (denom < 1e-6) {
+		return 0.0;
+	}
+	float2 d31 = p3 - p1;
+	float t = dot(d31, d21) / denom;
+	if (t < 0) {
+		float dist = length(p3 - p1);
+		return dist < w2 ? 1.0 : 0.0;
+	}
+	else if (t > 1) {
+		float dist = length(p3 - p2);
+		return dist < w2 ? 1.0 : 0.0;
+	}
+	else {
+		return 1.0;
+	}
+}
+
 vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
                                constant Uniforms &uniforms [[ buffer(1) ]])
 {
@@ -674,7 +701,7 @@ fragment float4 fragmentShader(
 		mask = drawString(in, sdf0);
 		break;
 	case 14: // DrawLine
-		mask = fillRect(in);
+		mask = drawLine(in);
 		break;
 	default:
 		mask = strokeRect(in);
