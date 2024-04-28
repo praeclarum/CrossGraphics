@@ -23,6 +23,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using CoreGraphics;
@@ -798,6 +799,11 @@ fragment float4 fragmentShader(
 			return null;
 		}
 
+		public void Dealloc (SubRect allocatedRect)
+		{
+			_free.Add (allocatedRect);
+		}
+
 		const int padding = 4;
 
 		public SdfTextureRegion? AllocAndDraw (float width, float height, Action<CGContext> draw)
@@ -948,14 +954,30 @@ fragment float4 fragmentShader(
 			var key = new SdfKey (text, font);
 			var textureIndex = 0;
 			var texture = _sdfTextures[textureIndex];
-			var regionO = texture.AllocAndDraw (width, height, draw);
-			if (regionO is SdfTextureRegion region) {
-				region.LastUsedFrame = _frame;
-				_sdfValues[key] = region;
-				return region;
+			var numTries = 2;
+			for (var tri = 0; tri < numTries; tri++) {
+				var regionO = texture.AllocAndDraw (width, height, draw);
+				if (regionO is SdfTextureRegion region) {
+					region.LastUsedFrame = _frame;
+					_sdfValues[key] = region;
+					return region;
+				}
+				Console.WriteLine ($"Could not allocate SDF texture region for {width}x{height}");
+				FreePastFrameSdfTextureRegions ();
 			}
-			Console.WriteLine ($"Could not allocate SDF texture region for {width}x{height}");
 			return null;
+		}
+
+		void FreePastFrameSdfTextureRegions ()
+		{
+			var vals = _sdfValues.ToArray ();
+			foreach (var (key, region) in vals) {
+				if (region.LastUsedFrame < _frame - 2) {
+					Console.WriteLine ($"Deallocating SDF texture region for {key.Text} ({region.AllocatedRect.Width}x{region.AllocatedRect.Height})");
+					SdfTextures[region.TextureIndex].Dealloc (region.AllocatedRect);
+					_sdfValues.Remove (key);
+				}
+			}
 		}
 
 		public void SetUniforms (Matrix4x4 modelToView)
