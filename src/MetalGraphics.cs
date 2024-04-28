@@ -194,12 +194,28 @@ namespace CrossGraphics.Metal
 
 		public void FillPolygon (Polygon poly)
 		{
-			// TODO: Implement
+			if (poly.Points.Count < 3)
+				return;
+			var buffer = _buffers.GetPrimitivesBuffer(numVertices: poly.Points.Count, numIndices: (poly.Points.Count - 2) * 3);
+			var bbv = Vector4.Zero;
+			var args = Vector4.Zero;
+			var op = DrawOp.FillPolygon;
+			var v0 = buffer.AddVertex (poly.Points[0].X, poly.Points[0].Y, 0, 0, _currentColor, bb: bbv, args: args, op: op);
+			for (var i = 1; i < poly.Points.Count - 1; i++) {
+				var v1 = buffer.AddVertex (poly.Points[i].X, poly.Points[i].Y, 0, 0, _currentColor, bb: bbv, args: args, op: op);
+				var v2 = buffer.AddVertex (poly.Points[i + 1].X, poly.Points[i + 1].Y, 0, 0, _currentColor, bb: bbv, args: args, op: op);
+				buffer.AddTriangle (v0, v1, v2);
+			}
 		}
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
-			// TODO: Implement
+			BeginLines (true);
+			for (var i = 0; i < poly.Points.Count; i++) {
+				var j = (i + 1) % poly.Points.Count;
+				DrawLine (poly.Points[i].X, poly.Points[i].Y, poly.Points[j].X, poly.Points[j].Y, w);
+			}
+			EndLines ();
 		}
 
 		public void FillRect (float x, float y, float width, float height)
@@ -647,6 +663,9 @@ fragment float4 fragmentShader(
 		mask = strokeOval(in);
 		break;
 	case 6: // FillArc
+		mask = fillRect(in);
+		break;
+	case 8: // FillPolygon
 		mask = fillRect(in);
 		break;
 	case 13: // DrawString
