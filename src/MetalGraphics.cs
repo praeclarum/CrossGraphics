@@ -458,6 +458,7 @@ namespace CrossGraphics.Metal
 			var pipelineDescriptor = new MTLRenderPipelineDescriptor {
 				VertexFunction = vertexFunction,
 				FragmentFunction = fragmentFunction,
+				// RasterSampleCount = 4,
 			};
 			pipelineDescriptor.ColorAttachments[0] = new MTLRenderPipelineColorAttachmentDescriptor {
 				PixelFormat = DefaultPixelFormat,
@@ -567,34 +568,6 @@ float strokeRect(ColorInOut in)
 	return onedge ? 1.0 : 0.0;
 }
 
-float fillOval(ColorInOut in)
-{
-	float2 p = in.modelPosition;
-	float2 bbMin = in.bb.xy;
-	float2 bbMax = in.bb.zw;
-	float2 center = (bbMin + bbMax) / 2;
-	float2 radius = (bbMax - bbMin) / 2;
-	float2 d = (p - center) / radius;
-	float r = length(d);
-	return r <= 1.0 ? 1.0 : 0.0;
-}
-
-float strokeOval(ColorInOut in)
-{
-	float2 p = in.modelPosition;
-	float2 bbMin = in.bb.xy;
-	float2 bbMax = in.bb.zw;
-	float w = in.args.x;
-	float w2 = w / 2;
-	float2 center = (bbMin + bbMax) / 2;
-	float2 radius = (bbMax - bbMin) / 2 - w2;
-	float2 d = (p - center);
-	float r = length(d / radius);
-	float nw2 = w2 / min(radius.x, radius.y);
-	bool onedge = r >= 1.0 - nw2 && r <= 1.0 + nw2;
-	return onedge ? 1.0 : 0.0;
-}
-
 float fillRoundedRect(ColorInOut in)
 {
 	float2 p = in.modelPosition;
@@ -621,6 +594,66 @@ float fillRoundedRect(ColorInOut in)
 	else {
 		return 1.0;
 	}
+}
+
+float strokeRoundedRect(ColorInOut in)
+{
+	float2 p = in.modelPosition;
+	float w = in.args.x;
+	float r = in.args.y;
+	float w2 = w / 2;
+	float2 bbMin = in.bb.xy;// + float2(w2, w2);
+	float2 bbMax = in.bb.zw;// - float2(w2, w2);
+	float rw2 = r + w2;
+	bool onedge = false;
+	if (p.x < bbMin.x + rw2 && p.y < bbMin.y + rw2) {
+		float pr = length(p - (bbMin + float2(rw2, rw2)));
+		onedge = abs(pr - r) <= w2;
+	}
+	else if (p.x > bbMax.x - rw2 && p.y < bbMin.y + rw2) {
+		float pr = length(p - float2(bbMax.x, bbMin.y) - float2(-rw2, rw2));
+		onedge = abs(pr - r) <= w2;
+	}
+	else if (p.x > bbMax.x - rw2 && p.y > bbMax.y - rw2) {
+		float pr = length(p - bbMax - float2(-rw2, -rw2));
+		onedge = abs(pr - r) <= w2;
+	}
+	else if (p.x < bbMin.x + rw2 && p.y > bbMax.y - rw2) {
+		float pr = length(p - float2(bbMin.x, bbMax.y) - float2(rw2, -rw2));
+		onedge = abs(pr - r) <= w2;
+	}
+	else {
+		onedge = p.x < bbMin.x + w || p.x > bbMax.x - w || p.y < bbMin.y + w || p.y > bbMax.y - w;
+	}
+	return onedge ? 1.0 : 0.0;
+}
+
+float fillOval(ColorInOut in)
+{
+	float2 p = in.modelPosition;
+	float2 bbMin = in.bb.xy;
+	float2 bbMax = in.bb.zw;
+	float2 center = (bbMin + bbMax) / 2;
+	float2 radius = (bbMax - bbMin) / 2;
+	float2 d = (p - center) / radius;
+	float r = length(d);
+	return r <= 1.0 ? 1.0 : 0.0;
+}
+
+float strokeOval(ColorInOut in)
+{
+	float2 p = in.modelPosition;
+	float2 bbMin = in.bb.xy;
+	float2 bbMax = in.bb.zw;
+	float w = in.args.x;
+	float w2 = w / 2;
+	float2 center = (bbMin + bbMax) / 2;
+	float2 radius = (bbMax - bbMin) / 2 - w2;
+	float2 d = (p - center);
+	float r = length(d / radius);
+	float nw2 = w2 / min(radius.x, radius.y);
+	bool onedge = r >= 1.0 - nw2 && r <= 1.0 + nw2;
+	return onedge ? 1.0 : 0.0;
 }
 
 float drawString(ColorInOut in, texture2d<float> sdf)
@@ -726,6 +759,9 @@ fragment float4 fragmentShader(
 		break;
 	case 2: // FillRoundedRect
 		mask = fillRoundedRect(in);
+		break;
+	case 3: // StrokeRoundedRect
+		mask = strokeRoundedRect(in);
 		break;
 	case 4: // FillOval
 		mask = fillOval(in);
