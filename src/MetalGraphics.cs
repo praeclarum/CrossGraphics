@@ -736,7 +736,7 @@ fragment float4 fragmentShader(
 		const int MaxWidth = 2048;
 		const int MaxHeight = 2048;
 
-		class SubRect
+		public class SubRect
 		{
 			public readonly int X;
 			public readonly int Y;
@@ -758,13 +758,15 @@ fragment float4 fragmentShader(
 		// private const MTLPixelFormat TexturePixelFormat = MTLPixelFormat.R32Float;
 		private const MTLPixelFormat TexturePixelFormat = MTLPixelFormat.R8Unorm;
 
-		public MetalSdfTexture (IMTLDevice device)
+		public readonly int TextureIndex;
+
+		public MetalSdfTexture (IMTLDevice device, int textureIndex)
 		{
 			var tdesc = MTLTextureDescriptor.CreateTexture2DDescriptor (TexturePixelFormat, (nuint)MaxWidth,
 				(nuint)MaxHeight, mipmapped: false);
 			Texture = device.CreateTexture (tdesc);
+			TextureIndex = textureIndex;
 		}
-
 
 		SubRect? Alloc (float desiredWidth, float desiredHeight)
 		{
@@ -798,7 +800,7 @@ fragment float4 fragmentShader(
 
 		const int padding = 4;
 
-		public Vector4? AllocAndDraw (float width, float height, Action<CGContext> draw)
+		public SdfTextureRegion? AllocAndDraw (float width, float height, Action<CGContext> draw)
 		{
 			if (Texture is null) {
 				return null;
@@ -830,7 +832,7 @@ fragment float4 fragmentShader(
 				Texture.ReplaceRegion (region: region, level: 0, pixelBytes: data, bytesPerRow: (nuint)bytesPerRow);
 			}
 			var unPaddedSubRect = new SubRect (subRect.X + padding, subRect.Y + padding, subRect.Width - padding * 2, subRect.Height - padding * 2);
-			return unPaddedSubRect.UVBoundingBox;
+			return new SdfTextureRegion (TextureIndex, unPaddedSubRect.UVBoundingBox, new Vector2 (width, height), subRect);
 		}
 	}
 
@@ -869,16 +871,19 @@ fragment float4 fragmentShader(
 		}
 	}
 
-	public readonly struct SdfTextureRegion
+	public class SdfTextureRegion
 	{
 		public readonly int TextureIndex;
 		public readonly Vector4 UVBoundingBox;
 		public readonly Vector2 DrawSize;
-		public SdfTextureRegion (int textureIndex, Vector4 uv, Vector2 drawSize)
+		public readonly MetalSdfTexture.SubRect AllocatedRect;
+		public int LastUsedFrame = 0;
+		public SdfTextureRegion (int textureIndex, Vector4 uv, Vector2 drawSize, MetalSdfTexture.SubRect allocatedRect)
 		{
 			TextureIndex = textureIndex;
 			UVBoundingBox = uv;
 			DrawSize = drawSize;
+			AllocatedRect = allocatedRect;
 		}
 	}
 
@@ -897,11 +902,13 @@ fragment float4 fragmentShader(
 		readonly IMTLBuffer? _uniformsBuffer;
 		public IMTLBuffer? Uniforms => _uniformsBuffer;
 
+		int _frame = 0;
+
 		public MetalGraphicsBuffers (IMTLDevice device)
 		{
 			Device = device;
 			_primitiveBuffers = new List<MetalPrimitivesBuffer> { new MetalPrimitivesBuffer (Device) };
-			_sdfTextures = new List<MetalSdfTexture> { new MetalSdfTexture (Device) };
+			_sdfTextures = new List<MetalSdfTexture> { new MetalSdfTexture (Device, textureIndex: 0) };
 			_uniformsBuffer = Device.CreateBuffer ((nuint)(MetalGraphics.UniformsByteSize), MTLResourceOptions.CpuCacheModeDefault);
 		}
 
@@ -911,6 +918,7 @@ fragment float4 fragmentShader(
 				b.Reset ();
 			}
 			_currentPrimitiveBufferIndex = 0;
+			_frame++;
 		}
 
 		public MetalPrimitivesBuffer GetPrimitivesBuffer (int numVertices, int numIndices)
@@ -929,6 +937,7 @@ fragment float4 fragmentShader(
 		{
 			var key = new SdfKey (text, font);
 			if (_sdfValues.TryGetValue (key, out var value)) {
+				value.LastUsedFrame = _frame;
 				return value;
 			}
 			return null;
@@ -939,12 +948,13 @@ fragment float4 fragmentShader(
 			var key = new SdfKey (text, font);
 			var textureIndex = 0;
 			var texture = _sdfTextures[textureIndex];
-			var uvO = texture.AllocAndDraw (width, height, draw);
-			if (uvO is Vector4 uv) {
-				var region = new SdfTextureRegion (textureIndex, uv, new Vector2 (width, height));
+			var regionO = texture.AllocAndDraw (width, height, draw);
+			if (regionO is SdfTextureRegion region) {
+				region.LastUsedFrame = _frame;
 				_sdfValues[key] = region;
 				return region;
 			}
+			Console.WriteLine ($"Could not allocate SDF texture region for {width}x{height}");
 			return null;
 		}
 
