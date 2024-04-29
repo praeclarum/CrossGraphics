@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrossGraphics", "src\CrossG
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrossGraphicsTests", "tests\CrossGraphicsTests.csproj", "{96BC9201-E9B3-40FE-A099-0646C43A193A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{8A2BAA71-2760-4B79-9D4C-EC614D3F1F53}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lols", "samples\Lols\Lols.csproj", "{73154013-5BF3-4002-8312-50349011EB76}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +28,12 @@ Global
 		{96BC9201-E9B3-40FE-A099-0646C43A193A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{96BC9201-E9B3-40FE-A099-0646C43A193A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{96BC9201-E9B3-40FE-A099-0646C43A193A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73154013-5BF3-4002-8312-50349011EB76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73154013-5BF3-4002-8312-50349011EB76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73154013-5BF3-4002-8312-50349011EB76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73154013-5BF3-4002-8312-50349011EB76}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{73154013-5BF3-4002-8312-50349011EB76} = {8A2BAA71-2760-4B79-9D4C-EC614D3F1F53}
 	EndGlobalSection
 EndGlobal
