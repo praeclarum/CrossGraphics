@@ -76,7 +76,8 @@ public partial class MainPage : ContentPage
 					lols.RemoveAt(0);
 				lols.Add(lol);
 				count++;
-				Canvas.InvalidateCanvas ();
+				SkiaCanvas.InvalidateCanvas ();
+				MauiCanvas.InvalidateCanvas ();
 			});
 			//NOTE: plain Android we could put 1
 			Thread.Sleep(1);

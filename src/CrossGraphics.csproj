@@ -58,7 +58,8 @@
         <Compile Include="AndroidGraphicsCanvas.cs" />
         <Compile Include="AndroidShapeStore.cs" />
         <Compile Include="OpenGLGraphics.cs" />
-        <Compile Include="SkiaCanvas.cs" />
+        <Compile Include="MauiCanvas.cs" />
+        <Compile Include="MauiSkiaCanvas.cs" />
         <PackageReference Include="SkiaSharp.Views" />
         <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
         <PackageReference Include="Xamarin.Legacy.OpenTK" />
@@ -69,7 +70,8 @@
         <Compile Include="CoreGraphicsGraphics.cs" />
         <Compile Include="MetalCanvas.cs" />
         <Compile Include="MetalGraphics.cs" />
-        <Compile Include="SkiaCanvas.cs" />
+        <Compile Include="MauiCanvas.cs" />
+        <Compile Include="MauiSkiaCanvas.cs" />
         <PackageReference Include="SkiaSharp.Views" />
         <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
     </ItemGroup>
@@ -80,7 +82,8 @@
         <Compile Include="MetalCanvas.cs" />
         <Compile Include="MetalGraphics.cs" />
         <Compile Include="SceneKitGraphics.cs" />
-        <Compile Include="SkiaCanvas.cs" />
+        <Compile Include="MauiCanvas.cs" />
+        <Compile Include="MauiSkiaCanvas.cs" />
         <PackageReference Include="SkiaSharp.Views" />
         <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
     </ItemGroup>
@@ -90,7 +93,8 @@
         <Compile Include="CoreGraphicsGraphics.cs" />
         <Compile Include="MetalCanvas.cs" />
         <Compile Include="MetalGraphics.cs" />
-        <Compile Include="SkiaCanvas.cs" />
+        <Compile Include="MauiCanvas.cs" />
+        <Compile Include="MauiSkiaCanvas.cs" />
         <PackageReference Include="SkiaSharp.Views" />
         <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
     </ItemGroup>

@@ -7,7 +7,7 @@ using SkiaSharp.Views.Maui.Controls;
 
 namespace CrossGraphics.Skia
 {
-	public class SkiaCanvas : SKCanvasView, ICanvas
+	public class MauiSkiaCanvas : SKCanvasView, ICanvas
 	{
 		float renderedCanvasFromLayoutScale = 1.0f;
 
@@ -26,7 +26,7 @@ namespace CrossGraphics.Skia
 
 		public CrossGraphics.Color ClearColor { get; set; } = CrossGraphics.Colors.Black;
 
-		public SkiaCanvas ()
+		public MauiSkiaCanvas ()
 		{
 			PaintSurface += RenderView_PaintSurface;
 			Touch += RenderView_Touch;
@@ -88,10 +88,5 @@ namespace CrossGraphics.Skia
 				Draw?.Invoke (this, new DrawEventArgs (g));
 			}
 		}
-	}
-
-	public class DrawEventArgs (IGraphics g) : EventArgs
-	{
-		public IGraphics Graphics { get; } = g;
 	}
 }

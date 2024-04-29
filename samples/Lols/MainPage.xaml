@@ -1,19 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:skia="clr-namespace:CrossGraphics.Skia;assembly=CrossGraphics"
+             xmlns:cg="clr-namespace:CrossGraphics;assembly=CrossGraphics"
+             xmlns:cgskia="clr-namespace:CrossGraphics.Skia;assembly=CrossGraphics"
              x:Class="Lols.MainPage">
 
     <ScrollView>
         <VerticalStackLayout
             Padding="30,0"
             Spacing="25">
-            <skia:SkiaCanvas
-                x:Name="Canvas"
+            <cgskia:MauiSkiaCanvas
+                x:Name="SkiaCanvas"
                 Draw="OnDraw"
                 HeightRequest="200"
                 WidthRequest="200"
-                BackgroundColor="LightGray" />
+                />
+            <cg:MauiCanvas
+                x:Name="MauiCanvas"
+                Draw="OnDraw"
+                HeightRequest="200"
+                WidthRequest="200"
+            />
             <Image
                 Source="dotnet_bot.png"
                 HeightRequest="185"
