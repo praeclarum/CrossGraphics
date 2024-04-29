@@ -20,16 +20,17 @@ namespace CrossGraphics.Skia
 			}
 		}
 
+		public delegate void DrawDelegate (IGraphics g);
+
+		public event EventHandler<DrawEventArgs>? Draw;
+
+		public CrossGraphics.Color ClearColor { get; set; } = CrossGraphics.Colors.Black;
+
 		public SkiaCanvas ()
 		{
 			PaintSurface += RenderView_PaintSurface;
 			Touch += RenderView_Touch;
 			EnableTouchEvents = true;
-		}
-
-		protected virtual CrossGraphics.Color GetClearColor ()
-		{
-			return CrossGraphics.Colors.Black;
 		}
 
 		public void InvalidateCanvas ()
@@ -74,15 +75,23 @@ namespace CrossGraphics.Skia
 		{
 			var c = e.Surface.Canvas;
 			var g = new SkiaGraphics (c);
-			c.Clear (GetClearColor ().ToSkiaColor ());
+			c.Clear (ClearColor.ToSkiaColor ());
 			var w = Width;
 			var h = Height;
-			if (w > 0 && h > 0 && content is CanvasContent co) {
+			if (w > 0 && h > 0) {
 				renderedCanvasFromLayoutScale = CanvasSize.Width / (float)w;
 				g.Scale (renderedCanvasFromLayoutScale, renderedCanvasFromLayoutScale);
-				co.Frame = new System.Drawing.RectangleF (0, 0, (float)w, (float)h);
-				co.Draw (g);
+				if (content is CanvasContent co) {
+					co.Frame = new System.Drawing.RectangleF (0, 0, (float)w, (float)h);
+					co.Draw (g);
+				}
+				Draw?.Invoke (this, new DrawEventArgs (g));
 			}
 		}
+	}
+
+	public class DrawEventArgs (IGraphics g) : EventArgs
+	{
+		public IGraphics Graphics { get; } = g;
 	}
 }
