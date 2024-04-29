@@ -63,4 +63,8 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\..\src\CrossGraphics.csproj" />
+	</ItemGroup>
+
 </Project>
