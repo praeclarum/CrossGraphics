@@ -9,7 +9,7 @@
             Padding="30,0"
             Spacing="25">
             <skia:SkiaCanvas
-                x:Name="TheSkiaCanvasView"
+                x:Name="Canvas"
                 Draw="OnDraw"
                 HeightRequest="200"
                 WidthRequest="200"
@@ -23,10 +23,10 @@
             <HorizontalStackLayout
                 Spacing="9">
                 <Label
-                    x:Name="LolsPerSecondLabel"
                     Text="LOL/s:"
                 />
                 <Label
+                    x:Name="LolsPerSecondLabel"
                     Text="0"
                 />
             </HorizontalStackLayout>

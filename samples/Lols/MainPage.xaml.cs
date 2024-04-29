@@ -17,14 +17,11 @@ public partial class MainPage : ContentPage
 	readonly System.Timers.Timer timer = new System.Timers.Timer(500);
 	readonly Stopwatch stopwatch = new Stopwatch();
 
-	public MainPage()
+	public MainPage ()
 	{
-		InitializeComponent();
+		InitializeComponent ();
 		timer.Elapsed += OnTimer;
-
-		stopwatch.Start();
-		timer.Start();
-		_ = Task.Factory.StartNew(RunTest, TaskCreationOptions.LongRunning);
+		StartTest ();
 	}
 
 	void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
@@ -38,14 +35,8 @@ public partial class MainPage : ContentPage
 
 	private void OnCounterClicked(object sender, EventArgs e)
 	{
-		count++;
-
-		if (count == 1)
-			CounterBtn.Text = $"Clicked {count} time";
-		else
-			CounterBtn.Text = $"Clicked {count} times";
-
-		SemanticScreenReader.Announce(CounterBtn.Text);
+		if (!timer.Enabled)
+			StartTest ();
 	}
 
 	private void OnDraw (object? sender, DrawEventArgs e)
@@ -58,11 +49,19 @@ public partial class MainPage : ContentPage
 		}
 	}
 
+	void StartTest()
+	{
+		count = 0;
+		timer.Start();
+		stopwatch.Restart();
+		_ = Task.Factory.StartNew(RunTest, TaskCreationOptions.LongRunning);
+	}
+
 	void RunTest ()
 	{
 		var random = Random.Shared;
 
-		while (count < 5000)
+		while (count < 5_000)
 		{
 			var lol = new Lol
 			(
@@ -77,9 +76,10 @@ public partial class MainPage : ContentPage
 					lols.RemoveAt(0);
 				lols.Add(lol);
 				count++;
+				Canvas.InvalidateCanvas ();
 			});
 			//NOTE: plain Android we could put 1
-			Thread.Sleep(2);
+			Thread.Sleep(1);
 		}
 
 		stopwatch.Stop();
