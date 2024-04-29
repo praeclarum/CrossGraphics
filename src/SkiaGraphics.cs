@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#nullable enable
+
 using System;
 using System.Drawing;
 using System.Collections.Generic;
@@ -38,9 +40,14 @@ namespace CrossGraphics.Skia
 
 		class ColPaints
 		{
-			public SKPaint Fill;
-			public SKPaint Stroke;
-			public Font Font;
+			public readonly SKPaint Fill;
+			public readonly SKPaint Stroke;
+			public Font? Font;
+			public ColPaints (SKPaint fill, SKPaint stroke)
+			{
+				Fill = fill;
+				Stroke = stroke;
+			}
 		}
 
 		public SkiaGraphics (SKSurface surface)
@@ -51,8 +58,8 @@ namespace CrossGraphics.Skia
 		public SkiaGraphics (SKCanvas canvas)
 		{
 			_c = canvas;
-			_font = null;
-			SetColor (Colors.Black);
+			_font = Font.SystemFontOfSize (16);
+			_paints = CreateColPaints (Colors.Black.ToSkiaColor ());
 		}
 
 		public void BeginEntity (object entity)
@@ -69,7 +76,7 @@ namespace CrossGraphics.Skia
 
 		}
 		
-		ColPaints SetSkiaColor (SKColor c)
+		static ColPaints CreateColPaints (SKColor c)
 		{
 			var stroke = new SKPaint ();
 			stroke.Color = c;
@@ -81,10 +88,13 @@ namespace CrossGraphics.Skia
 			fill.Color = stroke.Color;
 			fill.IsAntialias = true;
 			fill.Style = SKPaintStyle.Fill;
-			var paints = new ColPaints {
-				Fill = fill,
-				Stroke = stroke
-			};
+			var paints = new ColPaints (fill, stroke);
+			return paints;
+		}
+
+		ColPaints SetSkiaColor (SKColor c)
+		{
+			var paints = CreateColPaints (c);
 			_paints = paints;
 			return paints;
 		}
@@ -191,7 +201,7 @@ namespace CrossGraphics.Skia
 		}
 
 		bool _inLines = false;
-		SKPath _linesPath = null;
+		SKPath? _linesPath = null;
 		int _linesCount = 0;
 		float _lineWidth = 1;
 
@@ -206,7 +216,7 @@ namespace CrossGraphics.Skia
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
-			if (_inLines) {
+			if (_inLines && _linesPath is not null) {
 				if (_linesCount == 0) {
 					_linesPath.MoveTo (sx, sy);
 				}
@@ -227,7 +237,7 @@ namespace CrossGraphics.Skia
 				_paints.Stroke.StrokeWidth = _lineWidth;
 				_paints.Stroke.StrokeJoin = SKStrokeJoin.Round;
 				_c.DrawPath (_linesPath, _paints.Stroke);
-				_linesPath.Dispose ();
+				_linesPath?.Dispose ();
 				_linesPath = null;
 			}
 		}
@@ -265,7 +275,7 @@ namespace CrossGraphics.Skia
 			return _font.SkiaTag ?? GetFontInfo (_font);
 		}
 
-		static SkiaFontMetrics GetFontInfo (Font f, SKPaint p = null)
+		static SkiaFontMetrics GetFontInfo (Font f, SKPaint? p = null)
 		{
 			var fi = f.SkiaTag as SkiaFontMetrics;
 			if (fi == null) {
@@ -292,14 +302,12 @@ namespace CrossGraphics.Skia
 			}
 		}
 
-		public IImage ImageFromFile (string path)
+		public IImage? ImageFromFile (string path)
 		{
 			var bmp = SKBitmap.Decode (path);
 			if (bmp == null) return null;
 
-			var dimg = new SkiaImage () {
-				Bitmap = bmp
-			};
+			var dimg = new SkiaImage (bmp);
 			return dimg;
 		}
 
@@ -331,7 +339,11 @@ namespace CrossGraphics.Skia
 
 	public class SkiaImage : IImage
 	{
-		public SKBitmap Bitmap;
+		public readonly SKBitmap Bitmap;
+		public SkiaImage (SKBitmap bmp)
+		{
+			Bitmap = bmp;
+		}
 	}
 
 	public class SkiaFontMetrics : IFontMetrics
@@ -412,8 +424,8 @@ namespace CrossGraphics.Skia
 			}
 		}
 
-		CanvasContent _content;
-		public CanvasContent Content {
+		CanvasContent? _content;
+		public CanvasContent? Content {
 			get { return _content; }
 			set {
 				if (_content != value) {
@@ -431,18 +443,19 @@ namespace CrossGraphics.Skia
 		public AndroidSkiaGLCanvas (global::Android.Content.Context context, global::Android.Util.IAttributeSet attrs)
 			: base (context, attrs)
 		{
+			_touchMan = new Android.AndroidCanvasTouchManager (0);
 			Initialize (context);
 		}
 
 		public AndroidSkiaGLCanvas (global::Android.Content.Context context)
 			: base (context)
 		{
+			_touchMan = new Android.AndroidCanvasTouchManager (0);
 			Initialize (context);
 		}
 
 		void Initialize (global::Android.Content.Context context)
 		{
-			_touchMan = new Android.AndroidCanvasTouchManager (0);
 			_touchMan.LocationFromViewLocationFunc = p => new System.Drawing.PointF (p.X / _zoom, p.Y / _zoom);
 
 			MinFps = 4;
@@ -459,8 +472,10 @@ namespace CrossGraphics.Skia
 
 		Android.AndroidCanvasTouchManager _touchMan;
 
-		public override bool OnTouchEvent (global::Android.Views.MotionEvent e)
+		public override bool OnTouchEvent (global::Android.Views.MotionEvent? e)
 		{
+			if (e is null)
+				return false;
 			var del = Content;
 			if (del != null) {
 				_touchMan.OnTouchEvent (e, Content);
@@ -475,7 +490,7 @@ namespace CrossGraphics.Skia
 
 		#region Drawing
 
-		void HandleNeedsDisplay (object sender, EventArgs e)
+		void HandleNeedsDisplay (object? sender, EventArgs e)
 		{
 		}
 
@@ -494,7 +509,7 @@ namespace CrossGraphics.Skia
 			_running = false;
 		}
 
-		public event EventHandler DrewFrame;
+		public event EventHandler? DrewFrame;
 
 		protected override void OnPaintSurface (SkiaSharp.Views.Android.SKPaintGLSurfaceEventArgs e)
 		{
