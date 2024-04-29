@@ -29,7 +29,7 @@ namespace CrossGraphics.Skia
 {
 	public class SkiaGraphics : IGraphics
 	{
-		SKCanvas _c;
+		readonly SKCanvas _c;
 		ColPaints _paints;
 		Font _font;
 		readonly ColorCache _colorCache = new ();

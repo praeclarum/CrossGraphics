@@ -80,7 +80,7 @@ namespace CrossGraphics.Metal
 
 	public class MetalCanvasDelegate : MTKViewDelegate
 	{
-		WeakReference<MetalCanvas> _canvas;
+		readonly WeakReference<MetalCanvas> _canvas;
 		MetalCanvas? Canvas => _canvas.TryGetTarget (out var c) ? c : null;
 		public readonly IMTLCommandQueue? CommandQueue = MTLDevice.SystemDefault?.CreateCommandQueue ();
 		MetalGraphicsBuffers? _buffers = null;
