@@ -328,31 +328,9 @@ namespace CrossGraphics.Metal
 			var vpadding = renderFontSize * 0.2;
 
 			if (regionO is null) {
-				const double maxLength = 2048.0;
-				const int maxTries = 3;
-				nfloat ascent = 0;
-				nfloat descent = 0;
-				nfloat leading = 0;
-				double len = 0;
-				CTLine? drawLine = null;
-				for (var tri = 0; tri < maxTries; tri++) {
-					var atext = new NSMutableAttributedString (s, new CTStringAttributes {
-						ForegroundColorFromContext = true,
-						Font = new CTFont (font, renderFontSize),
-					});
-					var l = new CTLine (atext);
-					len = l.GetTypographicBounds (out ascent, out descent, out leading);
-					if (len > maxLength) {
-						renderFontSize *= (nfloat)(maxLength / len * 0.98);
-					}
-					else {
-						drawLine = l;
-						break;
-					}
-				}
-				if (drawLine is null) {
-					return;
-				}
+				using var atext = new NSMutableAttributedString (s, _buffers.GetCTStringAttributes(font, renderFontSize));
+				using var drawLine = new CTLine (atext);
+				var len = drawLine.GetTypographicBounds (out var ascent, out var descent, out var leading);
 
 				var drawWidth = (float)(len + 2.0 * hpadding);
 				var drawHeight = (float)(renderFontSize + 2.0 * vpadding);
@@ -369,8 +347,6 @@ namespace CrossGraphics.Metal
 					cgContext.TranslateCTM ((nfloat)hpadding, (nfloat)(renderFontSize * 0.15 + vpadding));
 					drawLine.Draw (cgContext);
 				});
-
-				drawLine.Dispose ();
 			}
 
 			if (regionO is SdfTextureRegion region) {
@@ -1181,6 +1157,8 @@ fragment float4 fragmentShader(
 		readonly IntPtr _uniformsBufferPointer;
 		public IMTLBuffer? Uniforms => _uniformsBuffer;
 
+		readonly Dictionary<string, CTStringAttributes> _cachedStringAttributes = new ();
+
 		int _frame = 0;
 
 		public MetalGraphicsBuffers (IMTLDevice device)
@@ -1276,6 +1254,19 @@ fragment float4 fragmentShader(
 					p[15] = modelToView.M44;
 				}
 			}
+		}
+
+		public CTStringAttributes GetCTStringAttributes(string font, nfloat renderFontSize)
+		{
+			if (_cachedStringAttributes.TryGetValue (font, out var attrs)) {
+				return attrs;
+			}
+			attrs = new CTStringAttributes {
+				ForegroundColorFromContext = true,
+				Font = new CTFont (font, renderFontSize),
+			};
+			_cachedStringAttributes[font] = attrs;
+			return attrs;
 		}
 	}
 }
