@@ -33,5 +33,7 @@
     <PackageVersion Include="Xamarin.AndroidX.CardView" Version="1.0.0.17" />
     <PackageVersion Include="Xamarin.AndroidX.Legacy.Support.V4" Version="1.0.0.15" />
     <PackageVersion Include="Xamarin.AndroidX.Lifecycle.LiveData" Version="2.5.1.1" />
+    <PackageVersion Include="Microsoft.Maui.Controls" Version="8.0.3" />
+    <PackageVersion Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.3" />
   </ItemGroup>
 </Project>

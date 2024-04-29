@@ -47,7 +47,6 @@ namespace CrossGraphics.Metal
 		{
 			Device = CanvasDevice;
 			ColorPixelFormat = MetalGraphics.DefaultPixelFormat;
-			var maxSamples = Device!.GetMaxArgumentBufferSamplerCount ();
 			if (Device is {} d) {
 				if (d.SupportsTextureSampleCount (16)) {
 					SampleCount = 16;
