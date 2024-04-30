@@ -33,9 +33,10 @@ namespace CrossGraphics
 		CanvasContent Content { get; set; }
 	}
 
-	public class DrawEventArgs (IGraphics g) : EventArgs
+	public class DrawEventArgs (IGraphics g, RectangleF frame) : EventArgs
 	{
-		public IGraphics Graphics { get; } = g;
+		public IGraphics Graphics => g;
+		public RectangleF Frame => frame;
 	}
 
 	[Flags]

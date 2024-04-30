@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Drawing;
 
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
@@ -8,13 +9,15 @@ using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Hosting;
 
+using Size = Microsoft.Maui.Graphics.Size;
+
 #if __IOS__ || __MACOS__ || __MACCATALYST__
 #elif __ANDROID__
 #endif
 
 namespace CrossGraphics.Maui
 {
-	public interface IMauiCanvas : IView, IElement, ITransform
+	public interface IMauiCanvas : IView, ICanvas
 	{
 		// SKSize CanvasSize { get; }
 
@@ -43,20 +46,15 @@ namespace CrossGraphics.Maui
 
 	public class MauiCanvas : View, IMauiCanvas, IMauiCanvasController
 	{
-		// public static readonly BindableProperty IgnorePixelScalingProperty = BindableProperty.Create(nameof (IgnorePixelScaling), typeof (bool), typeof (SKCanvasView), (object) false);
-		public static readonly BindableProperty EnableTouchEventsProperty = BindableProperty.Create(nameof (EnableTouchEvents), typeof (bool), typeof (MauiCanvas), (object) false);
-		public static readonly BindableProperty DrawsContinuouslyProperty = BindableProperty.Create(nameof (DrawsContinuously), typeof (bool), typeof (MauiCanvas), (object) false);
+		public static readonly BindableProperty EnableTouchEventsProperty = BindableProperty.Create(nameof (EnableTouchEvents), typeof (bool), typeof (MauiCanvas), false);
+		public static readonly BindableProperty DrawsContinuouslyProperty = BindableProperty.Create(nameof (DrawsContinuously), typeof (bool), typeof (MauiCanvas), false);
+		public static readonly BindableProperty ContentProperty = BindableProperty.Create(nameof (Content), typeof (CanvasContent), typeof (MauiCanvas), null);
 
-		// CanvasContent? _content = null;
-		//
-		// CanvasContent? ICanvas.Content {
-		// 	get => _content;
-		// 	set
-		// 	{
-		// 		_content = value;
-		// 		InvalidateCanvas ();
-		// 	}
-		// }
+		public CanvasContent? Content
+		{
+			get => (CanvasContent?) this.GetValue(ContentProperty);
+			set => this.SetValue(ContentProperty, value);
+		}
 
 		public bool EnableTouchEvents
 		{
@@ -82,6 +80,10 @@ namespace CrossGraphics.Maui
 
 		protected virtual void OnDraw (DrawEventArgs e)
 		{
+			if (Content is CanvasContent content) {
+				content.Frame = e.Frame;
+				content.Draw (e.Graphics);
+			}
 			Draw?.Invoke (this, e);
 		}
 
@@ -176,8 +178,10 @@ namespace CrossGraphics.Maui
 		public override void DrawMetalGraphics (CrossGraphics.Metal.MetalGraphics g)
 		{
 			var bounds = Bounds;
-			g.SetViewport ((float)bounds.Width, (float)bounds.Height, 1, 0, 0);
-			Draw?.Invoke (this, new DrawEventArgs (g));
+			var w = (float)bounds.Width;
+			var h = (float)bounds.Height;
+			g.SetViewport (w, h, 1, 0, 0);
+			Draw?.Invoke (this, new DrawEventArgs (g, new RectangleF (0, 0, w, h)));
 			g.EndDrawing ();
 		}
 
@@ -266,12 +270,12 @@ namespace CrossGraphics.Maui
 			var c = e.Surface.Canvas;
 			var g = new Skia.SkiaGraphics (c);
 			c.Clear (Skia.Conversions.ToSkiaColor (_backgroundColor));
-			var w = virtualViewSize.Width;
-			var h = virtualViewSize.Height;
+			var w = (float)virtualViewSize.Width;
+			var h = (float)virtualViewSize.Height;
 			if (w > 0 && h > 0) {
-				var renderedCanvasFromLayoutScale = CanvasSize.Width / (float)w;
+				var renderedCanvasFromLayoutScale = CanvasSize.Width / w;
 				g.Scale (renderedCanvasFromLayoutScale, renderedCanvasFromLayoutScale);
-				Draw?.Invoke (this, new DrawEventArgs (g));
+				Draw?.Invoke (this, new DrawEventArgs (g, new RectangleF (0, 0, w, h)));
 			}
 		}
 

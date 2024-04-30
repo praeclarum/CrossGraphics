@@ -78,16 +78,17 @@ namespace CrossGraphics.Maui
 			var c = e.Surface.Canvas;
 			var g = new SkiaGraphics (c);
 			c.Clear (ClearColor.ToSkiaColor ());
-			var w = Width;
-			var h = Height;
+			var w = (float)Width;
+			var h = (float)Height;
+			var frame = new System.Drawing.RectangleF (0, 0, w, h);
 			if (w > 0 && h > 0) {
 				renderedCanvasFromLayoutScale = CanvasSize.Width / (float)w;
 				g.Scale (renderedCanvasFromLayoutScale, renderedCanvasFromLayoutScale);
 				if (content is CanvasContent co) {
-					co.Frame = new System.Drawing.RectangleF (0, 0, (float)w, (float)h);
+					co.Frame = frame;
 					co.Draw (g);
 				}
-				Draw?.Invoke (this, new DrawEventArgs (g));
+				Draw?.Invoke (this, new DrawEventArgs (g, frame));
 			}
 		}
 	}
