@@ -2,11 +2,13 @@
 
 using System;
 
+using CrossGraphics.Skia;
+
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Hosting;
-using Microsoft.Maui.Platform;
 
 #if __IOS__ || __MACOS__ || __MACCATALYST__
 #elif __ANDROID__
@@ -18,41 +20,77 @@ namespace CrossGraphics
 	{
 		// SKSize CanvasSize { get; }
 
-		bool IgnorePixelScaling { get; }
-
 		bool EnableTouchEvents { get; }
 
-		void InvalidateSurface();
+		void InvalidateCanvas();
 
 		// void OnCanvasSizeChanged(SKSizeI size);
 
-		// void OnPaintSurface(SKPaintSurfaceEventArgs e);
+		void OnDraw(DrawEventArgs e);
 
-		// void OnTouch(SKTouchEventArgs e);
+		void OnTouch(TouchEventArgs e);
 	}
 
-	public class MauiCanvas : View, ICanvas
+	public interface IMauiCanvasController : IViewController
 	{
-		CanvasContent? _content = null;
+		event EventHandler CanvasInvalidated;
 
-		CanvasContent? ICanvas.Content {
-			get => _content;
-			set
-			{
-				_content = value;
-				InvalidateCanvas ();
-			}
+		// event EventHandler<GetPropertyValueEventArgs<SKSize>> GetCanvasSize;
+
+		void OnDraw(DrawEventArgs e);
+
+		void OnTouch(TouchEventArgs e);
+	}
+
+	public class MauiCanvas : View, IMauiCanvas, IMauiCanvasController
+	{
+		// public static readonly BindableProperty IgnorePixelScalingProperty = BindableProperty.Create(nameof (IgnorePixelScaling), typeof (bool), typeof (SKCanvasView), (object) false);
+		public static readonly BindableProperty EnableTouchEventsProperty = BindableProperty.Create(nameof (EnableTouchEvents), typeof (bool), typeof (MauiCanvas), (object) false);
+
+		// CanvasContent? _content = null;
+		//
+		// CanvasContent? ICanvas.Content {
+		// 	get => _content;
+		// 	set
+		// 	{
+		// 		_content = value;
+		// 		InvalidateCanvas ();
+		// 	}
+		// }
+
+		public bool EnableTouchEvents
+		{
+			get => (bool) this.GetValue(EnableTouchEventsProperty);
+			set => this.SetValue(EnableTouchEventsProperty, value);
 		}
 
-		public delegate void DrawDelegate (IGraphics g);
-
+		public event EventHandler? CanvasInvalidated;
 		public event EventHandler<DrawEventArgs>? Draw;
-
-		// public CrossGraphics.Color ClearColor { get; set; } = CrossGraphics.Colors.Black;
+		public event EventHandler<TouchEventArgs>? Touch;
 
 		public void InvalidateCanvas ()
 		{
-			Draw?.Invoke (this, new DrawEventArgs (new NullGraphics ()));
+			CanvasInvalidated?.Invoke (this, EventArgs.Empty);
+		}
+
+		protected virtual void OnDraw (DrawEventArgs e)
+		{
+			Draw?.Invoke (this, e);
+		}
+
+		protected virtual void OnTouch (TouchEventArgs e)
+		{
+			Touch?.Invoke (this, e);
+		}
+
+		void IMauiCanvas.OnDraw (DrawEventArgs e) => OnDraw (e);
+		void IMauiCanvas.OnTouch (TouchEventArgs e) => OnTouch (e);
+		void IMauiCanvasController.OnDraw (DrawEventArgs e) => OnDraw (e);
+		void IMauiCanvasController.OnTouch (TouchEventArgs e) => OnTouch (e);
+
+		protected override SizeRequest OnMeasure(double widthConstraint, double heightConstraint)
+		{
+			return new SizeRequest(new Size(40.0, 40.0));
 		}
 	}
 
@@ -71,19 +109,32 @@ namespace CrossGraphics
 	}
 
 	#if __IOS__ || __MACCATALYST__ || __MACOS__
-	public class MauiCanvasView : CrossGraphics.Metal.MetalCanvas
+	class MauiCanvasView : CrossGraphics.Metal.MetalCanvas
 	{
+		public new event EventHandler<DrawEventArgs>? Draw;
+
 		public MauiCanvasView ()
 		{
 		}
 
 		public void InvalidateCanvas ()
 		{
+			// Metal is always rendering
+		}
+
+		public override void DrawMetalGraphics (CrossGraphics.Metal.MetalGraphics g)
+		{
+			var bounds = Bounds;
+			g.SetViewport ((float)bounds.Width, (float)bounds.Height, 1, 0, 0);
+			Draw?.Invoke (this, new DrawEventArgs (g));
+			g.EndDrawing ();
 		}
 	}
 	#elif __ANDROID__
-	public class MauiCanvasView : SkiaSharp.Views.Android.SKCanvasView
+	class MauiCanvasView : SkiaSharp.Views.Android.SKCanvasView
 	{
+		public new event EventHandler<DrawEventArgs>? Draw;
+
 		public MauiCanvasView (global::Android.Content.Context context)
 			: base(context)
 		{
@@ -92,20 +143,24 @@ namespace CrossGraphics
 		public void InvalidateCanvas ()
 		{
 		}
+
+		protected override void OnPaintSurface (SkiaSharp.Views.Android.SKPaintSurfaceEventArgs e)
+		{
+			var g = new SkiaGraphics (e.Surface);
+			Draw?.Invoke (this, new DrawEventArgs (g));
+		}
 	}
 	#endif
 
-	public class MauiCanvasHandler : ViewHandler<IMauiCanvas, MauiCanvasView>
+	class MauiCanvasHandler : ViewHandler<IMauiCanvas, MauiCanvasView>
 	{
 		// private (int Width, int Height) lastCanvasSize = (0, 0);
 
 		public static PropertyMapper<IMauiCanvas, MauiCanvasHandler>
 			MauiCanvasMapper =
 				new(ViewMapper) {
-					["EnableTouchEvents"] =
-						new Action<MauiCanvasHandler, IMauiCanvas> (MapEnableTouchEvents),
-					["IgnorePixelScaling"] =
-						new Action<MauiCanvasHandler, IMauiCanvas> (MapIgnorePixelScaling)
+					["EnableTouchEvents"] = MapEnableTouchEvents,
+					// ["IgnorePixelScaling"] = MapIgnorePixelScaling
 				};
 
 		public static CommandMapper<IMauiCanvas, MauiCanvasHandler>
@@ -122,14 +177,25 @@ namespace CrossGraphics
 
 		protected override void ConnectHandler (MauiCanvasView platformView)
 		{
-			// platformView.PaintSurface += OnPaintSurface;
+			platformView.Draw += OnDraw;
 			base.ConnectHandler (platformView);
 		}
 
 		protected override void DisconnectHandler (MauiCanvasView platformView)
 		{
-			// platformView.PaintSurface -= OnPaintSurface;
+			platformView.Draw -= OnDraw;
 			base.DisconnectHandler (platformView);
+		}
+
+		private void OnDraw(object? sender, DrawEventArgs e)
+		{
+			// SKSizeI size = e.Info.Size;
+			// if (this.lastCanvasSize != size)
+			// {
+			// 	this.lastCanvasSize = size;
+			// 	this.VirtualView?.OnCanvasSizeChanged(size);
+			// }
+			this.VirtualView?.OnDraw(e);
 		}
 
 		public static void OnInvalidateCanvas (

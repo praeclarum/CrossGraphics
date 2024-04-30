@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CrossGraphics;
+
+using Microsoft.Extensions.Logging;
 
 using SkiaSharp.Views.Maui.Controls.Hosting;
 
@@ -12,6 +14,7 @@ public static class MauiProgram
 		builder
 			.UseMauiApp<App>()
 			.UseSkiaSharp ()
+			.UseCrossGraphics ()
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
