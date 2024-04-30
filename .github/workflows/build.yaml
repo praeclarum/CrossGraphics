@@ -30,13 +30,17 @@ jobs:
         global-json-file: global.json
     - name: Restore Workloads
       run: sudo dotnet workload restore
-    - name: Build
-      run: dotnet build -c Release
+    - name: Restore Packages
+      run: dotnet restore
+    - name: Build Library
+      run: dotnet build -c Release --no-restore src/CrossGraphics.csproj
+    - name: Build Tests
+      run: dotnet build -c Release --no-restore tests/CrossGraphicsTests.csproj
     - name: Test
-      run: dotnet test -c Release --no-build
+      run: dotnet test -c Release --no-restore --no-build tests/CrossGraphicsTests.csproj
     - name: Package
       if: github.event_name == 'push'
-      run: dotnet pack -c Release --no-build -o ./artifacts
+      run: dotnet pack -c Release --no-build -o ./artifacts src/CrossGraphics.csproj
     - name: Upload Package
       if: github.event_name == 'push'
       uses: actions/upload-artifact@v4
