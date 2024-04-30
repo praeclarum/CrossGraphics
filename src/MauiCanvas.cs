@@ -12,7 +12,7 @@ using Microsoft.Maui.Hosting;
 #elif __ANDROID__
 #endif
 
-namespace CrossGraphics
+namespace CrossGraphics.Maui
 {
 	public interface IMauiCanvas : IView, IElement, ITransform
 	{
@@ -105,11 +105,6 @@ namespace CrossGraphics
 			base.OnSizeAllocated (width, height);
 			Handler?.Invoke(nameof(SizeChanged), new Size (width, height));
 		}
-	}
-
-	public class DrawEventArgs (IGraphics g) : EventArgs
-	{
-		public IGraphics Graphics { get; } = g;
 	}
 
 	public static class AppHostBuilderExtensions

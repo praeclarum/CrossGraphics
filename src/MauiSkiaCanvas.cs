@@ -2,10 +2,12 @@
 
 using System;
 
+using CrossGraphics.Skia;
+
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 
-namespace CrossGraphics.Skia
+namespace CrossGraphics.Maui
 {
 	public class MauiSkiaCanvas : SKCanvasView, ICanvas
 	{

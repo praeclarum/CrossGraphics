@@ -33,6 +33,11 @@ namespace CrossGraphics
 		CanvasContent Content { get; set; }
 	}
 
+	public class DrawEventArgs (IGraphics g) : EventArgs
+	{
+		public IGraphics Graphics { get; } = g;
+	}
+
 	[Flags]
 	public enum CanvasKeys
 	{

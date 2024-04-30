@@ -1,4 +1,4 @@
-﻿using CrossGraphics;
+﻿using CrossGraphics.Maui;
 
 using Microsoft.Extensions.Logging;
 
