@@ -111,10 +111,24 @@ namespace CrossGraphics
 	#if __IOS__ || __MACCATALYST__ || __MACOS__
 	class MauiCanvasView : CrossGraphics.Metal.MetalCanvas
 	{
+		bool _enableTouchEvents;
 		public new event EventHandler<DrawEventArgs>? Draw;
+#pragma warning disable CS0067 // Event is never used
+		public event EventHandler<TouchEventArgs>? Touch;
+#pragma warning restore CS0067 // Event is never used
 
-		public MauiCanvasView ()
-		{
+		public bool EnableTouchEvents {
+			get => _enableTouchEvents;
+			set
+			{
+				if (_enableTouchEvents == value)
+					return;
+				_enableTouchEvents = value;
+#if __IOS__
+				this.MultipleTouchEnabled = value;
+				this.UserInteractionEnabled = value;
+#endif
+			}
 		}
 
 		public void InvalidateCanvas ()
@@ -129,11 +143,26 @@ namespace CrossGraphics
 			Draw?.Invoke (this, new DrawEventArgs (g));
 			g.EndDrawing ();
 		}
+
+#if __IOS__
+		public override void TouchesBegan (Foundation.NSSet touches, UIKit.UIEvent? evt)
+		{
+			base.TouchesBegan (touches, evt);
+			if (EnableTouchEvents) {
+				Touch?.Invoke (this, new TouchEventArgs ());
+			}
+		}
+#endif
 	}
 	#elif __ANDROID__
 	class MauiCanvasView : SkiaSharp.Views.Android.SKCanvasView
 	{
 		public new event EventHandler<DrawEventArgs>? Draw;
+
+		public bool EnableTouchEvents {
+			get;
+			set;
+		}
 
 		public MauiCanvasView (global::Android.Content.Context context)
 			: base(context)
@@ -219,6 +248,7 @@ namespace CrossGraphics
 		{
 			if (handler.PlatformView == null)
 				return;
+			handler.PlatformView.EnableTouchEvents = canvasView.EnableTouchEvents;
 		}
 
 		// private void OnPaintSurface (object? sender, SkiaSharp.Views.Android.SKPaintSurfaceEventArgs e)
