@@ -24,7 +24,7 @@ public partial class MainPage : ContentPage
 		StartTest ();
 	}
 
-	void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
+	void OnTimer(object? sender, System.Timers.ElapsedEventArgs e)
 	{
 		double avg = count / stopwatch.Elapsed.TotalSeconds;
 		string text = avg.ToString("0.00", CultureInfo.InvariantCulture);
