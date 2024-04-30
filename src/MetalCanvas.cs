@@ -64,7 +64,7 @@ namespace CrossGraphics.Metal
 					SampleCount = 1;
 				}
 			}
-			ClearColor = new MTLClearColor (0.5, 0, 0.75, 1);
+			ClearColor = new MTLClearColor (0.0, 0, 0.0, 0);
 			AutoResizeDrawable = true;
 			PreferredFramesPerSecond = 30;
 			FramebufferOnly = true;
@@ -108,8 +108,6 @@ namespace CrossGraphics.Metal
 				try {
 					var g = new MetalGraphics (renderEncoder, _buffers);
 					Canvas?.DrawMetalGraphics (g);
-					view.ClearColor = new MTLClearColor (g.ClearColor.RedValue, g.ClearColor.GreenValue,
-						g.ClearColor.BlueValue, g.ClearColor.AlphaValue);
 					g.EndDrawing ();
 				}
 				catch (Exception ex) {

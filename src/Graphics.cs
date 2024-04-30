@@ -382,6 +382,7 @@ namespace CrossGraphics
 		public static readonly Color LightGray = new Color (212, 212, 212);
 		public static readonly Color Gray = new Color (127, 127, 127);
 		public static readonly Color DarkGray = new Color (64, 64, 64);
+		public static readonly Color Clear = new Color (0, 0, 0, 0);
 	}
 
 	public class ColorCache

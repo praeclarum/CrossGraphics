@@ -14,18 +14,15 @@
                 Draw="OnDraw"
                 HeightRequest="200"
                 WidthRequest="200"
+                BackgroundColor="Indigo"
                 />
             <cg:MauiCanvas
                 x:Name="MauiCanvas"
                 Draw="OnDraw"
                 HeightRequest="200"
                 WidthRequest="200"
+                BackgroundColor="Indigo"
             />
-            <Image
-                Source="dotnet_bot.png"
-                HeightRequest="185"
-                Aspect="AspectFit"
-                SemanticProperties.Description="dot net bot in a race car number eight" />
 
             <HorizontalStackLayout
                 Spacing="9">

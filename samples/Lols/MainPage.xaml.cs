@@ -42,7 +42,6 @@ public partial class MainPage : ContentPage
 	private void OnDraw (object? sender, DrawEventArgs e)
 	{
 		var g = e.Graphics;
-		g.FillRect (0, 0, (float)Width, (float)Height);
 		foreach (var lol in lols) {
 			g.SetColor (lol.TextColor);
 			g.DrawString (lol.Text, lol.X, lol.Y);
