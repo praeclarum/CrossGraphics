@@ -19,6 +19,7 @@ namespace CrossGraphics
 		// SKSize CanvasSize { get; }
 
 		bool EnableTouchEvents { get; }
+		bool DrawsContinuously { get; }
 
 		void InvalidateCanvas();
 
@@ -44,6 +45,7 @@ namespace CrossGraphics
 	{
 		// public static readonly BindableProperty IgnorePixelScalingProperty = BindableProperty.Create(nameof (IgnorePixelScaling), typeof (bool), typeof (SKCanvasView), (object) false);
 		public static readonly BindableProperty EnableTouchEventsProperty = BindableProperty.Create(nameof (EnableTouchEvents), typeof (bool), typeof (MauiCanvas), (object) false);
+		public static readonly BindableProperty DrawsContinuouslyProperty = BindableProperty.Create(nameof (DrawsContinuously), typeof (bool), typeof (MauiCanvas), (object) false);
 
 		// CanvasContent? _content = null;
 		//
@@ -60,6 +62,12 @@ namespace CrossGraphics
 		{
 			get => (bool) this.GetValue(EnableTouchEventsProperty);
 			set => this.SetValue(EnableTouchEventsProperty, value);
+		}
+
+		public bool DrawsContinuously
+		{
+			get => (bool) this.GetValue(DrawsContinuouslyProperty);
+			set => this.SetValue(DrawsContinuouslyProperty, value);
 		}
 
 		public event EventHandler? CanvasInvalidated;
@@ -163,7 +171,11 @@ namespace CrossGraphics
 
 		public void InvalidateCanvas ()
 		{
-			// Metal is always rendering
+			#if __IOS__ || __MACCATALYST__
+			SetNeedsDisplay ();
+			#else
+			SetNeedsDisplayInRect (Bounds);
+			#endif
 		}
 
 		public override void DrawMetalGraphics (CrossGraphics.Metal.MetalGraphics g)
@@ -209,10 +221,44 @@ namespace CrossGraphics
 			}
 		}
 
+		private bool _drawsContinuously = false;
+		public bool DrawsContinuously {
+			get => _drawsContinuously;
+			set
+			{
+				_drawsContinuously = value;
+				OnDrawsContinuouslyChanged();
+			}
+		}
+
 		public MauiCanvasView (global::Android.Content.Context context)
 			: base(context)
 		{
 			IgnorePixelScaling = false;
+		}
+
+		global::Android.Animation.ValueAnimator? _animator;
+		void OnDrawsContinuouslyChanged()
+		{
+			if (DrawsContinuously) {
+				if (_animator is not null) {
+					return;
+				}
+				var anim = new global::Android.Animation.ValueAnimator ();
+				anim.SetFloatValues (0.0f, 1.0f);
+				anim.RepeatMode = global::Android.Animation.ValueAnimatorRepeatMode.Restart;
+				anim.SetDuration (1000);
+				anim.RepeatCount = global::Android.Animation.ValueAnimator.Infinite;
+				anim.Update += (sender, e) => {
+					Invalidate ();
+				};
+				_animator = anim;
+				anim.Start ();
+			}
+			else {
+				_animator?.Cancel ();
+				_animator = null;
+			}
 		}
 
 		public void InvalidateCanvas ()
@@ -248,6 +294,7 @@ namespace CrossGraphics
 			MauiCanvasMapper =
 				new(ViewMapper) {
 					[nameof(IMauiCanvas.EnableTouchEvents)] = MapEnableTouchEvents,
+					[nameof(IMauiCanvas.DrawsContinuously)] = MapDrawsContinuously,
 					[nameof(IMauiCanvas.Background)] = MapBackground,
 				};
 
@@ -305,6 +352,14 @@ namespace CrossGraphics
 			if (handler.PlatformView == null)
 				return;
 			handler.PlatformView.EnableTouchEvents = canvasView.EnableTouchEvents;
+		}
+
+		static void MapDrawsContinuously (MauiCanvasHandler handler,
+			IMauiCanvas canvasView)
+		{
+			if (handler.PlatformView == null)
+				return;
+			handler.PlatformView.DrawsContinuously = canvasView.DrawsContinuously;
 		}
 
 		static void MapBackground (MauiCanvasHandler handler,

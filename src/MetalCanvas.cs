@@ -35,6 +35,17 @@ namespace CrossGraphics.Metal
 	public class MetalCanvas : MTKView
 	{
 		public readonly IMTLDevice? CanvasDevice = MTLDevice.SystemDefault;
+		private bool _drawsContinuously = false;
+
+		public bool DrawsContinuously {
+			get => _drawsContinuously;
+			set
+			{
+				_drawsContinuously = value;
+				OnDrawsContinuouslyChanged();
+			}
+		}
+
 		public MetalCanvas (IntPtr handle) : base (handle)
 		{
 			Initialize ();
@@ -69,8 +80,14 @@ namespace CrossGraphics.Metal
 			PreferredFramesPerSecond = 30;
 			FramebufferOnly = true;
 			PresentsWithTransaction = false;
-			Paused = false;
 			Delegate = new MetalCanvasDelegate (this);
+			OnDrawsContinuouslyChanged ();
+		}
+
+		void OnDrawsContinuouslyChanged()
+		{
+			Paused = !DrawsContinuously;
+			EnableSetNeedsDisplay = !DrawsContinuously;
 		}
 
 		public virtual void DrawMetalGraphics (MetalGraphics g)

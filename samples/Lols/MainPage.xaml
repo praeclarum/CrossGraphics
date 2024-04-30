@@ -19,6 +19,7 @@
             <cg:MauiCanvas
                 x:Name="MauiCanvas"
                 Draw="OnDraw"
+                DrawsContinuously="False"
                 HeightRequest="200"
                 WidthRequest="200"
                 BackgroundColor="Indigo"
