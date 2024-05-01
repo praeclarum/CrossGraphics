@@ -39,6 +39,21 @@ namespace CrossGraphics
 		public RectangleF Frame => frame;
 	}
 
+	public class TouchEventArgs (TouchPhase phase, CanvasTouch[] touches, CanvasKeys keys) : EventArgs
+	{
+		public TouchPhase Phase => phase;
+		public CanvasTouch[] Touches => touches;
+		public CanvasKeys Keys => keys;
+	}
+
+	public enum TouchPhase
+	{
+		Began,
+		Moved,
+		Ended,
+		Cancelled,
+	}
+
 	[Flags]
 	public enum CanvasKeys
 	{

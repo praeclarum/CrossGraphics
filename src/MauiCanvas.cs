@@ -2,6 +2,7 @@
 
 using System;
 using System.Drawing;
+using System.Linq;
 
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
@@ -80,7 +81,7 @@ namespace CrossGraphics.Maui
 
 		protected virtual void OnDraw (DrawEventArgs e)
 		{
-			if (Content is CanvasContent content) {
+			if (Content is {} content) {
 				content.Frame = e.Frame;
 				content.Draw (e.Graphics);
 			}
@@ -89,6 +90,22 @@ namespace CrossGraphics.Maui
 
 		protected virtual void OnTouch (TouchEventArgs e)
 		{
+			if (Content is {} content) {
+				switch (e.Phase) {
+					case TouchPhase.Began:
+						content.TouchesBegan (e.Touches, e.Keys);
+						break;
+					case TouchPhase.Moved:
+						content.TouchesMoved (e.Touches);
+						break;
+					case TouchPhase.Ended:
+						content.TouchesEnded (e.Touches);
+						break;
+					case TouchPhase.Cancelled:
+						content.TouchesCancelled (e.Touches);
+						break;
+				}
+			}
 			Touch?.Invoke (this, e);
 		}
 
@@ -124,7 +141,7 @@ namespace CrossGraphics.Maui
 		bool _enableTouchEvents;
 		public new event EventHandler<DrawEventArgs>? Draw;
 #pragma warning disable CS0067 // Event is never used
-		public event EventHandler<TouchEventArgs>? Touch;
+		public event EventHandler<CrossGraphics.TouchEventArgs>? Touch;
 #pragma warning restore CS0067 // Event is never used
 
 		public bool EnableTouchEvents {
@@ -190,12 +207,42 @@ namespace CrossGraphics.Maui
 		}
 
 #if __IOS__
+		readonly CoreGraphics.CoreGraphicsTouchManager _touchManager = new CoreGraphics.CoreGraphicsTouchManager ();
+		private void OnTouches(TouchPhase phase, Foundation.NSSet touches)
+		{
+			if (!EnableTouchEvents) {
+				return;
+			}
+			var canvasTouches =
+				touches
+					.OfType<UIKit.UITouch> ()
+					.Select (t => _touchManager.GetCanvasTouch (phase, t, this))
+					.ToArray ();
+			Touch?.Invoke (this, new TouchEventArgs (phase, canvasTouches, CanvasKeys.None));
+		}
+
 		public override void TouchesBegan (Foundation.NSSet touches, UIKit.UIEvent? evt)
 		{
 			base.TouchesBegan (touches, evt);
-			if (EnableTouchEvents) {
-				Touch?.Invoke (this, new TouchEventArgs ());
-			}
+			OnTouches(TouchPhase.Began, touches);
+		}
+
+		public override void TouchesMoved (Foundation.NSSet touches, UIKit.UIEvent? evt)
+		{
+			base.TouchesMoved (touches, evt);
+			OnTouches(TouchPhase.Moved, touches);
+		}
+
+		public override void TouchesEnded (Foundation.NSSet touches, UIKit.UIEvent? evt)
+		{
+			base.TouchesEnded (touches, evt);
+			OnTouches(TouchPhase.Ended, touches);
+		}
+
+		public override void TouchesCancelled (Foundation.NSSet touches, UIKit.UIEvent? evt)
+		{
+			base.TouchesCancelled (touches, evt);
+			OnTouches(TouchPhase.Cancelled, touches);
 		}
 #endif
 	}
@@ -203,6 +250,9 @@ namespace CrossGraphics.Maui
 	class MauiCanvasView : SkiaSharp.Views.Android.SKCanvasView
 	{
 		public new event EventHandler<DrawEventArgs>? Draw;
+#pragma warning disable CS0067 // Event is never used
+		public new event EventHandler<CrossGraphics.TouchEventArgs>? Touch;
+#pragma warning restore CS0067 // Event is never used
 
 		private Size virtualViewSize = new Size (40, 40);
 
@@ -313,18 +363,25 @@ namespace CrossGraphics.Maui
 		protected override void ConnectHandler (MauiCanvasView platformView)
 		{
 			platformView.Draw += OnDraw;
+			platformView.Touch += OnTouch;
 			base.ConnectHandler (platformView);
 		}
 
 		protected override void DisconnectHandler (MauiCanvasView platformView)
 		{
 			platformView.Draw -= OnDraw;
+			platformView.Touch -= OnTouch;
 			base.DisconnectHandler (platformView);
 		}
 
-		void OnDraw(object? sender, DrawEventArgs e)
+		void OnDraw(object? sender, CrossGraphics.DrawEventArgs e)
 		{
 			this.VirtualView?.OnDraw(e);
+		}
+
+		void OnTouch(object? sender, CrossGraphics.TouchEventArgs e)
+		{
+			this.VirtualView?.OnTouch(e);
 		}
 
 		static void OnCanvasInvalidated (
