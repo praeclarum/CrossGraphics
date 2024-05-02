@@ -12,7 +12,7 @@ using Microsoft.Maui.Hosting;
 
 using Size = Microsoft.Maui.Graphics.Size;
 
-#if __IOS__ || __MACOS__ || __MACCATALYST__
+#if __IOS__ || __MACCATALYST__ || __MACOS__
 #elif __ANDROID__
 #endif
 
@@ -151,7 +151,7 @@ namespace CrossGraphics.Maui
 				if (_enableTouchEvents == value)
 					return;
 				_enableTouchEvents = value;
-#if __IOS__
+#if __IOS__ || __MACCATALYST__
 				this.MultipleTouchEnabled = value;
 				this.UserInteractionEnabled = value;
 #endif
@@ -205,7 +205,7 @@ namespace CrossGraphics.Maui
 		{
 		}
 
-#if __IOS__
+#if __IOS__ || __MACCATALYST__
 		readonly CoreGraphics.CoreGraphicsTouchManager _touchManager = new CoreGraphics.CoreGraphicsTouchManager ();
 		private void OnTouches(TouchPhase phase, Foundation.NSSet touches)
 		{

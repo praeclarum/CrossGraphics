@@ -394,7 +394,7 @@ namespace CrossGraphics.Skia
 		public static SKColor ToSkiaColor (this Color c) => new SKColor ((byte)c.Red, (byte)c.Green, (byte)c.Blue, (byte)c.Alpha);
 		public static SKColor ToSkiaColor (this ValueColor c) => new SKColor ((byte)c.Red, (byte)c.Green, (byte)c.Blue, (byte)c.Alpha);
 
-#if __IOS__ || __MACOS__
+#if __IOS__ || __MACCATALYST__ || __MACOS__
 		public static global::CoreGraphics.CGRect ToCGRect (this SKRect rect) => new global::CoreGraphics.CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
 		public static global::CoreGraphics.CGRect ToCGRect (this SKRectI rect) => new global::CoreGraphics.CGRect (rect.Left, rect.Top, rect.Width, rect.Height);
 #endif
