@@ -197,7 +197,6 @@ namespace CrossGraphics.Maui
 			var bounds = Bounds;
 			var w = (float)bounds.Width;
 			var h = (float)bounds.Height;
-			g.SetViewport (w, h, 1, 0, 0);
 			Draw?.Invoke (this, new DrawEventArgs (g, new RectangleF (0, 0, w, h)));
 			g.EndDrawing ();
 		}
