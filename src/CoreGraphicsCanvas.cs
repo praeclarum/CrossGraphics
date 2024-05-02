@@ -58,6 +58,7 @@ namespace CrossGraphics.CoreGraphics
 			var now = DateTime.UtcNow;
 			var id = touch.Handle;
 			if (_activeTouches.TryGetValue (id, out var ct)) {
+				ct.TapCount = (int)touch.TapCount;
 				ct.CanvasPreviousLocation = ct.CanvasLocation;
 				ct.PreviousTime = ct.Time;
 				ct.CanvasLocation = touch.LocationInView (inView).ToPointF ();
