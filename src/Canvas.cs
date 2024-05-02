@@ -33,17 +33,30 @@ namespace CrossGraphics
 		CanvasContent Content { get; set; }
 	}
 
-	public class DrawEventArgs (IGraphics g, RectangleF frame) : EventArgs
+	public class DrawEventArgs : EventArgs
 	{
-		public IGraphics Graphics => g;
-		public RectangleF Frame => frame;
+		public IGraphics Graphics { get; }
+		public RectangleF Frame { get; }
+
+		public DrawEventArgs(IGraphics g, RectangleF frame)
+		{
+			Graphics = g;
+			Frame = frame;
+		}
 	}
 
-	public class TouchEventArgs (TouchPhase phase, CanvasTouch[] touches, CanvasKeys keys) : EventArgs
+	public class TouchEventArgs : EventArgs
 	{
-		public TouchPhase Phase => phase;
-		public CanvasTouch[] Touches => touches;
-		public CanvasKeys Keys => keys;
+		public TouchPhase Phase { get; }
+		public CanvasTouch[] Touches { get; }
+		public CanvasKeys Keys { get; }
+
+		public TouchEventArgs(TouchPhase phase, CanvasTouch[] touches, CanvasKeys keys)
+		{
+			Phase = phase;
+			Touches = touches;
+			Keys = keys;
+		}
 	}
 
 	public enum TouchPhase
