@@ -47,18 +47,18 @@ namespace CrossGraphics.Metal
 		ValueColor _clearColor = new ValueColor (0, 0, 0, 0);
 		public ValueColor ClearColor => _clearColor;
 
-		struct State
-		{
-			public Matrix3x2 Transform;
-		}
-
-		readonly List<State> _states = new List<State> () { new State () { Transform = Matrix3x2.Identity } };
+		//struct State
+		//{
+		//	public Matrix4x4 ModelToView;
+		//}
+		//readonly List<State> _states = new List<State> () { new State () { ModelToView = Matrix4x4.Identity } };
 
 		readonly MetalGraphicsBuffers _buffers;
 		readonly IMTLRenderCommandEncoder _renderEncoder;
 		static readonly Lazy<IMTLRenderPipelineState?> _pipeline;
 
-		Matrix4x4 _modelToViewport = Matrix4x4.Identity;
+		Matrix4x4 _modelToView = Matrix4x4.Identity;
+		readonly Matrix4x4 _projection;
 
 		static MetalGraphics ()
 		{
@@ -68,22 +68,13 @@ namespace CrossGraphics.Metal
 			});
 		}
 
-		public MetalGraphics (IMTLRenderCommandEncoder renderEncoder, MetalGraphicsBuffers buffers)
+		public MetalGraphics (IMTLRenderCommandEncoder renderEncoder, float viewWidth, float viewHeight, MetalGraphicsBuffers buffers)
 		{
 			_renderEncoder = renderEncoder ?? throw new ArgumentNullException (nameof(renderEncoder));
 			_buffers = buffers ?? throw new ArgumentNullException (nameof(buffers));
-		}
-
-		public void SetViewport (float viewWidth, float viewHeight, float modelToViewScale, float modelToViewTranslationX, float modelToViewTranslationY)
-		{
-			var t = Matrix4x4.CreateTranslation (modelToViewTranslationX, modelToViewTranslationY, 0);
-			var s = Matrix4x4.CreateScale (modelToViewScale, modelToViewScale, 1);
-			var modelToView = s * t;
-			// Now calculate the viewport transform
 			// View is (0,0) to (viewWidth, viewHeight)
 			// Viewport is (-1,-1) to (1,1)
-			var viewToViewport = Matrix4x4.CreateScale (2 / viewWidth, -2 / viewHeight, 1) * Matrix4x4.CreateTranslation (-1, 1, 0);
-			_modelToViewport = modelToView * viewToViewport;
+			_projection = Matrix4x4.CreateScale (2 / viewWidth, -2 / viewHeight, 1) * Matrix4x4.CreateTranslation (-1, 1, 0);
 		}
 
 		public void BeginEntity (object entity)
@@ -119,7 +110,7 @@ namespace CrossGraphics.Metal
 
 		public void SaveState ()
 		{
-			_states.Add(_states[^1]);
+			//_states.Add(_states[^1]);
 		}
 
 		public void SetClippingRect (float x, float y, float width, float height)
@@ -128,24 +119,20 @@ namespace CrossGraphics.Metal
 
 		public void Translate (float dx, float dy)
 		{
-			var state = _states[^1];
-			state.Transform *= Matrix3x2.CreateTranslation(dx, dy);
-			_states[^1] = state;
+			_modelToView *= Matrix4x4.CreateTranslation(dx, dy, 0);
 		}
 
 		public void Scale (float sx, float sy)
 		{
-			var state = _states[^1];
-			state.Transform *= Matrix3x2.CreateScale(sx, sy);
-			_states[^1] = state;
+			_modelToView *= Matrix4x4.CreateScale(sx, sy, 1);
 		}
 
 		public void RestoreState ()
 		{
-			if (_states.Count > 1)
-			{
-				_states.RemoveAt(_states.Count - 1);
-			}
+			//if (_states.Count > 1)
+			//{
+			//	_states.RemoveAt(_states.Count - 1);
+			//}
 		}
 
 		public IImage? ImageFromFile (string path)
@@ -375,10 +362,11 @@ namespace CrossGraphics.Metal
 
 		public void EndDrawing ()
 		{
+			var modelToViewport = _modelToView * _projection;
 			if (_pipeline.Value is {} pipeline) {
 				_renderEncoder.SetRenderPipelineState (pipeline);
 
-				_buffers.SetUniforms (_modelToViewport);
+				_buffers.SetUniforms (modelToViewport);
 				if (_buffers.Uniforms is {} u) {
 					_renderEncoder.SetVertexBuffer (buffer: u, offset: 0, index: 1);
 				}

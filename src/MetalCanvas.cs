@@ -123,7 +123,8 @@ namespace CrossGraphics.Metal
 					_buffers = new MetalGraphicsBuffers (device);
 				}
 				try {
-					var g = new MetalGraphics (renderEncoder, _buffers);
+					var bounds = view.Bounds;
+					var g = new MetalGraphics (renderEncoder, (float)bounds.Width, (float)bounds.Height, _buffers);
 					Canvas?.DrawMetalGraphics (g);
 					g.EndDrawing ();
 				}
