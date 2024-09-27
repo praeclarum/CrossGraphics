@@ -51,7 +51,6 @@ using NativeColor = UIKit.UIColor;
 
 namespace CrossGraphics.CoreGraphics
 {
-#if !MONOMAC
 	public class UIKitGraphics : CrossGraphics.CoreGraphics.CoreGraphicsGraphics
 	{
 		public UIKitGraphics (bool highQuality)
@@ -59,7 +58,6 @@ namespace CrossGraphics.CoreGraphics
 		{
 		}
 	}
-#endif
 
 	[SuppressMessage("Interoperability", "CA1422:Validate platform compatibility")]
 	public class CoreGraphicsGraphics : IGraphics
