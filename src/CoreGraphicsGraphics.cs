@@ -42,6 +42,7 @@ using NativeRect = System.Drawing.RectangleF;
 using AppKit;
 using NativeStringAttributes = AppKit.NSStringAttributes;
 using NativeColor = AppKit.NSColor;
+using UIKit;
 #else
 using UIKit;
 using NativeStringAttributes = UIKit.UIStringAttributes;
@@ -529,9 +530,8 @@ namespace CrossGraphics.CoreGraphics
 		{
 #if MONOMAC
 			public NSColor? NSColor;
-#else
-			public UIColor? UIColor;
 #endif
+			public UIColor? UIColor;
 			public CGColor? CGColor;
 		}
 
@@ -548,7 +548,7 @@ namespace CrossGraphics.CoreGraphics
 			}
 			return t.NSColor;
 		}
-#else
+#endif
 		public static UIColor GetUIColor (this Color c)
 		{
 			var t = c.Tag as ColorTag;
@@ -561,7 +561,6 @@ namespace CrossGraphics.CoreGraphics
 			}
 			return t.UIColor;
 		}
-#endif
 
 		public static CGColor GetCGColor (this Color c)
 		{
