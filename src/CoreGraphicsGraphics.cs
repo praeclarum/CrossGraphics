@@ -42,7 +42,9 @@ using NativeRect = System.Drawing.RectangleF;
 using AppKit;
 using NativeStringAttributes = AppKit.NSStringAttributes;
 using NativeColor = AppKit.NSColor;
+#if HAS_UIKIT
 using UIKit;
+#endif
 #else
 using UIKit;
 using NativeStringAttributes = UIKit.UIStringAttributes;
@@ -51,6 +53,7 @@ using NativeColor = UIKit.UIColor;
 
 namespace CrossGraphics.CoreGraphics
 {
+#if __IOS__ || __MACCATALYST__ || HAS_UIKIT
 	public class UIKitGraphics : CrossGraphics.CoreGraphics.CoreGraphicsGraphics
 	{
 		public UIKitGraphics (bool highQuality)
@@ -58,6 +61,7 @@ namespace CrossGraphics.CoreGraphics
 		{
 		}
 	}
+#endif
 
 	[SuppressMessage("Interoperability", "CA1422:Validate platform compatibility")]
 	public class CoreGraphicsGraphics : IGraphics
@@ -526,14 +530,16 @@ namespace CrossGraphics.CoreGraphics
 	{
 		class ColorTag
 		{
-#if MONOMAC
+#if __MACOS__
 			public NSColor? NSColor;
 #endif
+#if __IOS__ || __MACCATALYST__ || HAS_UIKIT
 			public UIColor? UIColor;
+#endif
 			public CGColor? CGColor;
 		}
 
-#if MONOMAC
+#if __MACOS__
 		public static NSColor GetNSColor (this Color c)
 		{
 			var t = c.Tag as ColorTag;
@@ -547,6 +553,8 @@ namespace CrossGraphics.CoreGraphics
 			return t.NSColor;
 		}
 #endif
+
+#if __IOS__ || __MACCATALYST__ || HAS_UIKIT
 		public static UIColor GetUIColor (this Color c)
 		{
 			var t = c.Tag as ColorTag;
@@ -559,6 +567,7 @@ namespace CrossGraphics.CoreGraphics
 			}
 			return t.UIColor;
 		}
+#endif
 
 		public static CGColor GetCGColor (this Color c)
 		{
