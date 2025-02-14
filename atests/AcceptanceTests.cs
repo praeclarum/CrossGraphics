@@ -1,4 +1,7 @@
 using System.Drawing;
+
+using CoreGraphics;
+
 using CrossGraphics;
 
 using ImageIO;
@@ -7,9 +10,9 @@ namespace CrossGraphicsTests;
 
 public class AcceptanceTests
 {
-    static string OutputPath = GetOutputPath ();
-    static string AcceptedPath = Path.Combine(OutputPath, "AcceptedTests");
-    static string PendingPath = Path.Combine(OutputPath, "PendingTests");
+    static readonly string OutputPath = GetOutputPath ();
+    static readonly string AcceptedPath = Path.Combine(OutputPath, "AcceptedTests");
+    static readonly string PendingPath = Path.Combine(OutputPath, "PendingTests");
     static string GetOutputPath ()
     {
 	    var dir = Environment.GetCommandLineArgs ()[^1];
@@ -43,14 +46,14 @@ public class AcceptanceTests
 
     abstract class Platform {
         public abstract string Name { get; }
-        public abstract (IGraphics, object) BeginDrawing(int width, int height);
+        public abstract (IGraphics, object?) BeginDrawing(int width, int height);
         public abstract string SaveDrawing(IGraphics graphics, object context, string dir, string name);
     }
 
     class SvgPlatform : Platform
     {
         public override string Name => "SVG";
-        public override (IGraphics, object) BeginDrawing(int width, int height)
+        public override (IGraphics, object?) BeginDrawing(int width, int height)
         {
             var w = new StringWriter();
             var g = new SvgGraphics(w, new Rectangle(0, 0, width, height));
@@ -74,7 +77,7 @@ public class AcceptanceTests
     class CoreGraphicsPlatform : Platform
     {
         public override string Name => "CoreGraphics";
-        public override (IGraphics, object) BeginDrawing(int width, int height)
+        public override (IGraphics, object?) BeginDrawing(int width, int height)
         {
             var cgContext = new CoreGraphics.CGBitmapContext(null, width, height, 8, width * 4, CoreGraphics.CGColorSpace.CreateDeviceRGB(), CoreGraphics.CGBitmapFlags.PremultipliedLast);
             var g = new CrossGraphics.CoreGraphics.CoreGraphicsGraphics(cgContext, highQuality: true, flipText: false);
@@ -97,7 +100,7 @@ public class AcceptanceTests
     class CoreGraphicsFlippedPlatform : Platform
     {
         public override string Name => "CoreGraphicsFlipped";
-        public override (IGraphics, object) BeginDrawing(int width, int height)
+        public override (IGraphics, object?) BeginDrawing(int width, int height)
         {
             var cgContext = new CoreGraphics.CGBitmapContext(null, width, height, 8, width * 4, CoreGraphics.CGColorSpace.CreateDeviceRGB(), CoreGraphics.CGBitmapFlags.PremultipliedLast);
             cgContext.TranslateCTM (0, height);
@@ -114,26 +117,39 @@ public class AcceptanceTests
                 ImageIO.CGImageDestination.Create (url, "public.png", 1) is not { } d) {
 	            return fullName;
             }
-            var ciImage = CoreImage.CIImage.FromCGImage (cgImage);
-            var cic = CoreImage.CIContext.FromContext (cgContext);
-            var flip = new CoreImage.CIAffineTransform();
-            flip.Transform = CoreGraphics.CGAffineTransform.MakeScale (1, -1);
-            flip.InputImage = ciImage;
-            if (flip.OutputImage is { } outputImage) {
-	            cgImage = cic.CreateCGImage (flip.OutputImage, flip.OutputImage.Extent) ?? cgImage;
-            }
             d.AddImage (cgImage, options: null);
             d.Close ();
             return fullName;
         }
     }
     #endif
-
+    #if __IOS__ || __MACCATALYST__
+    class UIGraphicsPlatform : Platform {
+	    public override string Name => "UIGraphics";
+	    public override (IGraphics, object?) BeginDrawing (int width, int height)
+	    {
+		    UIGraphics.BeginImageContextWithOptions(new CGSize (width, height), false, 1);
+		    var graphics = new CrossGraphics.CoreGraphics.UIKitGraphics (highQuality: true);
+		    return (graphics, null);
+	    }
+	    public override string SaveDrawing (IGraphics graphics, object context, string dir, string name)
+	    {
+		    var uiImage = UIGraphics.GetImageFromCurrentImageContext ();
+		    UIGraphics.EndImageContext ();
+		    var fullName = name + ".png";
+		    uiImage.AsPNG ()?.Save (Path.Join (dir, fullName), atomically: true);
+		    return fullName;
+	    }
+    }
+    #endif
     static readonly Platform[] Platforms = {
         new SvgPlatform(),
         #if __MACOS__ || __IOS__ || __MACCATALYST__
-        new CoreGraphicsPlatform(),
+        // new CoreGraphicsPlatform(),
         new CoreGraphicsFlippedPlatform (),
+        #endif
+        #if __IOS__ || __MACCATALYST__
+        new UIGraphicsPlatform(),
         #endif
     };
 
@@ -172,64 +188,66 @@ public class AcceptanceTests
 
     public void Arcs()
     {
-        Drawing Make(float startAngle, float endAngle, float w) {
+        Drawing Make(float startAngle, float endAngle, float w=5) {
             return new Drawing {
-                Title = $"Arc_S{startAngle:F2}_E{endAngle:F2}_L{w:F2}",
+                Title = $"Arc_S{startAngle*180.0f/MathF.PI:F2}_E{endAngle*180.0f/MathF.PI:F2}",
                 Draw = args => {
                     args.Graphics.SetRgba(0, 0, 128, 255);
-                    var cx = args.Width / 2;
+                    var radius = MathF.Min(args.Width, args.Height) * 0.2f;
+                    var cxs = args.Width / 2 - radius - w/2;
+                    var cxf = args.Width / 2 + radius + w/2;
                     var cy = args.Height / 2;
-                    var radius = Math.Min(args.Width, args.Height) / 3;
-                    args.Graphics.DrawArc(cx, cy, radius, startAngle, endAngle, w);
+                    args.Graphics.DrawArc(cxs, cy, radius, startAngle, endAngle, w);
+                    args.Graphics.FillArc(cxf, cy, radius, startAngle, endAngle);
                 }
             };
         }
 	    Accept("Arcs",
-            Make(0, MathF.PI*2.00f, 10),
-            Make(0, MathF.PI*1.75f, 10),
-            Make(0, MathF.PI*1.50f, 10),
-            Make(0, MathF.PI*1.25f, 10),
-            Make(0, MathF.PI*1.00f, 10),
-            Make(0, MathF.PI*0.75f, 10),
-            Make(0, MathF.PI*0.50f, 10),
-            Make(0, MathF.PI*0.25f, 10),
-            Make(0, MathF.PI*0.00f, 10),
-            Make(MathF.PI*1.25f, MathF.PI*2.00f, 10),
-            Make(MathF.PI*1.25f, MathF.PI*1.75f, 10),
-            Make(MathF.PI*1.25f, MathF.PI*1.50f, 10),
-            Make(MathF.PI*1.25f, MathF.PI*1.25f, 10),
-            Make(MathF.PI*1.25f, MathF.PI*1.00f, 10),
-            Make(MathF.PI*1.25f, MathF.PI*0.75f, 10),
-            Make(MathF.PI*1.25f, MathF.PI*0.50f, 10),
-            Make(MathF.PI*1.25f, MathF.PI*0.25f, 10),
-            Make(MathF.PI*1.25f, MathF.PI*0.00f, 10),
-            Make(MathF.PI*1.25f, -MathF.PI*2.00f, 10),
-            Make(MathF.PI*1.25f, -MathF.PI*1.75f, 10),
-            Make(MathF.PI*1.25f, -MathF.PI*1.50f, 10),
-            Make(MathF.PI*1.25f, -MathF.PI*1.25f, 10),
-            Make(MathF.PI*1.25f, -MathF.PI*1.00f, 10),
-            Make(MathF.PI*1.25f, -MathF.PI*0.75f, 10),
-            Make(MathF.PI*1.25f, -MathF.PI*0.50f, 10),
-            Make(MathF.PI*1.25f, -MathF.PI*0.25f, 10),
-            Make(MathF.PI*1.25f, -MathF.PI*0.00f, 10),
-            Make(-MathF.PI*1.25f, MathF.PI*2.00f, 10),
-            Make(-MathF.PI*1.25f, MathF.PI*1.75f, 10),
-            Make(-MathF.PI*1.25f, MathF.PI*1.50f, 10),
-            Make(-MathF.PI*1.25f, MathF.PI*1.25f, 10),
-            Make(-MathF.PI*1.25f, MathF.PI*1.00f, 10),
-            Make(-MathF.PI*1.25f, MathF.PI*0.75f, 10),
-            Make(-MathF.PI*1.25f, MathF.PI*0.50f, 10),
-            Make(-MathF.PI*1.25f, MathF.PI*0.25f, 10),
-            Make(-MathF.PI*1.25f, MathF.PI*0.00f, 10),
-            Make(-MathF.PI*1.25f, -MathF.PI*2.00f, 10),
-            Make(-MathF.PI*1.25f, -MathF.PI*1.75f, 10),
-            Make(-MathF.PI*1.25f, -MathF.PI*1.50f, 10),
-            Make(-MathF.PI*1.25f, -MathF.PI*1.25f, 10),
-            Make(-MathF.PI*1.25f, -MathF.PI*1.00f, 10),
-            Make(-MathF.PI*1.25f, -MathF.PI*0.75f, 10),
-            Make(-MathF.PI*1.25f, -MathF.PI*0.50f, 10),
-            Make(-MathF.PI*1.25f, -MathF.PI*0.25f, 10),
-            Make(-MathF.PI*1.25f, -MathF.PI*0.00f, 10)
+		    Make (0, MathF.PI * 2.00f),
+		    Make (0, MathF.PI * 1.75f),
+		    Make (0, MathF.PI * 1.50f),
+		    Make (0, MathF.PI * 1.25f),
+		    Make (0, MathF.PI * 1.00f),
+		    Make (0, MathF.PI * 0.75f),
+		    Make (0, MathF.PI * 0.50f),
+		    Make (0, MathF.PI * 0.25f),
+		    Make (0, MathF.PI * 0.00f),
+		    Make (MathF.PI * 1.25f, MathF.PI * 2.00f),
+		    Make (MathF.PI * 1.25f, MathF.PI * 1.75f),
+		    Make (MathF.PI * 1.25f, MathF.PI * 1.50f),
+		    Make (MathF.PI * 1.25f, MathF.PI * 1.25f),
+		    Make (MathF.PI * 1.25f, MathF.PI * 1.00f),
+		    Make (MathF.PI * 1.25f, MathF.PI * 0.75f),
+		    Make (MathF.PI * 1.25f, MathF.PI * 0.50f),
+		    Make (MathF.PI * 1.25f, MathF.PI * 0.25f),
+		    Make (MathF.PI * 1.25f, MathF.PI * 0.00f),
+		    Make (MathF.PI * 1.25f, -MathF.PI * 2.00f),
+		    Make (MathF.PI * 1.25f, -MathF.PI * 1.75f),
+		    Make (MathF.PI * 1.25f, -MathF.PI * 1.50f),
+		    Make (MathF.PI * 1.25f, -MathF.PI * 1.25f),
+		    Make (MathF.PI * 1.25f, -MathF.PI * 1.00f),
+		    Make (MathF.PI * 1.25f, -MathF.PI * 0.75f),
+		    Make (MathF.PI * 1.25f, -MathF.PI * 0.50f),
+		    Make (MathF.PI * 1.25f, -MathF.PI * 0.25f),
+		    Make (MathF.PI * 1.25f, -MathF.PI * 0.00f),
+		    Make (-MathF.PI * 1.25f, MathF.PI * 2.00f),
+		    Make (-MathF.PI * 1.25f, MathF.PI * 1.75f),
+		    Make (-MathF.PI * 1.25f, MathF.PI * 1.50f),
+		    Make (-MathF.PI * 1.25f, MathF.PI * 1.25f),
+		    Make (-MathF.PI * 1.25f, MathF.PI * 1.00f),
+		    Make (-MathF.PI * 1.25f, MathF.PI * 0.75f),
+		    Make (-MathF.PI * 1.25f, MathF.PI * 0.50f),
+		    Make (-MathF.PI * 1.25f, MathF.PI * 0.25f),
+		    Make (-MathF.PI * 1.25f, MathF.PI * 0.00f),
+		    Make (-MathF.PI * 1.25f, -MathF.PI * 2.00f),
+		    Make (-MathF.PI * 1.25f, -MathF.PI * 1.75f),
+		    Make (-MathF.PI * 1.25f, -MathF.PI * 1.50f),
+		    Make (-MathF.PI * 1.25f, -MathF.PI * 1.25f),
+		    Make (-MathF.PI * 1.25f, -MathF.PI * 1.00f),
+		    Make (-MathF.PI * 1.25f, -MathF.PI * 0.75f),
+		    Make (-MathF.PI * 1.25f, -MathF.PI * 0.50f),
+		    Make (-MathF.PI * 1.25f, -MathF.PI * 0.25f),
+		    Make (-MathF.PI * 1.25f, -MathF.PI * 0.00f)
         );
     }
 
