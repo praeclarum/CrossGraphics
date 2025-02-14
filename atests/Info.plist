@@ -5,7 +5,7 @@
     <key>CFBundleDisplayName</key>
     <string>CrossGraphics Tests</string>
     <key>CFBundleIdentifier</key>
-    <string>com.companyname.atests</string>
+    <string>com.kruegersystems.crossgraphics.atests</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0</string>
     <key>CFBundleVersion</key>

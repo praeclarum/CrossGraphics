@@ -273,34 +273,61 @@ namespace CrossGraphics
 		{
 			WriteArc (cx, cy, radius, startAngle, endAngle, w, _lastColor, _lastColorOpacity, "none", "0");
 		}
+		
+		static float NormalizeAngle (float a)
+		{
+			var twoPi = MathF.PI * 2.0f;
+			var na = a % twoPi;
+			if (na < 0) {
+				a += twoPi;
+			}
+			return a;
+		}
 
 		public void WriteArc (float cx, float cy, float radius, float startAngle, float endAngle, float w, string stroke, string strokeOp, string fill, string fillOp)
 		{
 			var sa = startAngle;
 			var ea = endAngle;
 			
-			var sx = cx + radius * Math.Cos (sa);
-			var sy = cy - radius * Math.Sin (sa);
-			var ex = cx + radius * Math.Cos (ea);
-			var ey = cy - radius * Math.Sin (ea);
+			var normStart = NormalizeAngle(startAngle);
+			var normEnd = NormalizeAngle(endAngle);
+			float angleDiff;
+			if (normEnd >= normStart) {
+				angleDiff = normEnd - normStart;
+			} else {
+				angleDiff = (MathF.PI * 2.0f - normStart) + normEnd;
+			}
+			var isCircle = NormalizeAngle (endAngle - startAngle) >= MathF.PI * 2.0f - 1.0e-6f;
+			
+			var sx = cx + radius * MathF.Cos (sa);
+			var sy = cy - radius * MathF.Sin (sa);
+			var ex = cx + radius * MathF.Cos (ea);
+			var ey = cy - radius * MathF.Sin (ea);
 			var c = Transform (cx, cy);
-			var s = Transform ((float)sx, (float)sy);
+			var s = Transform (sx, sy);
 			sx = s.X;
 			sy = s.Y;
-			var e = Transform ((float)ex, (float)ey);
+			var e = Transform (ex, ey);
 			ex = e.X;
 			ey = e.Y;
 			var sc = XScale;
+			var scRadius = radius * sc;
 			
+			if (isCircle) {
+				WriteLine ("<circle cx=\"{0}\" cy=\"{1}\" r=\"{2}\" fill=\"{3}\" fill-opacity=\"{4}\" stroke=\"{5}\" stroke-opacity=\"{6}\" stroke-width=\"{7}\" />", 
+					c.X, c.Y, scRadius, fill, fillOp, stroke, strokeOp, w * XScale);
+				return;
+			}
+
 			var largeArcFlag = 0;
 			var sweepFlag = 0;
 
 			var dx = ex - sx;
 			var dy = ey - sy;
-			var distance = Math.Sqrt(dx * dx + dy * dy);
+			var distance = MathF.Sqrt(dx * dx + dy * dy);
     
-			if (distance < radius * 2) {
-				var h  = Math.Sqrt (radius * radius - (distance * distance / 4));
+			if (distance > 0.0f && distance < scRadius * 2.0f) {
+				var h  = MathF.Sqrt (scRadius * scRadius - (distance * distance / 4));
 				var ux  = -dy / distance;
 				var uy  = dx / distance;
 				var midX = (sx + ex) / 2;
@@ -318,7 +345,7 @@ namespace CrossGraphics
 
 			WriteLine ("<path d=\"M {0} {1} A {2} {3} 0 {11} {12} {4} {5}\" stroke=\"{6}\" stroke-opacity=\"{7}\" stroke-width=\"{8}\" fill=\"{9}\" fill-opacity=\"{10}\" />", 
 				sx, sy,
-				radius * sc, radius * sc,
+				scRadius, scRadius,
 				ex, ey,				 
 				stroke, strokeOp, w * sc, fill, fillOp,
 				largeArcFlag, sweepFlag);
