@@ -5,7 +5,7 @@ namespace CrossGraphicsTests;
 
 public class AcceptanceTests
 {
-    static string OutputPath = Path.GetFullPath(".");
+    static string OutputPath = System.Environment.GetCommandLineArgs()[^1];
     static string AcceptedPath = Path.Combine(OutputPath, "AcceptedTests");
     static string PendingPath = Path.Combine(OutputPath, "PendingTests");
     static AcceptanceTests()
