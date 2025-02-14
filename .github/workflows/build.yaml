@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '15.3'
+        xcode-version: latest-stable
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
