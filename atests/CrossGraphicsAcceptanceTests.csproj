@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-macos</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>true</ImplicitUsings>
+    <SupportedOSPlatformVersion>10.15</SupportedOSPlatformVersion>
+    <UseInterpreter>false</UseInterpreter>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\src\CrossGraphics.csproj" />
+  </ItemGroup>
+</Project>

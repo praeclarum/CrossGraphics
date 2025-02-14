@@ -1,4 +1,5 @@
 using System.Drawing;
+using CrossGraphics;
 
 namespace CrossGraphicsTests;
 
@@ -14,9 +15,11 @@ public class AcceptanceTests
         if (!Directory.Exists(PendingPath))
             Directory.CreateDirectory(PendingPath);
     }
-    [SetUp]
     public void Setup()
     {
+	    #if __MACOS__
+	    AppKit.NSApplication.Init ();
+	    #endif
     }
 
     record DrawArgs(IGraphics Graphics, int Width, int Height)
@@ -58,9 +61,38 @@ public class AcceptanceTests
         }
     }
 
+    #if __MACOS__ || __IOS__ || __MACCATALYST__
+    class CoreGraphicsPlatform : Platform
+    {
+        public override string Name => "CoreGraphics";
+        public override (IGraphics, object) BeginDrawing(int width, int height)
+        {
+            var cgContext = new CoreGraphics.CGBitmapContext(null, width, height, 8, width * 4, CoreGraphics.CGColorSpace.CreateDeviceRGB(), CoreGraphics.CGBitmapFlags.PremultipliedLast);
+            var g = new CrossGraphics.CoreGraphics.CoreGraphicsGraphics(cgContext, highQuality: true);
+            return (g, cgContext);
+        }
+
+        public override string SaveDrawing(IGraphics graphics, object context, string dir, string name)
+        {
+            var fullName = name + ".png";
+            var url = Foundation.NSUrl.FromFilename (Path.Combine (dir, fullName));
+            if (graphics is not CrossGraphics.CoreGraphics.CoreGraphicsGraphics coreGraphics ||
+                context is not CoreGraphics.CGBitmapContext cgContext || cgContext.ToImage () is not { } cgImage ||
+                ImageIO.CGImageDestination.Create (url, "public.png", 1) is not { } d) {
+	            return fullName;
+            }
+            d.AddImage (cgImage, options: null);
+            d.Close ();
+            return fullName;
+        }
+    }
+    #endif
+
     static readonly Platform[] Platforms = {
         new SvgPlatform(),
-        // Add other platforms here
+        #if __MACOS__ || __IOS__ || __MACCATALYST__
+        new CoreGraphicsPlatform(),
+        #endif
     };
 
     void Accept(string name, params Drawing[] drawings)
@@ -91,7 +123,6 @@ public class AcceptanceTests
         File.WriteAllText(Path.Combine(PendingPath, name + ".html"), pendingHTML);
     }
 
-    [Test]
     public void Ovals()
     {
         Drawing Make(float width, float height, float w) {
