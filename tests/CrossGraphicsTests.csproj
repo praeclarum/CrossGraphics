@@ -1,9 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net8.0-macos</TargetFrameworks>
+    <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <SupportedOSPlatformVersion>10.15</SupportedOSPlatformVersion>
+    <UseInterpreter>false</UseInterpreter>
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
