@@ -142,7 +142,33 @@ public class AcceptanceTests
 	    }
     }
     #endif
-    static readonly Platform[] Platforms = {
+	class SkiaPlatform : Platform
+	{
+		public override string Name => "Skia";
+		public override (IGraphics, object?) BeginDrawing (int width, int height)
+		{
+			var bitmap = new SkiaSharp.SKBitmap (width: width, height: height, isOpaque: false);
+			var canvas = new SkiaSharp.SKCanvas (bitmap);
+			var graphics = new CrossGraphics.Skia.SkiaGraphics (canvas);
+			return (graphics, bitmap);
+		}
+
+		public override string SaveDrawing (IGraphics graphics, object context, string dir, string name)
+		{
+			var fullName = name + ".png";
+			if (graphics is CrossGraphics.Skia.SkiaGraphics sg && context is SkiaSharp.SKBitmap bitmap) {
+				sg.Canvas.Flush ();
+				using var image = SkiaSharp.SKImage.FromBitmap (bitmap);
+				using var data = image.Encode (SkiaSharp.SKEncodedImageFormat.Png, 100);
+				using var stream = File.OpenWrite (Path.Combine (dir, fullName));
+				data.SaveTo (stream);
+			}
+
+			return fullName;
+		}
+	}
+
+	static readonly Platform[] Platforms = {
         new SvgPlatform(),
         #if __MACOS__ || __IOS__ || __MACCATALYST__
         // new CoreGraphicsPlatform(),
@@ -151,6 +177,7 @@ public class AcceptanceTests
         #if __IOS__ || __MACCATALYST__
         new UIGraphicsPlatform(),
         #endif
+		new SkiaPlatform(),
     };
 
     void Accept(string name, params Drawing[] drawings)

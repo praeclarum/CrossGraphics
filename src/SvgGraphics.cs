@@ -276,13 +276,14 @@ namespace CrossGraphics
 
 		public void WriteArc (float cx, float cy, float radius, float startAngle, float endAngle, float w, string stroke, string strokeOp, string fill, string fillOp)
 		{
-			var sa = startAngle + Math.PI;
-			var ea = endAngle + Math.PI;
+			var sa = startAngle;
+			var ea = endAngle;
 			
 			var sx = cx + radius * Math.Cos (sa);
-			var sy = cy + radius * Math.Sin (sa);
+			var sy = cy - radius * Math.Sin (sa);
 			var ex = cx + radius * Math.Cos (ea);
-			var ey = cy + radius * Math.Sin (ea);
+			var ey = cy - radius * Math.Sin (ea);
+			var c = Transform (cx, cy);
 			var s = Transform ((float)sx, (float)sy);
 			sx = s.X;
 			sy = s.Y;
@@ -290,12 +291,37 @@ namespace CrossGraphics
 			ex = e.X;
 			ey = e.Y;
 			var sc = XScale;
+			
+			var largeArcFlag = 0;
+			var sweepFlag = 0;
 
-			WriteLine ("<path d=\"M {0} {1} A {2} {3} 0 0 1 {4} {5}\" stroke=\"{6}\" stroke-opacity=\"{7}\" stroke-width=\"{8}\" fill=\"{9}\" fill-opacity=\"{10}\" />", 
+			var dx = ex - sx;
+			var dy = ey - sy;
+			var distance = Math.Sqrt(dx * dx + dy * dy);
+    
+			if (distance < radius * 2) {
+				var h  = Math.Sqrt (radius * radius - (distance * distance / 4));
+				var ux  = -dy / distance;
+				var uy  = dx / distance;
+				var midX = (sx + ex) / 2;
+				var midY = (sy + ey) / 2;
+				var shortArcCenterX  = midX - h * ux;
+				var shortArcCenterY  = midY - h * uy;
+				var longArcCenterX  = midX + h * ux;
+				var longArcCenterY  = midY + h * uy;
+				var shortDistSqr = (shortArcCenterX - c.X) * (shortArcCenterX - c.X) + (shortArcCenterY - c.Y) * (shortArcCenterY - c.Y);
+				var longDistSqr = (longArcCenterX - c.X) * (longArcCenterX - c.X) + (longArcCenterY - c.Y) * (longArcCenterY - c.Y);
+				if (longDistSqr < shortDistSqr) {
+					largeArcFlag = 1;
+				}
+			}
+
+			WriteLine ("<path d=\"M {0} {1} A {2} {3} 0 {11} {12} {4} {5}\" stroke=\"{6}\" stroke-opacity=\"{7}\" stroke-width=\"{8}\" fill=\"{9}\" fill-opacity=\"{10}\" />", 
 				sx, sy,
 				radius * sc, radius * sc,
 				ex, ey,				 
-				stroke, strokeOp, w * sc, fill, fillOp);
+				stroke, strokeOp, w * sc, fill, fillOp,
+				largeArcFlag, sweepFlag);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
