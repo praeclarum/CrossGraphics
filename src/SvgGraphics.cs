@@ -29,7 +29,7 @@ namespace CrossGraphics
 {
 	public class SvgGraphics : IGraphics
 	{
-		TextWriter _tw;
+		readonly TextWriter _tw;
 
 		SvgGraphicsFontMetrics _fontMetrics;
 		//Font _lastFont = null;
