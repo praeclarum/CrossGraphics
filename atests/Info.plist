@@ -2,29 +2,34 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleName</key>
-	<string>atests</string>
-	<key>CFBundleIdentifier</key>
-	<string>com.companyname.atests</string>
-	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
-	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>NSHumanReadableCopyright</key>
-	<string>${AuthorCopyright:HtmlEncode}</string>
-	<key>NSPrincipalClass</key>
-	<string>NSApplication</string>
-	<key>NSMainStoryboardFile</key>
-	<string>Main</string>
-	<key>XSAppIconAssets</key>
-	<string>Assets.xcassets/AppIcon.appiconset</string>
+    <key>CFBundleDisplayName</key>
+    <string>CrossGraphics Tests</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.companyname.atests</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <!-- The App store requires that ITSAppUsesNonExemptEncryption to be set -->
+    <!-- Please consult https://developer.apple.com/documentation/bundleresources/information_property_list/itsappusesnonexemptencryption -->
+    <!-- <key>ITSAppUsesNonExemptEncryption</key> -->
+    <!-- Please indicate <true/> or <false/> here. -->
+
+    <!-- Specify the category for your app here. -->
+    <!-- Please consult https://developer.apple.com/documentation/bundleresources/information_property_list/lsapplicationcategorytype -->
+    <!-- <key>LSApplicationCategoryType</key> -->
+    <!-- <string>public.app-category.YOUR-CATEGORY-HERE</string> -->
+    <key>UIDeviceFamily</key>
+    <array>
+        <integer>2</integer>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>XSAppIconAssets</key>
+    <string>Assets.xcassets/AppIcon.appiconset</string>
 </dict>
-</plist>
+</plist> 
