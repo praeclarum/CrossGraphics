@@ -7,9 +7,7 @@ public class AppDelegate : NSApplicationDelegate {
 	public override void DidFinishLaunching (NSNotification notification)
 	{
 		RunTests ().ContinueWith (_ => {
-			BeginInvokeOnMainThread (() => {
-				NSApplication.SharedApplication.Terminate (this);
-			});
+			Environment.Exit (0);
 		});
 	}
 
@@ -23,6 +21,7 @@ public class AppDelegate : NSApplicationDelegate {
 		await Task.Delay (1);
 		Console.WriteLine ("Running tests...");
 		var tests = new AcceptanceTests ();
+		tests.Arcs ();
 		tests.Ovals ();
 	}
 }

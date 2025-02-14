@@ -5,9 +5,17 @@ namespace CrossGraphicsTests;
 
 public class AcceptanceTests
 {
-    static string OutputPath = System.Environment.GetCommandLineArgs()[^1];
+    static string OutputPath = GetOutputPath ();
     static string AcceptedPath = Path.Combine(OutputPath, "AcceptedTests");
     static string PendingPath = Path.Combine(OutputPath, "PendingTests");
+    static string GetOutputPath ()
+    {
+	    var dir = Environment.GetCommandLineArgs ()[^1];
+	    if (Path.GetFileName (dir) != "CrossGraphics") {
+		    dir = Path.GetTempPath ();
+	    }
+	    return dir;
+    }
     static AcceptanceTests()
     {
         if (!Directory.Exists(AcceptedPath))
@@ -123,11 +131,74 @@ public class AcceptanceTests
         File.WriteAllText(Path.Combine(PendingPath, name + ".html"), pendingHTML);
     }
 
+    public void Arcs()
+    {
+        Drawing Make(float startAngle, float endAngle, float w) {
+            return new Drawing {
+                Title = $"Arc_S{startAngle:F2}_E{endAngle:F2}_L{w:F2}",
+                Draw = args => {
+                    args.Graphics.SetRgba(0, 0, 128, 255);
+                    var cx = args.Width / 2;
+                    var cy = args.Height / 2;
+                    var radius = Math.Min(args.Width, args.Height) / 3;
+                    args.Graphics.DrawArc(cx, cy, radius, startAngle, endAngle, w);
+                }
+            };
+        }
+	    Accept("Arcs",
+            Make(0, MathF.PI*2.00f, 10),
+            Make(0, MathF.PI*1.75f, 10),
+            Make(0, MathF.PI*1.50f, 10),
+            Make(0, MathF.PI*1.25f, 10),
+            Make(0, MathF.PI*1.00f, 10),
+            Make(0, MathF.PI*0.75f, 10),
+            Make(0, MathF.PI*0.50f, 10),
+            Make(0, MathF.PI*0.25f, 10),
+            Make(0, MathF.PI*0.00f, 10),
+            Make(MathF.PI*1.25f, MathF.PI*2.00f, 10),
+            Make(MathF.PI*1.25f, MathF.PI*1.75f, 10),
+            Make(MathF.PI*1.25f, MathF.PI*1.50f, 10),
+            Make(MathF.PI*1.25f, MathF.PI*1.25f, 10),
+            Make(MathF.PI*1.25f, MathF.PI*1.00f, 10),
+            Make(MathF.PI*1.25f, MathF.PI*0.75f, 10),
+            Make(MathF.PI*1.25f, MathF.PI*0.50f, 10),
+            Make(MathF.PI*1.25f, MathF.PI*0.25f, 10),
+            Make(MathF.PI*1.25f, MathF.PI*0.00f, 10),
+            Make(MathF.PI*1.25f, -MathF.PI*2.00f, 10),
+            Make(MathF.PI*1.25f, -MathF.PI*1.75f, 10),
+            Make(MathF.PI*1.25f, -MathF.PI*1.50f, 10),
+            Make(MathF.PI*1.25f, -MathF.PI*1.25f, 10),
+            Make(MathF.PI*1.25f, -MathF.PI*1.00f, 10),
+            Make(MathF.PI*1.25f, -MathF.PI*0.75f, 10),
+            Make(MathF.PI*1.25f, -MathF.PI*0.50f, 10),
+            Make(MathF.PI*1.25f, -MathF.PI*0.25f, 10),
+            Make(MathF.PI*1.25f, -MathF.PI*0.00f, 10),
+            Make(-MathF.PI*1.25f, MathF.PI*2.00f, 10),
+            Make(-MathF.PI*1.25f, MathF.PI*1.75f, 10),
+            Make(-MathF.PI*1.25f, MathF.PI*1.50f, 10),
+            Make(-MathF.PI*1.25f, MathF.PI*1.25f, 10),
+            Make(-MathF.PI*1.25f, MathF.PI*1.00f, 10),
+            Make(-MathF.PI*1.25f, MathF.PI*0.75f, 10),
+            Make(-MathF.PI*1.25f, MathF.PI*0.50f, 10),
+            Make(-MathF.PI*1.25f, MathF.PI*0.25f, 10),
+            Make(-MathF.PI*1.25f, MathF.PI*0.00f, 10),
+            Make(-MathF.PI*1.25f, -MathF.PI*2.00f, 10),
+            Make(-MathF.PI*1.25f, -MathF.PI*1.75f, 10),
+            Make(-MathF.PI*1.25f, -MathF.PI*1.50f, 10),
+            Make(-MathF.PI*1.25f, -MathF.PI*1.25f, 10),
+            Make(-MathF.PI*1.25f, -MathF.PI*1.00f, 10),
+            Make(-MathF.PI*1.25f, -MathF.PI*0.75f, 10),
+            Make(-MathF.PI*1.25f, -MathF.PI*0.50f, 10),
+            Make(-MathF.PI*1.25f, -MathF.PI*0.25f, 10),
+            Make(-MathF.PI*1.25f, -MathF.PI*0.00f, 10)
+        );
+    }
+
     public void Ovals()
     {
         Drawing Make(float width, float height, float w) {
             return new Drawing {
-                Title = $"Oval-W{width:F2}-H{height:F2}-W{w:F2}",
+                Title = $"Oval_W{width:F2}_H{height:F2}_L{w:F2}",
                 Draw = args => {
                     args.Graphics.SetRgba(0, 0, 128, 255);
                     var x = args.Width / 2 - width / 2;
