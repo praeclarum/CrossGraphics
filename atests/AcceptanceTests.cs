@@ -1,6 +1,8 @@
 using System.Drawing;
 using CrossGraphics;
 
+using ImageIO;
+
 namespace CrossGraphicsTests;
 
 public class AcceptanceTests
@@ -55,7 +57,6 @@ public class AcceptanceTests
             g.BeginDrawing();
             return (g, w);
         }
-
         public override string SaveDrawing(IGraphics graphics, object context, string dir, string name)
         {
             var fullName = name + ".svg";
@@ -76,10 +77,9 @@ public class AcceptanceTests
         public override (IGraphics, object) BeginDrawing(int width, int height)
         {
             var cgContext = new CoreGraphics.CGBitmapContext(null, width, height, 8, width * 4, CoreGraphics.CGColorSpace.CreateDeviceRGB(), CoreGraphics.CGBitmapFlags.PremultipliedLast);
-            var g = new CrossGraphics.CoreGraphics.CoreGraphicsGraphics(cgContext, highQuality: true);
+            var g = new CrossGraphics.CoreGraphics.CoreGraphicsGraphics(cgContext, highQuality: true, flipText: false);
             return (g, cgContext);
         }
-
         public override string SaveDrawing(IGraphics graphics, object context, string dir, string name)
         {
             var fullName = name + ".png";
@@ -94,12 +94,46 @@ public class AcceptanceTests
             return fullName;
         }
     }
+    class CoreGraphicsFlippedPlatform : Platform
+    {
+        public override string Name => "CoreGraphicsFlipped";
+        public override (IGraphics, object) BeginDrawing(int width, int height)
+        {
+            var cgContext = new CoreGraphics.CGBitmapContext(null, width, height, 8, width * 4, CoreGraphics.CGColorSpace.CreateDeviceRGB(), CoreGraphics.CGBitmapFlags.PremultipliedLast);
+            cgContext.TranslateCTM (0, height);
+            cgContext.ScaleCTM (1, -1);
+            var g = new CrossGraphics.CoreGraphics.CoreGraphicsGraphics(cgContext, highQuality: true, flipText: true);
+            return (g, cgContext);
+        }
+        public override string SaveDrawing(IGraphics graphics, object context, string dir, string name)
+        {
+            var fullName = name + ".png";
+            var url = Foundation.NSUrl.FromFilename (Path.Combine (dir, fullName));
+            if (graphics is not CrossGraphics.CoreGraphics.CoreGraphicsGraphics coreGraphics ||
+                context is not CoreGraphics.CGBitmapContext cgContext || cgContext.ToImage () is not { } cgImage ||
+                ImageIO.CGImageDestination.Create (url, "public.png", 1) is not { } d) {
+	            return fullName;
+            }
+            var ciImage = CoreImage.CIImage.FromCGImage (cgImage);
+            var cic = CoreImage.CIContext.FromContext (cgContext);
+            var flip = new CoreImage.CIAffineTransform();
+            flip.Transform = CoreGraphics.CGAffineTransform.MakeScale (1, -1);
+            flip.InputImage = ciImage;
+            if (flip.OutputImage is { } outputImage) {
+	            cgImage = cic.CreateCGImage (flip.OutputImage, flip.OutputImage.Extent) ?? cgImage;
+            }
+            d.AddImage (cgImage, options: null);
+            d.Close ();
+            return fullName;
+        }
+    }
     #endif
 
     static readonly Platform[] Platforms = {
         new SvgPlatform(),
         #if __MACOS__ || __IOS__ || __MACCATALYST__
         new CoreGraphicsPlatform(),
+        new CoreGraphicsFlippedPlatform (),
         #endif
     };
 
@@ -108,8 +142,13 @@ public class AcceptanceTests
         var w = new StringWriter();
         w.WriteLine($"<html><head><title>{name} - CrossGraphics Test</title></head><body>");
         w.WriteLine($"<h1>{name}</h1>");
-        w.WriteLine($"<table>");
-        w.WriteLine($"<tr><th>Drawing</th></tr>");
+        w.WriteLine($"<table border=\"1\">");
+        w.Write($"<tr><th>Drawing</th>");
+        foreach (var platform in Platforms)
+        {
+	        w.Write ($"<th>{platform.Name}</th>");
+        }
+        w.WriteLine($"</tr>");
 
         var width = 100;
         var height = 100;
