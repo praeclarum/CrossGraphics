@@ -32,10 +32,12 @@ jobs:
       run: sudo dotnet workload restore
     - name: Restore Packages
       run: dotnet restore
-    - name: Test
-      run: dotnet test -f net8.0-macos tests/CrossGraphicsTests.csproj
     - name: Build Library
       run: dotnet build -c Release --no-restore src/CrossGraphics.csproj
+    - name: Build Test
+      run: dotnet build -c Release --no-restore tests/CrossGraphicsTests.csproj
+    - name: Test
+      run: dotnet test -c Release --no-build tests/CrossGraphicsTests.csproj
     - name: Package
       if: github.event_name == 'push'
       run: dotnet pack -c Release --no-build -o ./artifacts src/CrossGraphics.csproj
