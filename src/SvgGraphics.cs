@@ -289,15 +289,7 @@ namespace CrossGraphics
 			var sa = startAngle;
 			var ea = endAngle;
 			
-			var normStart = NormalizeAngle(startAngle);
-			var normEnd = NormalizeAngle(endAngle);
-			float angleDiff;
-			if (normEnd >= normStart) {
-				angleDiff = normEnd - normStart;
-			} else {
-				angleDiff = (MathF.PI * 2.0f - normStart) + normEnd;
-			}
-			var isCircle = NormalizeAngle (endAngle - startAngle) >= MathF.PI * 2.0f - 1.0e-6f;
+			var isCircle = Math.Abs(NormalizeAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
 			
 			var sx = cx + radius * MathF.Cos (sa);
 			var sy = cy - radius * MathF.Sin (sa);
