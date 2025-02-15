@@ -169,6 +169,62 @@ public class AcceptanceTests
 			return fullName;
 		}
 	}
+	#if __MACOS__ || __IOS__ || __MACCATALYST__
+	class MetalPlatform : Platform
+	{
+		private readonly Metal.IMTLDevice _device;
+		private readonly Metal.IMTLCommandQueue _commandQueue;
+		private readonly CrossGraphics.Metal.MetalGraphicsBuffers _buffers;
+		public override string Name => "Metal";
+		public MetalPlatform ()
+		{
+			_device = Metal.MTLDevice.SystemDefault!;
+			_commandQueue = _device.CreateCommandQueue ()!;
+			_buffers = new CrossGraphics.Metal.MetalGraphicsBuffers (_device);
+		}
+		
+		record RenderContext (Metal.IMTLCommandBuffer CommandBuffer, Metal.IMTLRenderCommandEncoder RenderEncoder, Metal.IMTLTexture Texture);
+
+		public override (IGraphics, object?) BeginDrawing (int width, int height)
+		{
+			var renderPassDescriptor = new Metal.MTLRenderPassDescriptor ();
+			var texture = _device.CreateTexture (new Metal.MTLTextureDescriptor {
+				Width = (UIntPtr)width,
+				Height = (UIntPtr)height,
+				PixelFormat = Metal.MTLPixelFormat.RGBA8Uint,
+				Usage = Metal.MTLTextureUsage.RenderTarget
+			})!;
+			renderPassDescriptor.ColorAttachments[0].Texture = texture;
+			var commandBuffer = _commandQueue.CommandBuffer ()!;
+			var renderEncoder = commandBuffer.CreateRenderCommandEncoder (renderPassDescriptor);
+			var g = new CrossGraphics.Metal.MetalGraphics (renderEncoder, width, height, _buffers);
+			return (g, new RenderContext (commandBuffer, renderEncoder, texture));
+		}
+
+		public override string SaveDrawing (IGraphics graphics, object context, string dir, string name)
+		{
+			var fullName = name + ".png";
+			if (graphics is CrossGraphics.Metal.MetalGraphics g && context is RenderContext rc) {
+				g.EndDrawing ();
+				rc.RenderEncoder.EndEncoding ();
+				// commandBuffer.PresentDrawable (texture);
+				rc.CommandBuffer.Commit ();
+				rc.CommandBuffer.WaitUntilCompleted ();
+				var cs = CoreGraphics.CGColorSpace.CreateDeviceRGB ();
+				var bitmap = new CoreGraphics.CGBitmapContext (null, (IntPtr)rc.Texture.Width, (IntPtr)rc.Texture.Height, (IntPtr)8, (IntPtr)(4*rc.Texture.Width), cs, CoreGraphics.CGBitmapFlags.PremultipliedLast);
+				rc.Texture.GetBytes (bitmap.Data, (UIntPtr)(4*rc.Texture.Width), new Metal.MTLRegion(
+					new Metal.MTLOrigin { X = 0, Y = 0, Z = 0 },
+					new Metal.MTLSize { Width = (IntPtr)rc.Texture.Width, Height = (IntPtr)rc.Texture.Height, Depth = (IntPtr)1 }),
+				0);
+				var cgImage = bitmap.ToImage ();
+				var uiImage = new UIImage (cgImage);
+				var data = uiImage.AsPNG ();
+				data.Save (Path.Combine (dir, fullName), true);
+			}
+			return fullName;
+		}
+	}
+	#endif
 
 	static readonly Platform[] Platforms = {
         new SvgPlatform(),
@@ -180,6 +236,9 @@ public class AcceptanceTests
         new UIGraphicsPlatform(),
         #endif
 		new SkiaPlatform(),
+        #if __MACOS__ || __IOS__ || __MACCATALYST__
+        new MetalPlatform(),
+        #endif
     };
 
     void Accept(string name, params Drawing[] drawings)
@@ -210,7 +269,7 @@ public class AcceptanceTests
                 drawing.Draw(new DrawArgs(graphics, width, height));
                 var filename = platform.SaveDrawing(graphics, context, PendingPath, drawing.Title + "_" + platform.Name);
                 var irender = filename.EndsWith (".svg") ? "smooth" : "crisp-edges";
-                w.Write($"<td><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width*3}\" height=\"{height*3}\" image-rendering=\"{irender}\" /></td>");
+                w.Write($"<td><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width*2}\" height=\"{height*2}\" image-rendering=\"{irender}\" /></td>");
             }
             w.WriteLine("</tr>");
         }

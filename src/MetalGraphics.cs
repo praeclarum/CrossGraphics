@@ -236,13 +236,36 @@ namespace CrossGraphics.Metal
 			DoRect (x, y, width, height, w, DrawOp.StrokeOval);
 		}
 
+		/// <summary>
+		/// Yes, this function looks buggy. Yes, it probably is. But it works for determining circles.
+		/// </summary>
+		static float PositiveAngle (float a)
+		{
+			var twoPi = MathF.PI * 2.0f;
+			var na = a % twoPi;
+			if (na < 0) {
+				a += twoPi;
+			}
+			return a;
+		}
+
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
+			var isCircle = Math.Abs(PositiveAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
+			if (isCircle) {
+				FillOval (cx - radius, cy - radius, radius * 2, radius * 2);
+				return;
+			}
 			DoRect (cx - radius, cy - radius, radius * 2, radius * 2, 0, DrawOp.FillArc, argy: startAngle, argz: endAngle);
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
+			var isCircle = Math.Abs(PositiveAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
+			if (isCircle) {
+				DrawOval (cx - radius, cy - radius, radius * 2, radius * 2, w);
+				return;
+			}
 			DoRect (cx - radius, cy - radius, radius * 2, radius * 2, w, DrawOp.StrokeArc, argy: startAngle, argz: endAngle);
 		}
 
