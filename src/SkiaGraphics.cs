@@ -290,6 +290,12 @@ namespace CrossGraphics.Skia
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
 			if (string.IsNullOrWhiteSpace (s)) return;
+			if (align == TextAlignment.Right) {
+				x = x + width - GetFontMetrics ().StringWidth (s);
+			}
+			else if (align == TextAlignment.Center) {
+				x = x + (width - GetFontMetrics ().StringWidth (s)) / 2;
+			}
 			DrawString (s, x, y);
 		}
 
@@ -299,7 +305,7 @@ namespace CrossGraphics.Skia
 
 			SetFontOnPaints ();
 			var fm = GetFontMetrics ();
-			_c.DrawText (s, x, y + fm.Ascent, _paints.Fill);
+			_c.DrawText (s, x, y + fm.Height * 0.8333f, _paints.Fill);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -403,8 +409,8 @@ namespace CrossGraphics.Skia
 			paint.TextSize = font.Size;
 
 			this.paint = paint;
-			Ascent = (int)Math.Abs (paint.FontMetrics.Ascent);
-			Descent = (int)Math.Abs (paint.FontMetrics.Descent);
+			Ascent = font.Size;
+			Descent = 0;
 			Height = Ascent + Descent;
 		}
 

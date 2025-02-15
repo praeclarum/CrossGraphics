@@ -192,7 +192,7 @@ public class AcceptanceTests
         w.WriteLine($"</style>");
         w.WriteLine($"</head><body>");
         w.WriteLine($"<h1>{name}</h1>");
-        w.WriteLine($"<table border=\"0\">");
+        w.WriteLine($"<table border=\"0\" cellspacing=\"8\">");
         w.Write($"<tr><th>Drawing</th>");
         foreach (var platform in Platforms)
         {
@@ -209,7 +209,8 @@ public class AcceptanceTests
                 var (graphics, context) = platform.BeginDrawing(width, height);
                 drawing.Draw(new DrawArgs(graphics, width, height));
                 var filename = platform.SaveDrawing(graphics, context, PendingPath, drawing.Title + "_" + platform.Name);
-                w.Write($"<td><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width}\" height=\"{height}\" /></td>");
+                var irender = filename.EndsWith (".svg") ? "smooth" : "crisp-edges";
+                w.Write($"<td><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width*3}\" height=\"{height*3}\" image-rendering=\"{irender}\" /></td>");
             }
             w.WriteLine("</tr>");
         }
@@ -325,43 +326,39 @@ public class AcceptanceTests
     public void Text()
     {
 	    string singleLine = "A single line of text.";
-        Drawing MakeRect(string s, int fontSize, LineBreakMode lineBreakMode, TextAlignment align) {
+        Drawing MakeRect(string s, string? fontFamily, int fontSize, LineBreakMode lineBreakMode, TextAlignment align) {
             return new Drawing {
-                Title = $"Rect_{s.Length}_F{fontSize}_{lineBreakMode}_{align}",
+                Title = $"Rect_{s.Length}_F{fontFamily}_S{fontSize}_{lineBreakMode}_{align}",
                 Draw = args => {
                     args.Graphics.SetRgba(0, 0, 0, 128);
                     var pad = 4;
                     args.Graphics.DrawRect (pad, pad, args.Width - pad * 2, args.Height - pad * 2, 1);
-                    args.Graphics.SetFont (CrossGraphics.Font.SystemFontOfSize (fontSize));
+                    var font = fontFamily is {} fn ? CrossGraphics.Font.BoldUserFixedPitchFontOfSize (fontSize) : CrossGraphics.Font.SystemFontOfSize (fontSize);
+                    args.Graphics.SetFont (font);
                     var fm = args.Graphics.GetFontMetrics ();
                     args.Graphics.SetRgba(0, 255, 0, 128);
-                    args.Graphics.DrawLine (pad, pad + fm.Ascent, args.Width - 2*pad, pad + fm.Ascent, 1);
+                    args.Graphics.DrawLine (pad, pad + fm.Ascent, args.Width - pad, pad + fm.Ascent, 1);
                     args.Graphics.SetRgba(255, 0, 0, 128);
-                    args.Graphics.DrawLine (pad, pad + fm.Ascent + fm.Descent, args.Width - 2*pad, pad + fm.Ascent + fm.Descent, 1);
+                    args.Graphics.DrawLine (pad, pad + fm.Ascent + fm.Descent, args.Width - pad, pad + fm.Ascent + fm.Descent, 1);
                     args.Graphics.SetRgba(0, 0, 128, 255);
                     args.Graphics.DrawString (s, pad, pad, args.Width-2*pad, args.Height-2*pad,lineBreakMode, align);
                 }
             };
         }
+        var otherFam = "BoldUserFixedPitch";
 	    Accept("Text",
-		    MakeRect (singleLine, 14, LineBreakMode.None, TextAlignment.Left),
-		    MakeRect (singleLine, 14, LineBreakMode.None, TextAlignment.Center),
-		    MakeRect (singleLine, 14, LineBreakMode.None, TextAlignment.Right),
-		    MakeRect (singleLine, 14, LineBreakMode.Clip, TextAlignment.Left),
-		    MakeRect (singleLine, 14, LineBreakMode.Clip, TextAlignment.Center),
-		    MakeRect (singleLine, 14, LineBreakMode.Clip, TextAlignment.Right),
-		    MakeRect (singleLine, 14, LineBreakMode.WordWrap, TextAlignment.Left),
-		    MakeRect (singleLine, 14, LineBreakMode.WordWrap, TextAlignment.Center),
-		    MakeRect (singleLine, 14, LineBreakMode.WordWrap, TextAlignment.Right),
-		    MakeRect (singleLine, 22, LineBreakMode.None, TextAlignment.Left),
-		    MakeRect (singleLine, 22, LineBreakMode.None, TextAlignment.Center),
-		    MakeRect (singleLine, 22, LineBreakMode.None, TextAlignment.Right),
-		    MakeRect (singleLine, 22, LineBreakMode.Clip, TextAlignment.Left),
-		    MakeRect (singleLine, 22, LineBreakMode.Clip, TextAlignment.Center),
-		    MakeRect (singleLine, 22, LineBreakMode.Clip, TextAlignment.Right),
-		    MakeRect (singleLine, 22, LineBreakMode.WordWrap, TextAlignment.Left),
-		    MakeRect (singleLine, 22, LineBreakMode.WordWrap, TextAlignment.Center),
-		    MakeRect (singleLine, 22, LineBreakMode.WordWrap, TextAlignment.Right)
+		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Left),
+		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Center),
+		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Right),
+		    MakeRect (singleLine, null, 22, LineBreakMode.None, TextAlignment.Left),
+		    MakeRect (singleLine, null, 22, LineBreakMode.None, TextAlignment.Center),
+		    MakeRect (singleLine, null, 22, LineBreakMode.None, TextAlignment.Right),
+		    MakeRect (singleLine, otherFam, 14, LineBreakMode.None, TextAlignment.Left),
+		    MakeRect (singleLine, otherFam, 14, LineBreakMode.None, TextAlignment.Center),
+		    MakeRect (singleLine, otherFam, 14, LineBreakMode.None, TextAlignment.Right),
+		    MakeRect (singleLine, otherFam, 22, LineBreakMode.None, TextAlignment.Left),
+		    MakeRect (singleLine, otherFam, 22, LineBreakMode.None, TextAlignment.Center),
+		    MakeRect (singleLine, otherFam, 22, LineBreakMode.None, TextAlignment.Right)
         );
     }
 }

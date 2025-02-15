@@ -422,11 +422,21 @@ namespace CrossGraphics
 			if (align == TextAlignment.Right) {
 				tx = t.Right - _fontMetrics.StringWidth (s) * sc;
 			}
-			WriteLine ("<text x=\"{0}\" y=\"{1}\" font-family=\"sans-serif\" font-size=\"{2}\" fill=\"{4}\">{3}</text>",
-				tx, t.Y + _fontMetrics.Height * 0.8f * sc,
+			else if (align == TextAlignment.Center) {
+				tx = t.X + (t.Width - _fontMetrics.StringWidth (s) * sc) / 2;
+			}
+			var fontFamily = "sans-serif";
+			if (_fontMetrics.Font.IsMonospace) {
+				fontFamily = "monospace";
+			}
+			var fontWeight = "normal";
+			if (_fontMetrics.Font.IsBold) {
+				fontWeight = "bold";
+			}
+			WriteLine ($"<text x=\"{{0}}\" y=\"{{1}}\" font-family=\"{fontFamily}\" font-weight=\"{fontWeight}\" font-size=\"{{2}}\" fill=\"{_lastColor}\">{{3}}</text>",
+				tx, t.Y + _fontMetrics.Height * 0.8333f * sc,
 				_fontMetrics.Height * sc,
-				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"),
-				_lastColor);
+				s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"));
 		}
 
 		public void DrawString (string s, float x, float y)
@@ -457,8 +467,10 @@ namespace CrossGraphics
 
 	class SvgGraphicsFontMetrics : NullGraphicsFontMetrics
 	{
+		public readonly Font Font;
 		public SvgGraphicsFontMetrics (Font font) : base (size: font.Size, isBold: font.IsBold, isMonospace: font.IsMonospace)
 		{
+			this.Font = font;
 		}
 	}
 }

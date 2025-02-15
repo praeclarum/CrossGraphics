@@ -100,9 +100,11 @@ namespace CrossGraphics.CoreGraphics
 
 			if (highQuality) {
 				c.SetLineCap (CGLineCap.Round);
+				c.SetLineJoin (CGLineJoin.Round);
 			}
 			else {
 				c.SetLineCap (CGLineCap.Butt);
+				c.SetLineJoin (CGLineJoin.Miter);
 			}
 
 			SetColor (Colors.Black);
@@ -469,7 +471,7 @@ namespace CrossGraphics.CoreGraphics
 			else {
 				var fm = f.Tag as NSStringFontMetrics;
 				if (fm == null) {
-					fm = new NSStringFontMetrics (GetNativeStringAttributes (f));
+					fm = new NSStringFontMetrics (GetNativeStringAttributes (f), f.Size);
 					f.Tag = fm;
 				}
 				return fm;
@@ -640,9 +642,11 @@ namespace CrossGraphics.CoreGraphics
 
 		readonly NativeStringAttributes nsattrs;
 
-		public NSStringFontMetrics (NativeStringAttributes nsattrs)
+		public NSStringFontMetrics (NativeStringAttributes nsattrs, int fontSize)
 		{
 			this.nsattrs = nsattrs;
+			this._ascent = fontSize;
+			this._descent = 0;
 		}
 
 		public int StringWidth (string str, int startIndex, int length)
@@ -665,12 +669,7 @@ namespace CrossGraphics.CoreGraphics
 
 		public int Height {
 			get {
-				if (_ascent <= 0) {
-					var s = StringSize ("M", 0, 1);
-					_ascent = s.Ascent;
-					_descent = s.Descent;
-				}
-				return _ascent;
+				return Ascent + Descent;
 			}
 		}
 
