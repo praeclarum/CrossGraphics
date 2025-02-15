@@ -179,8 +179,23 @@ namespace CrossGraphics.Skia
 
 		const float RadiansToDegrees = (float)(180 / Math.PI);
 
+		static float NormalizeAngle (float a)
+		{
+			var twoPi = MathF.PI * 2.0f;
+			var na = a % twoPi;
+			if (na < 0) {
+				a += twoPi;
+			}
+			return a;
+		}
+
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
+			var isCircle = Math.Abs(NormalizeAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
+			if (isCircle) {
+				_c.DrawCircle (cx, cy, radius, _paints.Fill);
+				return;
+			}
 			var sa = -startAngle * RadiansToDegrees;
 			var ea = -endAngle * RadiansToDegrees;
 			using (var p = new SKPath ()) {
@@ -188,12 +203,17 @@ namespace CrossGraphics.Skia
 				_c.DrawPath (p, _paints.Fill);
 			}
 		}
-
+		
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
+			_paints.Stroke.StrokeWidth = w;
+			var isCircle = Math.Abs(NormalizeAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
+			if (isCircle) {
+				_c.DrawCircle (cx, cy, radius, _paints.Stroke);
+				return;
+			}
 			var sa = -startAngle * RadiansToDegrees;
 			var ea = -endAngle * RadiansToDegrees;
-			_paints.Stroke.StrokeWidth = w;
 			using (var p = new SKPath ()) {
 				p.AddArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa);
 				_c.DrawPath (p, _paints.Stroke);
