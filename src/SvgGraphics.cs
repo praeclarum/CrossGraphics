@@ -338,7 +338,7 @@ namespace CrossGraphics
 				}
 			}
 
-			WriteLine ("<path d=\"M {0} {1} A {2} {3} 0 {11} {12} {4} {5}\" stroke=\"{6}\" stroke-opacity=\"{7}\" stroke-width=\"{8}\" fill=\"{9}\" fill-opacity=\"{10}\" />", 
+			WriteLine ("<path d=\"M {0} {1} A {2} {3} 0 {11} {12} {4} {5}\" stroke=\"{6}\" stroke-opacity=\"{7}\" stroke-width=\"{8}\" stroke-linecap=\"round\" fill=\"{9}\" fill-opacity=\"{10}\" />", 
 				sx, sy,
 				scRadius, scRadius,
 				ex, ey,				 
