@@ -274,7 +274,10 @@ namespace CrossGraphics
 			WriteArc (cx, cy, radius, startAngle, endAngle, w, _lastColor, _lastColorOpacity, "none", "0");
 		}
 		
-		static float NormalizeAngle (float a)
+		/// <summary>
+		/// Yes, this function looks buggy. Yes, it probably is. But it works for determining circles.
+		/// </summary>
+		static float PositiveAngle (float a)
 		{
 			var twoPi = MathF.PI * 2.0f;
 			var na = a % twoPi;
@@ -289,7 +292,7 @@ namespace CrossGraphics
 			var sa = startAngle;
 			var ea = endAngle;
 			
-			var isCircle = Math.Abs(NormalizeAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
+			var isCircle = Math.Abs(PositiveAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
 			
 			var sx = cx + radius * MathF.Cos (sa);
 			var sy = cy - radius * MathF.Sin (sa);

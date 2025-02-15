@@ -179,7 +179,10 @@ namespace CrossGraphics.Skia
 
 		const float RadiansToDegrees = (float)(180 / Math.PI);
 
-		static float NormalizeAngle (float a)
+		/// <summary>
+		/// Yes, this function looks buggy. Yes, it probably is. But it works for determining circles.
+		/// </summary>
+		static float PositiveAngle (float a)
 		{
 			var twoPi = MathF.PI * 2.0f;
 			var na = a % twoPi;
@@ -188,18 +191,27 @@ namespace CrossGraphics.Skia
 			}
 			return a;
 		}
+		static float NormalizeAngle (float a)
+		{
+			var twoPi = MathF.PI * 2.0f;
+			var na = a % twoPi;
+			if (na < 0) {
+				na += twoPi;
+			}
+			return na;
+		}
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
-			var isCircle = Math.Abs(NormalizeAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
+			var isCircle = Math.Abs (PositiveAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
 			if (isCircle) {
 				_c.DrawCircle (cx, cy, radius, _paints.Fill);
 				return;
 			}
-			var sa = -startAngle * RadiansToDegrees;
-			var ea = -endAngle * RadiansToDegrees;
+			var startDegrees = -startAngle * RadiansToDegrees;
+			var sweepDegrees = -NormalizeAngle (endAngle - startAngle) * RadiansToDegrees;
 			using (var p = new SKPath ()) {
-				p.AddArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa);
+				p.AddArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), startDegrees, sweepDegrees);
 				_c.DrawPath (p, _paints.Fill);
 			}
 		}
@@ -207,15 +219,15 @@ namespace CrossGraphics.Skia
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
 			_paints.Stroke.StrokeWidth = w;
-			var isCircle = Math.Abs(NormalizeAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
+			var isCircle = Math.Abs (PositiveAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
 			if (isCircle) {
 				_c.DrawCircle (cx, cy, radius, _paints.Stroke);
 				return;
 			}
-			var sa = -startAngle * RadiansToDegrees;
-			var ea = -endAngle * RadiansToDegrees;
+			var startDegrees = -startAngle * RadiansToDegrees;
+			var sweepDegrees = -NormalizeAngle (endAngle - startAngle) * RadiansToDegrees;
 			using (var p = new SKPath ()) {
-				p.AddArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), sa, ea - sa);
+				p.AddArc (new SKRect (cx - radius, cy - radius, cx + radius, cy + radius), startDegrees, sweepDegrees);
 				_c.DrawPath (p, _paints.Stroke);
 			}
 		}
