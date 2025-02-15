@@ -4,7 +4,9 @@ using CoreGraphics;
 
 using CrossGraphics;
 
-using ImageIO;
+using Font = Microsoft.Maui.Font;
+using LineBreakMode = CrossGraphics.LineBreakMode;
+using TextAlignment = CrossGraphics.TextAlignment;
 
 namespace CrossGraphicsTests;
 
@@ -183,9 +185,14 @@ public class AcceptanceTests
     void Accept(string name, params Drawing[] drawings)
     {
         var w = new StringWriter();
-        w.WriteLine($"<html><head><title>{name} - CrossGraphics Test</title></head><body>");
+        w.WriteLine($"<html><head><title>{name} - CrossGraphics Test</title>");
+        w.WriteLine($"<style>");
+        w.WriteLine($"html {{ font-family: sans-serif; background-color: #333; color: #fff; }}");
+        w.WriteLine($"img {{ background-color: #fff; }}");
+        w.WriteLine($"</style>");
+        w.WriteLine($"</head><body>");
         w.WriteLine($"<h1>{name}</h1>");
-        w.WriteLine($"<table border=\"1\">");
+        w.WriteLine($"<table border=\"0\">");
         w.Write($"<tr><th>Drawing</th>");
         foreach (var platform in Platforms)
         {
@@ -312,6 +319,49 @@ public class AcceptanceTests
             Make(100, 100, 1),
             Make(100, 100, 10),
             Make(100, 100, 50)
+        );
+    }
+
+    public void Text()
+    {
+	    string singleLine = "A single line of text.";
+        Drawing MakeRect(string s, int fontSize, LineBreakMode lineBreakMode, TextAlignment align) {
+            return new Drawing {
+                Title = $"Rect_{s.Length}_F{fontSize}_{lineBreakMode}_{align}",
+                Draw = args => {
+                    args.Graphics.SetRgba(0, 0, 0, 128);
+                    var pad = 4;
+                    args.Graphics.DrawRect (pad, pad, args.Width - pad * 2, args.Height - pad * 2, 1);
+                    args.Graphics.SetFont (CrossGraphics.Font.SystemFontOfSize (fontSize));
+                    var fm = args.Graphics.GetFontMetrics ();
+                    args.Graphics.SetRgba(0, 255, 0, 128);
+                    args.Graphics.DrawLine (pad, pad + fm.Ascent, args.Width - 2*pad, pad + fm.Ascent, 1);
+                    args.Graphics.SetRgba(255, 0, 0, 128);
+                    args.Graphics.DrawLine (pad, pad + fm.Ascent + fm.Descent, args.Width - 2*pad, pad + fm.Ascent + fm.Descent, 1);
+                    args.Graphics.SetRgba(0, 0, 128, 255);
+                    args.Graphics.DrawString (s, pad, pad, args.Width-2*pad, args.Height-2*pad,lineBreakMode, align);
+                }
+            };
+        }
+	    Accept("Text",
+		    MakeRect (singleLine, 14, LineBreakMode.None, TextAlignment.Left),
+		    MakeRect (singleLine, 14, LineBreakMode.None, TextAlignment.Center),
+		    MakeRect (singleLine, 14, LineBreakMode.None, TextAlignment.Right),
+		    MakeRect (singleLine, 14, LineBreakMode.Clip, TextAlignment.Left),
+		    MakeRect (singleLine, 14, LineBreakMode.Clip, TextAlignment.Center),
+		    MakeRect (singleLine, 14, LineBreakMode.Clip, TextAlignment.Right),
+		    MakeRect (singleLine, 14, LineBreakMode.WordWrap, TextAlignment.Left),
+		    MakeRect (singleLine, 14, LineBreakMode.WordWrap, TextAlignment.Center),
+		    MakeRect (singleLine, 14, LineBreakMode.WordWrap, TextAlignment.Right),
+		    MakeRect (singleLine, 22, LineBreakMode.None, TextAlignment.Left),
+		    MakeRect (singleLine, 22, LineBreakMode.None, TextAlignment.Center),
+		    MakeRect (singleLine, 22, LineBreakMode.None, TextAlignment.Right),
+		    MakeRect (singleLine, 22, LineBreakMode.Clip, TextAlignment.Left),
+		    MakeRect (singleLine, 22, LineBreakMode.Clip, TextAlignment.Center),
+		    MakeRect (singleLine, 22, LineBreakMode.Clip, TextAlignment.Right),
+		    MakeRect (singleLine, 22, LineBreakMode.WordWrap, TextAlignment.Left),
+		    MakeRect (singleLine, 22, LineBreakMode.WordWrap, TextAlignment.Center),
+		    MakeRect (singleLine, 22, LineBreakMode.WordWrap, TextAlignment.Right)
         );
     }
 }

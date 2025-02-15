@@ -403,8 +403,8 @@ namespace CrossGraphics.Skia
 			paint.TextSize = font.Size;
 
 			this.paint = paint;
-			Ascent = (int)Math.Abs (paint.FontMetrics.Ascent + 0.5f);
-			Descent = (int)Math.Abs (paint.FontMetrics.Descent + 0.5f);
+			Ascent = (int)Math.Abs (paint.FontMetrics.Ascent);
+			Descent = (int)Math.Abs (paint.FontMetrics.Descent);
 			Height = Ascent + Descent;
 		}
 
