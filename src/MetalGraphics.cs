@@ -678,6 +678,37 @@ float drawLine(ColorInOut in)
 	}
 }
 
+float fillArc(ColorInOut in)
+{
+	float2 p = in.modelPosition;
+	float2 bbMin = in.bb.xy;
+	float2 bbMax = in.bb.zw;
+	float2 center = (bbMin + bbMax) / 2;
+	float startAngle = in.args.y;
+	float endAngle = in.args.z;
+	float radius = bbMax.x - center.x;
+	float2 dir = p - center;
+	float distance = length(dir);
+	bool inside = distance <= radius;
+	if (inside) {
+		float2 startNorm = float2(cos(startAngle), -sin(startAngle));
+		float2 endNorm = float2(cos(endAngle), -sin(endAngle));
+		startAngle = -atan2(startNorm.y, startNorm.x);
+		endAngle = -atan2(endNorm.y, endNorm.x);
+		float angle = -atan2(dir.y, dir.x);
+		if (endAngle < startAngle) {
+			endAngle += 2.0 * 3.14159265359;
+		}
+		if (angle < startAngle) {
+			angle += 2.0 * 3.14159265359;
+		}
+		if (angle >= startAngle && angle <= endAngle) {
+			return 1.0;
+		}
+	}
+	return 0.0;
+}
+
 float strokeArc(ColorInOut in)
 {
 	float2 p = in.modelPosition;
@@ -758,7 +789,7 @@ fragment float4 fragmentShader(
 		mask = strokeOval(in);
 		break;
 	case 6: // FillArc
-		mask = fillRect(in);
+		mask = fillArc(in);
 		break;
 	case 7: // StrokeArc
 		mask = strokeArc(in);
