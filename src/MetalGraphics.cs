@@ -832,7 +832,11 @@ fragment float4 fragmentShader(
 		}
 	}
 	mask = clamp(mask * 0.125, 0.0, 1.0);
-	return float4(in.color.xyz, in.color.w * mask);
+	if (mask < 0.01) {
+		discard_fragment();
+	}
+	const float alpha = mask * in.color.w;
+	return float4(in.color.xyz * alpha, alpha);
 }
 ";
 	}
