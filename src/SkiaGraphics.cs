@@ -168,13 +168,13 @@ namespace CrossGraphics.Skia
 
 		public void FillOval (float x, float y, float width, float height)
 		{
-			_c.DrawOval (new SKRect (x, y, x + width, y + width), _paints.Fill);
+			_c.DrawOval (new SKRect (x, y, x + width, y + height), _paints.Fill);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
 			_paints.Stroke.StrokeWidth = w;
-			_c.DrawOval (new SKRect (x, y, x + width, y + width), _paints.Stroke);
+			_c.DrawOval (new SKRect (x, y, x + width, y + height), _paints.Stroke);
 		}
 
 		const float RadiansToDegrees = (float)(180 / Math.PI);
