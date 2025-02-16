@@ -78,7 +78,7 @@ public class AcceptanceTests
     #if __MACOS__ || __IOS__ || __MACCATALYST__
     class CoreGraphicsPlatform : Platform
     {
-        public override string Name => "CoreGraphics";
+        public override string Name => "CoreGraphicsUnflipped";
         public override (IGraphics, object?) BeginDrawing(int width, int height)
         {
             var cgContext = new CoreGraphics.CGBitmapContext(null, width, height, 8, width * 4, CoreGraphics.CGColorSpace.CreateDeviceRGB(), CoreGraphics.CGBitmapFlags.PremultipliedLast);
@@ -101,7 +101,7 @@ public class AcceptanceTests
     }
     class CoreGraphicsFlippedPlatform : Platform
     {
-        public override string Name => "CoreGraphicsFlipped";
+        public override string Name => "CoreGraphics";
         public override (IGraphics, object?) BeginDrawing(int width, int height)
         {
             var cgContext = new CoreGraphics.CGBitmapContext(null, width, height, 8, width * 4, CoreGraphics.CGColorSpace.CreateDeviceRGB(), CoreGraphics.CGBitmapFlags.PremultipliedLast);
@@ -249,7 +249,8 @@ public class AcceptanceTests
         var w = new StringWriter();
         w.WriteLine($"<html><head><title>{name} - CrossGraphics Test</title>");
         w.WriteLine($"<style>");
-        w.WriteLine($"html {{ font-family: sans-serif; background-color: #333; color: #fff; }}");
+        w.WriteLine($"html {{ font-family: sans-serif; font-size: 12px; background-color: #333; color: #fff; }}");
+        w.WriteLine($"table {{ font-size: 12px; }}");
         w.WriteLine($"img {{ background-color: #fff; }}");
         w.WriteLine($"</style>");
         w.WriteLine($"</head><body>");
@@ -400,7 +401,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    Accept("Ovals",
+	    Accept("Rects",
             Make(50, 50, -1),
             Make(50, 50, 1),
             Make(50, 50, 10),
