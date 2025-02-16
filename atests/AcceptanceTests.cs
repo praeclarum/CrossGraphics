@@ -391,17 +391,25 @@ public class AcceptanceTests
                     args.Graphics.SetRgba(0, 0, 128, 255);
                     var x = args.Width / 2 - width / 2;
                     var y = args.Height / 2 - height / 2;
-                    args.Graphics.DrawRect(new RectangleF(x, y, width, height), w);
+                    if (w < 0) {
+	                    args.Graphics.FillRect (new RectangleF (x, y, width, height));
+                    }
+                    else {
+	                    args.Graphics.DrawRect (new RectangleF (x, y, width, height), w);
+                    }
                 }
             };
         }
 	    Accept("Ovals",
+            Make(50, 50, -1),
             Make(50, 50, 1),
             Make(50, 50, 10),
             Make(50, 50, 50),
+            Make(50, 100, -1),
             Make(50, 100, 1),
             Make(50, 100, 10),
             Make(50, 100, 50),
+            Make(100, 100, -1),
             Make(100, 100, 1),
             Make(100, 100, 10),
             Make(100, 100, 50)

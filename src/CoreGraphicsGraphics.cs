@@ -140,7 +140,6 @@ namespace CrossGraphics.CoreGraphics
 		public void FillPolygon (Polygon poly)
 		{
 			var count = poly.Points.Count;
-			_c.SetLineJoin (CGLineJoin.Round);
 			_c.MoveTo (poly.Points[0].X, poly.Points[0].Y);
 			for (var i = 1; i < count; i++) {
 				var p = poly.Points[i];
@@ -152,7 +151,6 @@ namespace CrossGraphics.CoreGraphics
 		public void DrawPolygon (Polygon poly, float w)
 		{
 			_c.SetLineWidth (w);
-			_c.SetLineJoin (CGLineJoin.Round);
 			_c.MoveTo (poly.Points[0].X, poly.Points[0].Y);
 			for (var i = 1; i < poly.Points.Count; i++) {
 				var p = poly.Points[i];
@@ -219,7 +217,9 @@ namespace CrossGraphics.CoreGraphics
 				return;
 			}
 			_c.SetLineWidth (w);
+			_c.SetLineJoin (CGLineJoin.Miter);
 			_c.StrokeRect (new NativeRect (x, y, width, height));
+			_c.SetLineJoin (CGLineJoin.Round);
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
@@ -286,6 +286,7 @@ namespace CrossGraphics.CoreGraphics
 			_c.SetLineWidth (_lineWidth);
 			_c.StrokePath ();
 			_c.RestoreState ();
+			_c.SetLineJoin (CGLineJoin.Round);
 			_linesBegun = false;
 		}
 
