@@ -243,6 +243,9 @@ public class AcceptanceTests
 
     void Accept(string name, params Drawing[] drawings)
     {
+        var width = 100;
+        var height = 100;
+
         var w = new StringWriter();
         w.WriteLine($"<html><head><title>{name} - CrossGraphics Test</title>");
         w.WriteLine($"<style>");
@@ -255,21 +258,18 @@ public class AcceptanceTests
         w.Write($"<tr><th>Drawing</th>");
         foreach (var platform in Platforms)
         {
-	        w.Write ($"<th>{platform.Name}</th>");
+	        w.Write ($"<th style=\"max-wdith:{width}\">{platform.Name}</th>");
         }
         w.WriteLine($"</tr>");
-
-        var width = 100;
-        var height = 100;
         
         foreach (var drawing in drawings) {
             w.Write($"<tr><th>{drawing.Title}</th>");
             foreach (var platform in Platforms) {
                 var (graphics, context) = platform.BeginDrawing(width, height);
                 drawing.Draw(new DrawArgs(graphics, width, height));
-                var filename = platform.SaveDrawing(graphics, context, PendingPath, drawing.Title + "_" + platform.Name);
+                var filename = platform.SaveDrawing(graphics, context, PendingPath, name + "_" + drawing.Title + "_" + platform.Name);
                 var irender = filename.EndsWith (".svg") ? "smooth" : "crisp-edges";
-                w.Write($"<td><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width*2}\" height=\"{height*2}\" image-rendering=\"{irender}\" /></td>");
+                w.Write($"<td style=\"max-wdith:{width}\"><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" /></td>");
             }
             w.WriteLine("</tr>");
         }

@@ -166,12 +166,12 @@ namespace CrossGraphics.Metal
 			}
 		}
 
-		void DoRect (float x, float y, float width, float height, float w, DrawOp op, float argy = 0, float argz = 0)
+		void DoRect (float x, float y, float width, float height, float w, DrawOp op, float argy = 0, float argz = 0, float argw = 0)
 		{
 			var buffer = _buffers.GetPrimitivesBuffer(numVertices: 4, numIndices: 6);
 			var bb = BoundingBox.FromRect (x, y, width, height, w);
 			var bbv = new Vector4 (bb.MinX, bb.MinY, bb.MaxX, bb.MaxY);
-			var args = new Vector4 (w, argy, argz, 0);
+			var args = new Vector4 (w, argy, argz, argw);
 			var v0 = buffer.AddVertex(bb.MinX, bb.MinY, 0, 0, _currentColor, bb: bbv, args: args, op: op);
 			var v1 = buffer.AddVertex(bb.MaxX, bb.MinY, 1, 0, _currentColor, bb: bbv, args: args, op: op);
 			var v2 = buffer.AddVertex(bb.MaxX, bb.MaxY, 1, 1, _currentColor, bb: bbv, args: args, op: op);
@@ -249,6 +249,11 @@ namespace CrossGraphics.Metal
 			return a;
 		}
 
+		float ArcPad(float radius)
+		{
+			return 3;
+		}
+
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
 			var isCircle = Math.Abs(PositiveAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
@@ -256,7 +261,8 @@ namespace CrossGraphics.Metal
 				FillOval (cx - radius, cy - radius, radius * 2, radius * 2);
 				return;
 			}
-			DoRect (cx - radius, cy - radius, radius * 2, radius * 2, 0, DrawOp.FillArc, argy: startAngle, argz: endAngle);
+			var pad = ArcPad (radius);
+			DoRect (cx - radius - pad, cy - radius - pad, radius * 2 + pad * 2, radius * 2 + pad * 2, 0, DrawOp.FillArc, argy: startAngle, argz: endAngle, argw: radius);
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
@@ -266,7 +272,8 @@ namespace CrossGraphics.Metal
 				DrawOval (cx - radius, cy - radius, radius * 2, radius * 2, w);
 				return;
 			}
-			DoRect (cx - radius, cy - radius, radius * 2, radius * 2, w, DrawOp.StrokeArc, argy: startAngle, argz: endAngle);
+			var pad = ArcPad (radius);
+			DoRect (cx - radius - pad, cy - radius - pad, radius * 2 + pad * 2, radius * 2 + pad * 2, w, DrawOp.StrokeArc, argy: startAngle, argz: endAngle, argw: radius);
 		}
 
 		public void BeginLines (bool rounded)
@@ -686,7 +693,7 @@ float fillArc(ColorInOut in)
 	float2 center = (bbMin + bbMax) / 2;
 	float startAngle = in.args.y;
 	float endAngle = in.args.z;
-	float radius = bbMax.x - center.x;
+	float radius = in.args.w;
 	float2 dir = p - center;
 	float distance = length(dir);
 	bool inside = distance <= radius;
@@ -718,7 +725,7 @@ float strokeArc(ColorInOut in)
 	float startAngle = in.args.y;
 	float endAngle = in.args.z;
 	float w2 = w / 2;
-	float radius = bbMax.x - center.x - w2;
+	float radius = in.args.w;
 	float2 dir = p - center;
 	float distance = length(dir);
 	bool onedge = distance >= radius - w2 && distance <= radius + w2;
@@ -832,7 +839,7 @@ fragment float4 fragmentShader(
 		}
 	}
 	mask = clamp(mask * 0.125, 0.0, 1.0);
-	if (mask < 0.01) {
+	if (mask < 0.004) {
 		discard_fragment();
 	}
 	const float alpha = mask * in.color.w;
