@@ -403,6 +403,8 @@ public class AcceptanceTests
         }
 	    Accept("Rects",
             Make(50, 50, -1),
+            Make(48, 48, 1),
+            Make(49, 49, 1),
             Make(50, 50, 1),
             Make(50, 50, 10),
             Make(50, 50, 50),
@@ -437,6 +439,8 @@ public class AcceptanceTests
         }
 	    Accept("RoundedRects",
             Make(50, 50, 10, -1),
+            Make(48, 48, 10, 1),
+            Make(49, 49, 10, 1),
             Make(50, 50, 10, 1),
             Make(50, 50, 10, 10),
             Make(50, 50, 10, 50),

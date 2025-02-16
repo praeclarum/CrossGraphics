@@ -208,12 +208,14 @@ namespace CrossGraphics.Metal
 
 		public void FillRect (float x, float y, float width, float height)
 		{
-			DoRect (x, y, width, height, 0, DrawOp.FillRect);
+			var pad = ArcPad (0);
+			DoRect (x-pad, y-pad, width+2*pad, height+2*pad, 0, DrawOp.FillRect, argz: width, argw: height);
 		}
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			DoRect (x, y, width, height, w, DrawOp.StrokeRect);
+			var pad = ArcPad (0);
+			DoRect (x-pad, y-pad, width+2*pad, height+2*pad, w, DrawOp.StrokeRect, argz: width, argw: height);
 		}
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
@@ -554,16 +556,29 @@ typedef struct
 
 float fillRect(ColorInOut in)
 {
-	return 1.0;
+	float2 p = in.modelPosition;
+	float2 center = (in.bb.xy + in.bb.zw) / 2;
+	float width = in.args.z;
+	float height = in.args.w;
+	float2 bbMin = center - float2(width / 2, height / 2);
+	float2 bbMax = center + float2(width / 2, height / 2);
+	return (bbMin.x < p.x && p.x < bbMax.x && bbMin.y < p.y && p.y < bbMax.y) ? 1.0 : 0.0;
 }
 
 float strokeRect(ColorInOut in)
 {
 	float2 p = in.modelPosition;
-	float2 bbMin = in.bb.xy;
-	float2 bbMax = in.bb.zw;
 	float w = in.args.x;
-	bool onedge = p.x < bbMin.x + w || p.x > bbMax.x - w || p.y < bbMin.y + w || p.y > bbMax.y - w;
+	float rw2 = w / 2;
+	float2 center = (in.bb.xy + in.bb.zw) / 2;
+	float width = in.args.z;
+	float height = in.args.w;
+	float2 bbMin = center - float2(width / 2 + rw2, height / 2 + rw2);
+	float2 bbMax = center + float2(width / 2 + rw2, height / 2 + rw2);
+	bool onedge = (bbMin.x < p.x && p.x < bbMin.x + w && bbMin.y < p.y && p.y < bbMax.y) ||
+                 (bbMax.x - w < p.x && p.x < bbMax.x && bbMin.y < p.y && p.y < bbMax.y) ||
+				(bbMin.y < p.y && p.y < bbMin.y + w && bbMin.x + rw2 < p.x && p.x < bbMax.x - rw2) ||
+				(bbMax.y - w < p.y && p.y < bbMax.y && bbMin.x + rw2 < p.x && p.x < bbMax.x - rw2);
 	return onedge ? 1.0 : 0.0;
 }
 
@@ -793,10 +808,29 @@ constant float2 aaOffsets[8] = {
 	float2(-0.25, 0.25),
 	float2(0.25, -0.25),
 	float2(0.25, 0.25),
-	float2(0, -0.375),
-	float2(0, 0.375),
-	float2(-0.375, 0),
-	float2(0.375, 0),
+	//float2(0, -0.375),
+	//float2(0, 0.375),
+	//float2(-0.375, 0),
+	//float2(0.375, 0),
+};
+
+constant float2 aaOffsets16[16] = {
+	float2(-0.25, -0.25) + float2(-0.125, -0.125),
+	float2(-0.25, -0.25) + float2(-0.125, 0.125),
+	float2(-0.25, -0.25) + float2(0.125, -0.125),
+	float2(-0.25, -0.25) + float2(0.125, 0.125),
+	float2(-0.25, 0.25) + float2(-0.125, -0.125),
+	float2(-0.25, 0.25) + float2(-0.125, 0.125),
+	float2(-0.25, 0.25) + float2(0.125, -0.125),
+	float2(-0.25, 0.25) + float2(0.125, 0.125),
+	float2(0.25, -0.25) + float2(-0.125, -0.125),
+	float2(0.25, -0.25) + float2(-0.125, 0.125),
+	float2(0.25, -0.25) + float2(0.125, -0.125),
+	float2(0.25, -0.25) + float2(0.125, 0.125),
+	float2(0.25, 0.25) + float2(-0.125, -0.125),
+	float2(0.25, 0.25) + float2(-0.125, 0.125),
+	float2(0.25, 0.25) + float2(0.125, -0.125),
+	float2(0.25, 0.25) + float2(0.125, 0.125),
 };
 
 fragment float4 fragmentShader(
@@ -809,8 +843,8 @@ fragment float4 fragmentShader(
     float2 dy = dfdy(in.modelPosition);
     
     float mask = 0.0;
-	for (int i = 0; i < 8; i++) {
-        float2 offset = aaOffsets[i].x * dx + aaOffsets[i].y * dy;
+	for (int i = 0; i < 16; i++) {
+        float2 offset = aaOffsets16[i].x * dx + aaOffsets16[i].y * dy;
         float2 samplePos = in.modelPosition + offset;
         
         ColorInOut sample = in;
@@ -851,7 +885,7 @@ fragment float4 fragmentShader(
 			break;
 		}
 	}
-	mask = clamp(mask * 0.125, 0.0, 1.0);
+	mask = clamp(mask / 16.0, 0.0, 1.0);
 	if (mask < 0.004) {
 		discard_fragment();
 	}
