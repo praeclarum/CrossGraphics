@@ -67,6 +67,7 @@ public class AppDelegate : UIApplicationDelegate {
 		var tests = new AcceptanceTests ();
 		tests.Arcs ();
 		tests.Ovals ();
+		tests.Rects ();
 		tests.Text ();
 	}
 }

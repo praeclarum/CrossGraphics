@@ -382,6 +382,32 @@ public class AcceptanceTests
         );
     }
 
+    public void Rects()
+    {
+        Drawing Make(float width, float height, float w) {
+            return new Drawing {
+                Title = $"Rect_W{width:F2}_H{height:F2}_L{w:F2}",
+                Draw = args => {
+                    args.Graphics.SetRgba(0, 0, 128, 255);
+                    var x = args.Width / 2 - width / 2;
+                    var y = args.Height / 2 - height / 2;
+                    args.Graphics.DrawRect(new RectangleF(x, y, width, height), w);
+                }
+            };
+        }
+	    Accept("Ovals",
+            Make(50, 50, 1),
+            Make(50, 50, 10),
+            Make(50, 50, 50),
+            Make(50, 100, 1),
+            Make(50, 100, 10),
+            Make(50, 100, 50),
+            Make(100, 100, 1),
+            Make(100, 100, 10),
+            Make(100, 100, 50)
+        );
+    }
+
     public void Text()
     {
 	    string singleLine = "A single line of text.";
