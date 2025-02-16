@@ -693,16 +693,15 @@ float fillArc(ColorInOut in)
 	if (inside) {
 		float2 startNorm = float2(cos(startAngle), -sin(startAngle));
 		float2 endNorm = float2(cos(endAngle), -sin(endAngle));
-		startAngle = -atan2(startNorm.y, startNorm.x);
-		endAngle = -atan2(endNorm.y, endNorm.x);
-		float angle = -atan2(dir.y, dir.x);
-		if (endAngle < startAngle) {
-			endAngle += 2.0 * 3.14159265359;
+		float2 p1 = center + startNorm * radius;
+		float2 p2 = center + endNorm * radius;
+		float dx = (p2.x - p1.x);
+		float dy = (p2.y - p1.y);
+		if (abs(dx) < 1e-6 && abs(dy) < 1e-6) {
+			return 0.0;
 		}
-		if (angle < startAngle) {
-			angle += 2.0 * 3.14159265359;
-		}
-		if (angle >= startAngle && angle <= endAngle) {
+		float sideOfLine = dx * (p.y - p1.y) - dy * (p.x - p1.x);
+		if (sideOfLine > 0) {
 			return 1.0;
 		}
 	}
@@ -728,6 +727,9 @@ float strokeArc(ColorInOut in)
 		float2 endNorm = float2(cos(endAngle), -sin(endAngle));
 		startAngle = -atan2(startNorm.y, startNorm.x);
 		endAngle = -atan2(endNorm.y, endNorm.x);
+		if (abs(startAngle - endAngle) < 1e-6) {
+			return 0.0;
+		}
 		float angle = -atan2(dir.y, dir.x);
 		if (endAngle < startAngle) {
 			endAngle += 2.0 * 3.14159265359;
