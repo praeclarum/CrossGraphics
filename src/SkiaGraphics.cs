@@ -42,11 +42,13 @@ namespace CrossGraphics.Skia
 		{
 			public readonly SKPaint Fill;
 			public readonly SKPaint Stroke;
+			public readonly SKPaint MiteredStroke;
 			public Font? Font;
-			public ColPaints (SKPaint fill, SKPaint stroke)
+			public ColPaints (SKPaint fill, SKPaint stroke, SKPaint mstroke)
 			{
 				Fill = fill;
 				Stroke = stroke;
+				MiteredStroke = mstroke;
 			}
 		}
 
@@ -84,11 +86,17 @@ namespace CrossGraphics.Skia
 			stroke.Style = SKPaintStyle.Stroke;
 			stroke.StrokeCap = SKStrokeCap.Round;
 			stroke.StrokeJoin = SKStrokeJoin.Round;
+			var mstroke = new SKPaint ();
+			mstroke.Color = c;
+			mstroke.IsAntialias = true;
+			mstroke.Style = SKPaintStyle.Stroke;
+			mstroke.StrokeCap = SKStrokeCap.Round;
+			mstroke.StrokeJoin = SKStrokeJoin.Miter;
 			var fill = new SKPaint ();
-			fill.Color = stroke.Color;
+			fill.Color = c;
 			fill.IsAntialias = true;
 			fill.Style = SKPaintStyle.Fill;
-			var paints = new ColPaints (fill, stroke);
+			var paints = new ColPaints (fill, stroke, mstroke);
 			return paints;
 		}
 
@@ -162,8 +170,8 @@ namespace CrossGraphics.Skia
 
 		public void DrawRect (float x, float y, float width, float height, float w)
 		{
-			_paints.Stroke.StrokeWidth = w;
-			_c.DrawRect (new SKRect (x, y, x + width, y + height), _paints.Stroke);
+			_paints.MiteredStroke.StrokeWidth = w;
+			_c.DrawRect (new SKRect (x, y, x + width, y + height), _paints.MiteredStroke);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
