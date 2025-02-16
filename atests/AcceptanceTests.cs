@@ -387,7 +387,7 @@ public class AcceptanceTests
 	    string singleLine = "A single line of text.";
         Drawing MakeRect(string s, string? fontFamily, int fontSize, LineBreakMode lineBreakMode, TextAlignment align) {
             return new Drawing {
-                Title = $"Rect_{s.Length}_F{fontFamily}_S{fontSize}_{lineBreakMode}_{align}",
+                Title = $"TextRect_{s.Length}_F{fontFamily}_S{fontSize}_{lineBreakMode}_{align}",
                 Draw = args => {
                     args.Graphics.SetRgba(0, 0, 0, 128);
                     var pad = 4;

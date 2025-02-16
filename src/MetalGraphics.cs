@@ -768,47 +768,70 @@ vertex ColorInOut vertexShader(Vertex in [[ stage_in ]],
 	return out;
 }
 
+constant float2 aaOffsets[8] = {
+	float2(-0.25, -0.25),
+	float2(-0.25, 0.25),
+	float2(0.25, -0.25),
+	float2(0.25, 0.25),
+	float2(0, -0.375),
+	float2(0, 0.375),
+	float2(-0.375, 0),
+	float2(0.375, 0),
+};
+
 fragment float4 fragmentShader(
 	ColorInOut in [[stage_in]],
 	texture2d<float> sdf0 [[ texture(0) ]])
 {
-    uint op = in.op;
+	uint op = in.op;
+	// Calculate derivatives for supersampling
+    float2 dx = dfdx(in.modelPosition);
+    float2 dy = dfdy(in.modelPosition);
+    
     float mask = 0.0;
-	switch (op) {
-	case 0: // FillRect
-		mask = fillRect(in);
-		break;
-	case 2: // FillRoundedRect
-		mask = fillRoundedRect(in);
-		break;
-	case 3: // StrokeRoundedRect
-		mask = strokeRoundedRect(in);
-		break;
-	case 4: // FillOval
-		mask = fillOval(in);
-		break;
-	case 5: // StrokeOval
-		mask = strokeOval(in);
-		break;
-	case 6: // FillArc
-		mask = fillArc(in);
-		break;
-	case 7: // StrokeArc
-		mask = strokeArc(in);
-		break;
-	case 8: // FillPolygon
-		mask = fillRect(in);
-		break;
-	case 13: // DrawString
-		mask = drawString(in, sdf0);
-		break;
-	case 14: // DrawLine
-		mask = drawLine(in);
-		break;
-	default:
-		mask = strokeRect(in);
-		break;
+	for (int i = 0; i < 8; i++) {
+        float2 offset = aaOffsets[i].x * dx + aaOffsets[i].y * dy;
+        float2 samplePos = in.modelPosition + offset;
+        
+        ColorInOut sample = in;
+        sample.modelPosition = samplePos;
+		switch (op) {
+		case 0: // FillRect
+			mask += fillRect(sample);
+			break;
+		case 2: // FillRoundedRect
+			mask += fillRoundedRect(sample);
+			break;
+		case 3: // StrokeRoundedRect
+			mask += strokeRoundedRect(sample);
+			break;
+		case 4: // FillOval
+			mask += fillOval(sample);
+			break;
+		case 5: // StrokeOval
+			mask += strokeOval(sample);
+			break;
+		case 6: // FillArc
+			mask += fillArc(sample);
+			break;
+		case 7: // StrokeArc
+			mask += strokeArc(sample);
+			break;
+		case 8: // FillPolygon
+			mask += fillRect(sample);
+			break;
+		case 13: // DrawString
+			mask += drawString(sample, sdf0);
+			break;
+		case 14: // DrawLine
+			mask += drawLine(sample);
+			break;
+		default:
+			mask += strokeRect(sample);
+			break;
+		}
 	}
+	mask = clamp(mask * 0.125, 0.0, 1.0);
 	return float4(in.color.xyz, in.color.w * mask);
 }
 ";
