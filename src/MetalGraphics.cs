@@ -226,14 +226,21 @@ namespace CrossGraphics.Metal
 			DoRect (x, y, width, height, w, DrawOp.StrokeRoundedRect, argy: radius);
 		}
 
+		float ArcPad(float radius)
+		{
+			return 3;
+		}
+
 		public void FillOval (float x, float y, float width, float height)
 		{
-			DoRect (x, y, width, height, 0, DrawOp.FillOval);
+			var pad = ArcPad (MathF.Max (width, height));
+			DoRect (x - pad, y - pad, width + 2*pad, height + 2*pad, 0, DrawOp.FillOval, argz: width, argw: height);
 		}
 
 		public void DrawOval (float x, float y, float width, float height, float w)
 		{
-			DoRect (x, y, width, height, w, DrawOp.StrokeOval);
+			var pad = ArcPad (MathF.Max (width, height));
+			DoRect (x - pad, y - pad, width + 2*pad, height + 2*pad, w, DrawOp.StrokeOval, argz: width, argw: height);
 		}
 
 		/// <summary>
@@ -247,11 +254,6 @@ namespace CrossGraphics.Metal
 				a += twoPi;
 			}
 			return a;
-		}
-
-		float ArcPad(float radius)
-		{
-			return 3;
 		}
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
@@ -629,7 +631,7 @@ float fillOval(ColorInOut in)
 	float2 bbMin = in.bb.xy;
 	float2 bbMax = in.bb.zw;
 	float2 center = (bbMin + bbMax) / 2;
-	float2 radius = (bbMax - bbMin) / 2;
+	float2 radius = in.args.zw / 2;
 	float2 d = (p - center) / radius;
 	float r = length(d);
 	return r <= 1.0 ? 1.0 : 0.0;
@@ -643,7 +645,7 @@ float strokeOval(ColorInOut in)
 	float w = in.args.x;
 	float w2 = w / 2;
 	float2 center = (bbMin + bbMax) / 2;
-	float2 radius = (bbMax - bbMin) / 2 - w2;
+	float2 radius = in.args.zw / 2;
 	float2 d = (p - center);
 	float r = length(d / radius);
 	float nw2 = w2 / min(radius.x, radius.y);
