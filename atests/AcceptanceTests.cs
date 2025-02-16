@@ -417,6 +417,48 @@ public class AcceptanceTests
         );
     }
 
+    public void RoundedRects()
+    {
+        Drawing Make(float width, float height, float r, float w) {
+            return new Drawing {
+                Title = $"RRect_W{width:F2}_H{height:F2}_L{w:F2}",
+                Draw = args => {
+                    args.Graphics.SetRgba(0, 0, 128, 255);
+                    var x = args.Width / 2 - width / 2;
+                    var y = args.Height / 2 - height / 2;
+                    if (w < 0) {
+	                    args.Graphics.FillRoundedRect (new RectangleF (x, y, width, height), r);
+                    }
+                    else {
+	                    args.Graphics.DrawRoundedRect (new RectangleF (x, y, width, height), r, w);
+                    }
+                }
+            };
+        }
+	    Accept("RoundedRects",
+            Make(50, 50, 10, -1),
+            Make(50, 50, 10, 1),
+            Make(50, 50, 10, 10),
+            Make(50, 50, 10, 50),
+            Make(50, 25, 10, -1),
+            Make(50, 25, 10, 1),
+            Make(50, 25, 10, 10),
+            Make(50, 25, 10, 50),
+            Make(64, 64, 2, -1),
+            Make(64, 64, 2, 1),
+            Make(64, 64, 2, 10),
+            Make(64, 64, 2, 50),
+            Make(50, 100, 25, -1),
+            Make(50, 100, 25, 1),
+            Make(50, 100, 25, 10),
+            Make(50, 100, 25, 50),
+            Make(100, 100, 50, -1),
+            Make(100, 100, 50, 1),
+            Make(100, 100, 50, 10),
+            Make(100, 100, 50, 50)
+        );
+    }
+
     public void Text()
     {
 	    string singleLine = "A single line of text.";

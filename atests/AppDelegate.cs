@@ -68,6 +68,7 @@ public class AppDelegate : UIApplicationDelegate {
 		tests.Arcs ();
 		tests.Ovals ();
 		tests.Rects ();
+		tests.RoundedRects ();
 		tests.Text ();
 	}
 }

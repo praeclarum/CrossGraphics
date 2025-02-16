@@ -218,12 +218,14 @@ namespace CrossGraphics.Metal
 
 		public void FillRoundedRect (float x, float y, float width, float height, float radius)
 		{
-			DoRect (x, y, width, height, 0, DrawOp.FillRoundedRect, argy: radius);
+			var pad = ArcPad (radius);
+			DoRect (x-pad, y-pad, width+2*pad, height+2*pad, 0, DrawOp.FillRoundedRect, argy: radius, argz: width, argw: height);
 		}
 
 		public void DrawRoundedRect (float x, float y, float width, float height, float radius, float w)
 		{
-			DoRect (x, y, width, height, w, DrawOp.StrokeRoundedRect, argy: radius);
+			var pad = ArcPad (radius);
+			DoRect (x-pad, y-pad, width+2*pad, height+2*pad, w, DrawOp.StrokeRoundedRect, argy: radius, argz: width, argw: height);
 		}
 
 		float ArcPad(float radius)
@@ -568,8 +570,11 @@ float strokeRect(ColorInOut in)
 float fillRoundedRect(ColorInOut in)
 {
 	float2 p = in.modelPosition;
-	float2 bbMin = in.bb.xy;
-	float2 bbMax = in.bb.zw;
+	float2 center = (in.bb.xy + in.bb.zw) / 2;
+	float width = in.args.z;
+	float height = in.args.w;
+	float2 bbMin = center - float2(width / 2, height / 2);
+	float2 bbMax = center + float2(width / 2, height / 2);
 	float w = in.args.x;
 	float r = in.args.y;
 	if (p.x < bbMin.x + r && p.y < bbMin.y + r) {
@@ -589,7 +594,7 @@ float fillRoundedRect(ColorInOut in)
 		return pr <= r ? 1.0 : 0.0;
 	}
 	else {
-		return 1.0;
+		return (bbMin.x < p.x && p.x < bbMax.x && bbMin.y < p.y && p.y < bbMax.y) ? 1.0 : 0.0;
 	}
 }
 
@@ -599,28 +604,34 @@ float strokeRoundedRect(ColorInOut in)
 	float w = in.args.x;
 	float r = in.args.y;
 	float w2 = w / 2;
-	float2 bbMin = in.bb.xy;// + float2(w2, w2);
-	float2 bbMax = in.bb.zw;// - float2(w2, w2);
+	float width = in.args.z;
+	float height = in.args.w;
+	float2 center = (in.bb.xy + in.bb.zw) / 2;
+	float2 bbMin = center - float2(width / 2 + w2, height / 2 + w2);
+	float2 bbMax = center + float2(width / 2 + w2, height / 2 + w2);
 	float rw2 = r + w2;
 	bool onedge = false;
-	if (p.x < bbMin.x + rw2 && p.y < bbMin.y + rw2) {
+	if (p.x <= bbMin.x + rw2 && p.y <= bbMin.y + rw2) {
 		float pr = length(p - (bbMin + float2(rw2, rw2)));
 		onedge = abs(pr - r) <= w2;
 	}
-	else if (p.x > bbMax.x - rw2 && p.y < bbMin.y + rw2) {
+	else if (p.x >= bbMax.x - rw2 && p.y <= bbMin.y + rw2) {
 		float pr = length(p - float2(bbMax.x, bbMin.y) - float2(-rw2, rw2));
 		onedge = abs(pr - r) <= w2;
 	}
-	else if (p.x > bbMax.x - rw2 && p.y > bbMax.y - rw2) {
+	else if (p.x >= bbMax.x - rw2 && p.y >= bbMax.y - rw2) {
 		float pr = length(p - bbMax - float2(-rw2, -rw2));
 		onedge = abs(pr - r) <= w2;
 	}
-	else if (p.x < bbMin.x + rw2 && p.y > bbMax.y - rw2) {
+	else if (p.x <= bbMin.x + rw2 && p.y >= bbMax.y - rw2) {
 		float pr = length(p - float2(bbMin.x, bbMax.y) - float2(rw2, -rw2));
 		onedge = abs(pr - r) <= w2;
 	}
 	else {
-		onedge = p.x < bbMin.x + w || p.x > bbMax.x - w || p.y < bbMin.y + w || p.y > bbMax.y - w;
+		onedge = (bbMin.x < p.x && p.x < bbMin.x + w && bbMin.y + rw2 < p.y && p.y < bbMax.y - rw2) ||
+                 (bbMax.x - w < p.x && p.x < bbMax.x && bbMin.y + rw2 < p.y && p.y < bbMax.y - rw2) ||
+				(bbMin.y < p.y && p.y < bbMin.y + w && bbMin.x + rw2 < p.x && p.x < bbMax.x - rw2) ||
+				(bbMax.y - w < p.y && p.y < bbMax.y && bbMin.x + rw2 < p.x && p.x < bbMax.x - rw2);
 	}
 	return onedge ? 1.0 : 0.0;
 }
