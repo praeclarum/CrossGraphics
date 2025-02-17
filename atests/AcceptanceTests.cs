@@ -244,20 +244,14 @@ public class AcceptanceTests
         #endif
     };
 
-    void Accept(string name, params Drawing[] drawings)
+    string Accept(string name, params Drawing[] drawings)
     {
         var width = 100;
         var height = 100;
 
         var w = new StringWriter();
-        w.WriteLine($"<html><head><title>{name} - CrossGraphics Test</title>");
-        w.WriteLine($"<style>");
-        w.WriteLine($"html {{ font-family: sans-serif; font-size: 12px; background-color: #333; color: #fff; }}");
-        w.WriteLine($"table {{ font-size: 12px; }}");
-        w.WriteLine($"img {{ background-color: #fff; }}");
-        w.WriteLine($"</style>");
-        w.WriteLine($"</head><body>");
-        w.WriteLine($"<h1>{name}</h1>");
+        WriteHeader(name, w);
+        w.WriteLine($"<h1><a href=\"index.html\">CrossGraphics Tests</a> / {name}</h1>");
         w.WriteLine($"<table border=\"0\" cellspacing=\"8\">");
         w.Write($"<tr><th>Drawing</th>");
         foreach (var platform in Platforms)
@@ -281,10 +275,49 @@ public class AcceptanceTests
         w.WriteLine("</table>");
         w.WriteLine("</body></html>");
         var pendingHTML = w.ToString();
-        File.WriteAllText(Path.Combine(PendingPath, name + ".html"), pendingHTML);
+        string outFileName = name + ".html";
+        File.WriteAllText(Path.Combine(PendingPath, outFileName), pendingHTML);
+        return outFileName;
     }
 
-    public void Arcs()
+    private static void WriteHeader(string title, StringWriter w)
+    {
+	    w.WriteLine($"<html><head><title>{title}</title>");
+	    w.WriteLine($"<style>");
+	    w.WriteLine($"html {{ font-family: sans-serif; font-size: 12px; background-color: #333; color: #fff; }}");
+	    w.WriteLine($"table {{ font-size: 12px; }}");
+	    w.WriteLine($"img {{ background-color: #fff; }}");
+	    w.WriteLine($"a {{ color: #ccf; }}");
+	    w.WriteLine($"a:visited {{ color: #ccf; }}");
+	    w.WriteLine($"</style>");
+	    w.WriteLine($"</head><body>");
+    }
+
+    public void Run ()
+    {
+	    var pages = new string[] {
+		    Arcs (),
+		    Lines (),
+		    Ovals (),
+		    Rects (),
+		    RoundedRects (),
+		    Text ()
+	    };
+	    var w = new StringWriter();
+	    WriteHeader("Cross Graphics Tests", w);
+	    w.WriteLine($"<h1>CrossGraphics Tests</h1>");
+	    w.WriteLine($"<ul>");
+	    foreach (var p in pages) {
+			w.WriteLine($"<li><a href=\"{p}\">{p}</li>");
+	    }
+	    w.WriteLine($"</ul>");
+	    w.WriteLine("</body></html>");
+	    var pendingHTML = w.ToString();
+	    string outFileName = "index.html";
+	    File.WriteAllText(Path.Combine(PendingPath, outFileName), pendingHTML);
+    }
+
+    string Arcs()
     {
         Drawing Make(float startAngle, float endAngle, float w=5) {
             return new Drawing {
@@ -300,7 +333,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    Accept("Arcs",
+	    return Accept("Arcs",
 		    Make (0, MathF.PI * 2.00f),
 		    Make (0, MathF.PI * 2.25f),
 		    Make (-MathF.PI * 0.25f, MathF.PI * 2.25f),
@@ -360,7 +393,7 @@ public class AcceptanceTests
         );
     }
 
-    public void Ovals()
+    string Ovals()
     {
         Drawing Make(float width, float height, float w) {
             return new Drawing {
@@ -379,7 +412,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    Accept("Ovals",
+	    return Accept("Ovals",
             Make(50, 50, -1),
             Make(50, 5, -1),
             Make(5, 50, -1),
@@ -400,7 +433,7 @@ public class AcceptanceTests
         );
     }
 
-    public void Lines()
+    string Lines()
     {
         Drawing MakeHs(float yoff, float w) {
             return new Drawing {
@@ -430,7 +463,7 @@ public class AcceptanceTests
 				}
 			};
 		}	
-	    Accept("Lines",
+	    return Accept("Lines",
             MakeHs(0.00f, 0.25f),
             MakeHs(0.00f, 0.50f),
             MakeHs(0.00f, 0.75f),
@@ -450,7 +483,7 @@ public class AcceptanceTests
         );
     }
 
-    public void Rects()
+    string Rects()
     {
         Drawing Make(float width, float height, float w) {
             return new Drawing {
@@ -468,7 +501,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    Accept("Rects",
+	    return Accept("Rects",
             Make(49.5f, 49.5f, -1),
             Make(49.75f, 49.75f, -1),
             Make(50, 50, -1),
@@ -494,7 +527,7 @@ public class AcceptanceTests
         );
     }
 
-    public void RoundedRects()
+    string RoundedRects()
     {
         Drawing Make(float width, float height, float r, float w) {
             return new Drawing {
@@ -512,7 +545,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    Accept("RoundedRects",
+	    return Accept("RoundedRects",
             Make(50, 50, 10, -1),
             Make(48, 48, 10, 1),
             Make(49, 49, 10, 1),
@@ -538,7 +571,7 @@ public class AcceptanceTests
         );
     }
 
-    public void Text()
+    string Text()
     {
 	    string singleLine = "A single line of text.";
         Drawing MakeRect(string s, string? fontFamily, int fontSize, LineBreakMode lineBreakMode, TextAlignment align) {
@@ -561,7 +594,7 @@ public class AcceptanceTests
             };
         }
         var otherFam = "BoldUserFixedPitch";
-	    Accept("Text",
+	    return Accept("Text",
 		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Left),
 		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Center),
 		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Right),

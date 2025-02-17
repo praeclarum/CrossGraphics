@@ -65,12 +65,7 @@ public class AppDelegate : UIApplicationDelegate {
 		await Task.Delay (1);
 		Console.WriteLine ("Running tests...");
 		var tests = new AcceptanceTests ();
-		tests.Arcs ();
-		tests.Lines ();
-		tests.Ovals ();
-		tests.Rects ();
-		tests.RoundedRects ();
-		tests.Text ();
+		tests.Run ();
 	}
 }
 #endif
