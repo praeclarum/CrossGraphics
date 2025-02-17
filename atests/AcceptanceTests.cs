@@ -4,6 +4,8 @@ using CoreGraphics;
 
 using CrossGraphics;
 
+using Metal;
+
 using Font = Microsoft.Maui.Font;
 using LineBreakMode = CrossGraphics.LineBreakMode;
 using TextAlignment = CrossGraphics.TextAlignment;
@@ -188,13 +190,14 @@ public class AcceptanceTests
 		public override (IGraphics, object?) BeginDrawing (int width, int height)
 		{
 			var renderPassDescriptor = new Metal.MTLRenderPassDescriptor ();
-			var texture = _device.CreateTexture (new Metal.MTLTextureDescriptor {
-				Width = (UIntPtr)width,
-				Height = (UIntPtr)height,
-				PixelFormat = Metal.MTLPixelFormat.RGBA8Uint,
-				Usage = Metal.MTLTextureUsage.RenderTarget
-			})!;
+			var tdesc = Metal.MTLTextureDescriptor.CreateTexture2DDescriptor (MTLPixelFormat.RGBA8Unorm, (UIntPtr)width,
+				(UIntPtr)height, mipmapped: false);
+			tdesc.Usage = Metal.MTLTextureUsage.RenderTarget;
+			var texture = _device.CreateTexture (tdesc)!;
 			renderPassDescriptor.ColorAttachments[0].Texture = texture;
+			renderPassDescriptor.ColorAttachments[0].ClearColor = new Metal.MTLClearColor (0, 0, 0, 0);
+			renderPassDescriptor.ColorAttachments[0].LoadAction = Metal.MTLLoadAction.Clear;
+			renderPassDescriptor.ColorAttachments[0].StoreAction = Metal.MTLStoreAction.Store;
 			var commandBuffer = _commandQueue.CommandBuffer ()!;
 			var renderEncoder = commandBuffer.CreateRenderCommandEncoder (renderPassDescriptor);
 			var g = new CrossGraphics.Metal.MetalGraphics (renderEncoder, width, height, _buffers);

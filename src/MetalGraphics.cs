@@ -340,15 +340,17 @@ namespace CrossGraphics.Metal
 
 		readonly CGColor _whiteCGColor = new CGColor (1, 1, 1, 1);
 
+		static int GetRenderFontSize (int fontSize) => 32;//Math.Min(96, Math.Max(1, ((fontSize + 15) / 16) * 16 * 2));
+
 		public void DrawString (string s, float x, float y)
 		{
 			var font = CrossGraphics.CoreGraphics.CoreGraphicsGraphics.GetFontName (_currentFont);
-			var regionO = _buffers.FindExistingSdfTextureRegion (s, font);
+			var fontSize = _currentFont.Size;
+			var renderFontSize = GetRenderFontSize (fontSize);
+			var regionO = _buffers.FindExistingSdfTextureRegion (s, font, renderFontSize);
 
-			var renderFontSize = (nfloat)32.0;
-
-			var hpadding = renderFontSize * 0.1;
-			var vpadding = renderFontSize * 0.2;
+			var hpadding = MathF.Max (2.0f, renderFontSize * 0.1f);
+			var vpadding = MathF.Max (2.0f, renderFontSize * 0.2f);
 
 			if (regionO is null) {
 				using var atext = new NSMutableAttributedString (s, _buffers.GetCTStringAttributes(font, renderFontSize));
@@ -357,7 +359,7 @@ namespace CrossGraphics.Metal
 
 				var drawWidth = (float)(len + 2.0 * hpadding);
 				var drawHeight = (float)(renderFontSize + 2.0 * vpadding);
-				regionO = _buffers.DrawSdfTextureRegion (s, font, drawWidth, drawHeight, (cgContext) => {
+				regionO = _buffers.DrawSdfTextureRegion (s, font, renderFontSize, drawWidth, drawHeight, (cgContext) => {
 					// cgContext.SetFillColor ((nfloat)0.5, (nfloat)0.5, (nfloat)0.5, 1);
 					// if (s.Length > 5) {
 					// 	cgContext.FillEllipseInRect (new CGRect (0, 0, drawWidth, drawHeight));
@@ -365,15 +367,17 @@ namespace CrossGraphics.Metal
 					// else {
 					// 	cgContext.FillRect (new CGRect (0, 0, drawWidth, drawHeight));
 					// }
+					// cgContext.SetFillColor (1, 1, 0, 0.25f);
+					// cgContext.FillRect (new CGRect (0, 0, drawWidth, drawHeight));
 					cgContext.SetFillColor (1, 1, 1, 1);
-					cgContext.TextMatrix = CGAffineTransform.MakeScale (1, 1);
-					cgContext.TranslateCTM ((nfloat)hpadding, (nfloat)(renderFontSize * 0.15 + vpadding));
+					// cgContext.TextMatrix = CGAffineTransform.MakeScale (1, -1);
+					cgContext.TranslateCTM ((nfloat)hpadding, drawHeight - vpadding - (nfloat)(renderFontSize * 0.8333));
 					drawLine.Draw (cgContext);
 				});
 			}
 
 			if (regionO is SdfTextureRegion region) {
-				var fontScale = (float)(_currentFont.Size / renderFontSize);
+				var fontScale = fontSize / (float)renderFontSize;
 				var width = region.DrawSize.X * fontScale;
 				var height = region.DrawSize.Y * fontScale;
 				var buffer = _buffers.GetPrimitivesBuffer(numVertices: 4, numIndices: 6);
@@ -1153,7 +1157,6 @@ fragment float4 fragmentShader(
 			AddToFreeList (mergedRect, mergedRect.Bottom, _freeBottom);
 		}
 
-		const int padding = 4;
 		IntPtr _drawingData = IntPtr.Zero;
 		int _drawingDataSize = 0;
 
@@ -1169,12 +1172,15 @@ fragment float4 fragmentShader(
 			if (Texture is null) {
 				return null;
 			}
-			var paddedWidth = width + padding * 2;
-			var paddedHeight = height + padding * 2;
+			var newPadding = 2;
+			var paddedWidth = width + newPadding * 2;
+			var paddedHeight = height + newPadding * 2;
 			var subRect = Alloc (paddedWidth, paddedHeight);
 			if (subRect is null) {
 				return null;
 			}
+			var xscale = subRect.Width / paddedWidth;
+			var yscale = subRect.Height / paddedHeight;
 			var bitsPerComponent = 32;
 			var bytesPerRow = (subRect.Width * bitsPerComponent) / 8;
 			var bitmapFlags = CGBitmapFlags.FloatComponents;
@@ -1196,8 +1202,8 @@ fragment float4 fragmentShader(
 			using var cs = CGColorSpace.CreateDeviceGray ();
 			using var cgContext = new CGBitmapContext (_drawingData, subRect.Width, subRect.Height, bitsPerComponent, bytesPerRow, cs, bitmapFlags);
 			cgContext.ClearRect (new CGRect (0, 0, subRect.Width, subRect.Height));
-			cgContext.TranslateCTM (padding, padding);
-			// cgContext.ScaleCTM (1, -1);
+			cgContext.ScaleCTM (xscale, yscale);
+			cgContext.TranslateCTM (newPadding, newPadding);
 			draw (cgContext);
 			cgContext.Flush ();
 			var data = cgContext.Data;
@@ -1206,8 +1212,12 @@ fragment float4 fragmentShader(
 					(nuint)subRect.Height);
 				Texture.ReplaceRegion (region: region, level: 0, pixelBytes: data, bytesPerRow: (nuint)bytesPerRow);
 			}
-			var unPaddedSubRect = new SubRect (subRect.X + padding, subRect.Y + padding, subRect.Width - padding * 2, subRect.Height - padding * 2);
-			return new SdfTextureRegion (TextureIndex, unPaddedSubRect.UVBoundingBox, new Vector2 (width, height), subRect);
+			var uMin = (subRect.X + newPadding * xscale) / MaxWidth;
+			var vMin = (subRect.Y + newPadding * yscale) / MaxHeight;
+			var du = (subRect.Width - 2 * newPadding * xscale) / MaxWidth;
+			var dv = (subRect.Height - 2 * newPadding * yscale) / MaxHeight;
+			var uvbb = new Vector4 (uMin, vMin, uMin + du, vMin + dv);
+			return new SdfTextureRegion (TextureIndex, uvbb, new Vector2 (width, height), subRect);
 		}
 	}
 
@@ -1215,21 +1225,23 @@ fragment float4 fragmentShader(
 	{
 		public readonly string Text;
 		public readonly string Font;
-		public SdfKey (string text, string font)
+		public readonly int RenderSize;
+		public SdfKey (string text, string font, int renderSize)
 		{
 			Text = text;
 			Font = font;
+			RenderSize = renderSize;
 		}
 		public override bool Equals (object? obj)
 		{
 			if (obj is SdfKey key) {
-				return key.Text == Text && key.Font == Font;
+				return key.Text == Text && key.Font == Font && key.RenderSize == RenderSize;
 			}
 			return false;
 		}
 		public override int GetHashCode ()
 		{
-			return HashCode.Combine (Text, Font);
+			return HashCode.Combine (Text, Font, RenderSize);
 		}
 	}
 
@@ -1238,11 +1250,11 @@ fragment float4 fragmentShader(
 		public static readonly SdfKeyComparer Shared = new SdfKeyComparer ();
 		public bool Equals (SdfKey x, SdfKey y)
 		{
-			return x.Text == y.Text && x.Font == y.Font;
+			return x.Text == y.Text && x.Font == y.Font && x.RenderSize == y.RenderSize;
 		}
 		public int GetHashCode (SdfKey obj)
 		{
-			return HashCode.Combine (obj.Text, obj.Font);
+			return HashCode.Combine (obj.Text, obj.Font, obj.RenderSize);
 		}
 	}
 
@@ -1278,7 +1290,7 @@ fragment float4 fragmentShader(
 		readonly IntPtr _uniformsBufferPointer;
 		public IMTLBuffer? Uniforms => _uniformsBuffer;
 
-		readonly Dictionary<string, CTStringAttributes> _cachedStringAttributes = new ();
+		readonly Dictionary<string, Dictionary<int, CTStringAttributes>> _cachedStringAttributes = new ();
 
 		int _frame = 0;
 
@@ -1311,10 +1323,10 @@ fragment float4 fragmentShader(
 			_currentPrimitiveBufferIndex++;
 			return buffer;
 		}
-
-		public SdfTextureRegion? FindExistingSdfTextureRegion (string text, string font)
+		
+		public SdfTextureRegion? FindExistingSdfTextureRegion (string text, string font, int renderFontSize)
 		{
-			var key = new SdfKey (text, font);
+			var key = new SdfKey (text, font, renderFontSize);
 			if (_sdfValues.TryGetValue (key, out var value)) {
 				value.LastUsedFrame = _frame;
 				return value;
@@ -1322,9 +1334,9 @@ fragment float4 fragmentShader(
 			return null;
 		}
 
-		public SdfTextureRegion? DrawSdfTextureRegion (string text, string font, float width, float height, Action<CGContext> draw)
+		public SdfTextureRegion? DrawSdfTextureRegion (string text, string font, int renderFontSize, float width, float height, Action<CGContext> draw)
 		{
-			var key = new SdfKey (text, font);
+			var key = new SdfKey (text, font, renderFontSize);
 			var textureIndex = 0;
 			var texture = _sdfTextures[textureIndex];
 			var numTries = 2;
@@ -1377,17 +1389,21 @@ fragment float4 fragmentShader(
 			}
 		}
 
-		public CTStringAttributes GetCTStringAttributes(string font, nfloat renderFontSize)
+		public CTStringAttributes GetCTStringAttributes(string font, int renderFontSize)
 		{
-			if (_cachedStringAttributes.TryGetValue (font, out var attrs)) {
-				return attrs;
+			if (!_cachedStringAttributes.TryGetValue (font, out var attrs)) {
+				attrs = new Dictionary<int, CTStringAttributes> ();
+				_cachedStringAttributes[font] = attrs;
 			}
-			attrs = new CTStringAttributes {
+			if (attrs.TryGetValue (renderFontSize, out var a)) {
+				return a;
+			}
+			a = new CTStringAttributes {
 				ForegroundColorFromContext = true,
 				Font = new CTFont (font, renderFontSize),
 			};
-			_cachedStringAttributes[font] = attrs;
-			return attrs;
+			attrs[renderFontSize] = a;
+			return a;
 		}
 	}
 }
