@@ -803,20 +803,6 @@ float calculateRoundedThickLineAABBIntersectionArea(
 	return intersectionSize.x * intersectionSize.y;
 }
 
-float drawAALine(ColorInOut in, float2 dpdx, float2 dpdy)
-{
-	float2 p3 = in.modelPosition;
-	float2 pixelMin = p3 - 0.5*dpdx - 0.5*dpdy;
-	float2 pixelMax = p3 + 0.5*dpdx + 0.5*dpdy;
-	float2 pixelD = pixelMax - pixelMin;
-	float pixelArea = pixelD.x * pixelD.y;
-	float2 p1 = in.args.xy;
-	float2 p2 = in.texCoord;
-	float w = in.args.w;
-	float intersectArea = calculateRoundedThickLineAABBIntersectionArea(p1, p2, w, pixelMin, pixelMax);
-	return intersectArea / pixelArea;
-}
-
 float fillArc(ColorInOut in)
 {
 	float2 p = in.modelPosition;
@@ -942,10 +928,31 @@ fragment float4 fragmentShader(
     float2 dx = dfdx(in.modelPosition);
     float2 dy = dfdy(in.modelPosition);
     
+	float2 p3 = in.modelPosition;
+	float2 pixelMin = p3 - 0.5*dx - 0.5*dy;
+	float2 pixelMax = p3 + 0.5*dx + 0.5*dy;
+	float2 pixelD = pixelMax - pixelMin;
+	float pixelArea = pixelD.x * pixelD.y;
+
     float mask = 0.0;
-	if (op == 14) {
-		mask = drawAALine(in, dx, dy);
-		mask = sqrt(mask);
+	if (op == 0) { // FillRect
+		float2 center = (in.bb.xy + in.bb.zw) / 2;
+		float width = in.args.z;
+		float height = in.args.w;
+		float2 bbMin = center - float2(width / 2, height / 2);
+		float2 bbMax = center + float2(width / 2, height / 2);
+		float2 intersectionMin = max(bbMin, pixelMin);
+		float2 intersectionMax = min(bbMax, pixelMax);
+		float2 intersectionSize = max(intersectionMax - intersectionMin, float2(0, 0));
+		float intersectArea = intersectionSize.x * intersectionSize.y;
+		mask = intersectArea / pixelArea;
+	}
+	else if (op == 14) { // DrawLine
+		float2 p1 = in.args.xy;
+		float2 p2 = in.texCoord;
+		float w = in.args.w;
+		float intersectArea = calculateRoundedThickLineAABBIntersectionArea(p1, p2, w, pixelMin, pixelMax);
+		mask = intersectArea / pixelArea;
 	}
 	else {
 		for (int i = 0; i < 4; i++) {
@@ -990,8 +997,9 @@ fragment float4 fragmentShader(
 				break;
 			}
 		}
-		mask = clamp(sqrt(mask / 4.0), 0.0, 1.0);
+		mask = mask / 4.0;
 	}
+	mask = sqrt(mask);
 	if (mask < 0.004) {
 		discard_fragment();
 	}

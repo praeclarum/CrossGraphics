@@ -455,8 +455,16 @@ public class AcceptanceTests
             };
         }
 	    Accept("Rects",
+            Make(49.5f, 49.5f, -1),
+            Make(49.75f, 49.75f, -1),
             Make(50, 50, -1),
+            Make(48, 48, 0.125f),
+            Make(48, 48, 0.25f),
+            Make(48, 48, 0.3333f),
+            Make(48, 48, 0.75f),
             Make(48, 48, 1),
+            Make(48, 48, 1.125f),
+            Make(48, 48, 1.333f),
             Make(49, 49, 1),
             Make(50, 50, 1),
             Make(50, 50, 10),
