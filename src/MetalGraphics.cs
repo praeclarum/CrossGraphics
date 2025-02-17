@@ -947,6 +947,22 @@ fragment float4 fragmentShader(
 		float intersectArea = intersectionSize.x * intersectionSize.y;
 		mask = intersectArea / pixelArea;
 	}
+	if (op == 1) { // StrokeRect
+		float2 center = (in.bb.xy + in.bb.zw) / 2;
+		float w = in.args.x;
+		float w2 = w / 2.0;
+		float width = in.args.z;
+		float height = in.args.w;
+		float2 bbMin = center - float2(width / 2, height / 2);
+		float2 bbMax = center + float2(width / 2, height / 2);
+		float leftArea = calculateThickLineAABBIntersectionArea(float2(bbMin.x, bbMin.y - w2), float2(bbMin.x, bbMax.y + w2), w, pixelMin, pixelMax);
+		float rightArea = calculateThickLineAABBIntersectionArea(float2(bbMax.x, bbMin.y - w2), float2(bbMax.x, bbMax.y + w2), w, pixelMin, pixelMax);
+		float topArea = calculateThickLineAABBIntersectionArea(float2(bbMin.x - w2, bbMax.y), float2(bbMax.x + w2, bbMax.y), w, pixelMin, pixelMax);
+		float bottomArea = calculateThickLineAABBIntersectionArea(float2(bbMin.x - w2, bbMin.y), float2(bbMax.x + w2, bbMin.y), w, pixelMin, pixelMax);
+		//float intersectArea = max(max(max(leftArea, rightArea), topArea), bottomArea);
+		float intersectArea = leftArea + rightArea + topArea + bottomArea;
+		mask = intersectArea / pixelArea;
+	}
 	else if (op == 14) { // DrawLine
 		float2 p1 = in.args.xy;
 		float2 p2 = in.texCoord;
