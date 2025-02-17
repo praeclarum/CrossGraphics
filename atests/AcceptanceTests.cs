@@ -6,8 +6,8 @@ using CrossGraphics;
 
 using Metal;
 
-using Font = Microsoft.Maui.Font;
 using LineBreakMode = CrossGraphics.LineBreakMode;
+using PointF = System.Drawing.PointF;
 using TextAlignment = CrossGraphics.TextAlignment;
 
 namespace CrossGraphicsTests;
@@ -299,6 +299,7 @@ public class AcceptanceTests
 		    Arcs (),
 		    Lines (),
 		    Ovals (),
+		    Polygons (),
 		    Rects (),
 		    RoundedRects (),
 		    Text ()
@@ -481,6 +482,41 @@ public class AcceptanceTests
             MakeVs(0.50f, 0.75f),
             MakeVs(0.50f, 1.00f)
         );
+    }
+
+    string Polygons()
+    {
+	    Drawing Make(float alpha, float w) {
+		    return new Drawing {
+			    Title = $"Tri_A{alpha:F2}_L{w:F2}",
+			    Draw = args => {
+				    args.Graphics.SetRgba (0, 0, 128, (byte)MathF.Round(255 * alpha));
+				    var poly = new Polygon (3);
+				    poly.Points.Add (new PointF (30, 70));
+				    poly.Points.Add (new PointF (60.5f, 60.5f));
+				    poly.Points.Add (new PointF (50.0f, 21.0f));
+				    if (w < 0)
+				    {
+						args.Graphics.FillPolygon (poly);
+				    }
+				    else {
+						args.Graphics.DrawPolygon (poly, w);
+				    }
+			    }
+		    };
+	    }
+	    return Accept("Polygons",
+		    Make(1.0f, -1),
+		    Make(1.0f, 0.125f),
+		    Make(1.0f, 0.333f),
+		    Make(1.0f, 1.75f),
+		    Make(1.0f, 4.5f),
+		    Make(0.5f, -1),
+		    Make(0.5f, 0.125f),
+		    Make(0.5f, 0.333f),
+		    Make(0.5f, 1.75f),
+		    Make(0.5f, 4.5f)
+	    );
     }
 
     string Rects()

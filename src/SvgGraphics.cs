@@ -231,7 +231,7 @@ namespace CrossGraphics
 
 		public void DrawPolygon (Polygon poly, float w)
 		{
-			Write("<polygon stroke=\"{0}\" stroke-opacity=\"{1}\" stroke-width=\"{2}\" fill=\"none\" points=\"", _lastColor, _lastColorOpacity, w * XScale);
+			Write("<polygon stroke=\"{0}\" stroke-opacity=\"{1}\" stroke-width=\"{2}\" stroke-linejoin=\"round\" fill=\"none\" points=\"", _lastColor, _lastColorOpacity, w * XScale);
 			foreach (var p in poly.Points) {
 				var t = Transform (p);
 				Write ("{0}", t.X);
