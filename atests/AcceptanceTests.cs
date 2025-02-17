@@ -374,7 +374,12 @@ public class AcceptanceTests
             };
         }
 	    Accept("Ovals",
+            Make(50, 50, 0.125f),
+            Make(50, 50, 0.25f),
+            Make(50, 50, 0.333f),
+            Make(50, 50, 0.75f),
             Make(50, 50, 1),
+            Make(50, 50, 1.333f),
             Make(50, 50, 10),
             Make(50, 50, 50),
             Make(50, 100, 1),

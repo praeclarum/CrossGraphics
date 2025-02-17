@@ -947,7 +947,7 @@ fragment float4 fragmentShader(
 		float intersectArea = intersectionSize.x * intersectionSize.y;
 		mask = intersectArea / pixelArea;
 	}
-	if (op == 1) { // StrokeRect
+	else if (op == 1) { // StrokeRect
 		float2 center = (in.bb.xy + in.bb.zw) / 2;
 		float w = in.args.x;
 		float w2 = w / 2.0;
@@ -960,6 +960,20 @@ fragment float4 fragmentShader(
 		float topArea = calculateThickLineAABBIntersectionArea(float2(bbMin.x - w2, bbMax.y), float2(bbMax.x + w2, bbMax.y), w, pixelMin, pixelMax);
 		float bottomArea = calculateThickLineAABBIntersectionArea(float2(bbMin.x - w2, bbMin.y), float2(bbMax.x + w2, bbMin.y), w, pixelMin, pixelMax);
 		float intersectArea = max(max(max(leftArea, rightArea), topArea), bottomArea);
+		mask = intersectArea / pixelArea;
+	}
+	else if (op == 5) { // StrokeOval
+		float2 center = (in.bb.xy + in.bb.zw) / 2;
+		float2 radius = in.args.zw / 2;
+		float w = in.args.x;
+		float w2 = w / 2;
+		float2 d = (p3 - center);
+		float angle = atan2(d.y/radius.y, d.x/radius.x);
+		float2 linearizedEdgeCenter = float2(cos(angle), sin(angle)) * radius;
+		float2 linearizedEdgeTangent = normalize(float2(cos(angle+0.001), sin(angle+0.001)) * radius - linearizedEdgeCenter);
+		float2 linearizedEdgeP1 = center + linearizedEdgeCenter - linearizedEdgeTangent * pixelArea * 10.0;
+		float2 linearizedEdgeP2 = center + linearizedEdgeCenter + linearizedEdgeTangent * pixelArea * 10.0;
+		float intersectArea = calculateThickLineAABBIntersectionArea(linearizedEdgeP1, linearizedEdgeP2, w, pixelMin, pixelMax);
 		mask = intersectArea / pixelArea;
 	}
 	else if (op == 14) { // DrawLine
@@ -1014,7 +1028,7 @@ fragment float4 fragmentShader(
 		}
 		mask = mask / 4.0;
 	}
-	mask = sqrt(mask);
+	mask = max(0.0, min(1.0, sqrt(mask)));
 	if (mask < 0.004) {
 		discard_fragment();
 	}
