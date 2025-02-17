@@ -366,14 +366,23 @@ public class AcceptanceTests
             return new Drawing {
                 Title = $"Oval_W{width:F2}_H{height:F2}_L{w:F2}",
                 Draw = args => {
-                    args.Graphics.SetRgba(0, 0, 128, 255);
-                    var x = args.Width / 2 - width / 2;
-                    var y = args.Height / 2 - height / 2;
-                    args.Graphics.DrawOval(new RectangleF(x, y, width, height), w);
+	                args.Graphics.SetRgba (0, 0, 128, 255);
+	                var x = args.Width / 2 - width / 2;
+	                var y = args.Height / 2 - height / 2;
+	                if (w < 0)
+	                {
+		                args.Graphics.FillOval(new RectangleF(x, y, width, height));
+	                }
+	                else {
+		                args.Graphics.DrawOval (new RectangleF (x, y, width, height), w);
+	                }
                 }
             };
         }
 	    Accept("Ovals",
+            Make(50, 50, -1),
+            Make(50, 5, -1),
+            Make(5, 50, -1),
             Make(50, 50, 0.125f),
             Make(50, 50, 0.25f),
             Make(50, 50, 0.333f),

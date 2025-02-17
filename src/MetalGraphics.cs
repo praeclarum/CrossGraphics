@@ -803,6 +803,27 @@ float calculateRoundedThickLineAABBIntersectionArea(
 	return intersectionSize.x * intersectionSize.y;
 }
 
+float calculateOvalAABBIntersectionArea(float2 center, float2 radius, float2 pixelMin, float2 pixelMax) {
+	if (pixelMin.x > center.x + radius.x || pixelMax.x < center.x - radius.x ||
+		pixelMin.y > center.y + radius.y || pixelMax.y < center.y - radius.y) {
+		return 0.0;
+	}
+	float2 pixelD = pixelMax - pixelMin;
+	float2 d = abs((pixelMin + pixelMax) * 0.5 - center);
+	float angle = atan2(d.y / radius.y, d.x / radius.x);
+	float yradius = max(0.0, radius.y * sin(angle));
+	float xradius = max(0.0, radius.x * cos(angle));
+	float rradius = sqrt(xradius * xradius + yradius * yradius);
+	float distance = length(d);
+	float pixelRY = pixelD.x / 2;
+	float2 bbMin = float2(0, -pixelRY);
+	float2 bbMax = float2(rradius, pixelRY);
+	float2 intersectionMin = max(bbMin, float2(distance - pixelD.x / 2, -pixelRY));
+	float2 intersectionMax = min(bbMax, float2(distance + pixelD.x / 2, pixelRY));
+	float2 intersectionSize = max(intersectionMax - intersectionMin, float2(0, 0));
+	return intersectionSize.x * intersectionSize.y;
+}
+
 float fillArc(ColorInOut in)
 {
 	float2 p = in.modelPosition;
@@ -962,19 +983,31 @@ fragment float4 fragmentShader(
 		float intersectArea = max(max(max(leftArea, rightArea), topArea), bottomArea);
 		mask = intersectArea / pixelArea;
 	}
+	else if (op == 4) { // FillOval
+		float2 center = (in.bb.xy + in.bb.zw) / 2;
+		float2 radius = in.args.zw / 2;
+		float intersectArea = calculateOvalAABBIntersectionArea(center, radius, pixelMin, pixelMax);
+		mask = intersectArea / pixelArea;
+	}
 	else if (op == 5) { // StrokeOval
 		float2 center = (in.bb.xy + in.bb.zw) / 2;
 		float2 radius = in.args.zw / 2;
 		float w = in.args.x;
 		float w2 = w / 2;
-		float2 d = (p3 - center);
-		float angle = atan2(d.y/radius.y, d.x/radius.x);
-		float2 linearizedEdgeCenter = float2(cos(angle), sin(angle)) * radius;
-		float2 linearizedEdgeTangent = normalize(float2(cos(angle+0.001), sin(angle+0.001)) * radius - linearizedEdgeCenter);
-		float2 linearizedEdgeP1 = center + linearizedEdgeCenter - linearizedEdgeTangent * pixelArea * 10.0;
-		float2 linearizedEdgeP2 = center + linearizedEdgeCenter + linearizedEdgeTangent * pixelArea * 10.0;
-		float intersectArea = calculateThickLineAABBIntersectionArea(linearizedEdgeP1, linearizedEdgeP2, w, pixelMin, pixelMax);
-		mask = intersectArea / pixelArea;
+		if (w2 >= radius.x || w2 >= radius.y) {
+			float intersectArea = calculateOvalAABBIntersectionArea(center, radius + float2(w2, w2), pixelMin, pixelMax);
+			mask = intersectArea / pixelArea;
+		}
+		else {
+			float2 d = (p3 - center);
+			float angle = atan2(d.y/radius.y, d.x/radius.x);
+			float2 linearizedEdgeCenter = float2(cos(angle), sin(angle)) * radius;
+			float2 linearizedEdgeTangent = normalize(float2(cos(angle+0.001), sin(angle+0.001)) * radius - linearizedEdgeCenter);
+			float2 linearizedEdgeP1 = center + linearizedEdgeCenter - linearizedEdgeTangent * pixelArea * 10.0;
+			float2 linearizedEdgeP2 = center + linearizedEdgeCenter + linearizedEdgeTangent * pixelArea * 10.0;
+			float intersectArea = calculateThickLineAABBIntersectionArea(linearizedEdgeP1, linearizedEdgeP2, w, pixelMin, pixelMax);
+			mask = intersectArea / pixelArea;
+		}
 	}
 	else if (op == 14) { // DrawLine
 		float2 p1 = in.args.xy;
