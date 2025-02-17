@@ -320,8 +320,11 @@ namespace CrossGraphics
 			var dx = ex - sx;
 			var dy = ey - sy;
 			var distance = MathF.Sqrt(dx * dx + dy * dy);
+			if (distance < 1e-6f) {
+				return;
+			}
     
-			if (distance > 0.0f && distance < scRadius * 2.0f) {
+			if (distance < scRadius * 2.0f) {
 				var h  = MathF.Sqrt (scRadius * scRadius - (distance * distance / 4));
 				var ux  = -dy / distance;
 				var uy  = dx / distance;
