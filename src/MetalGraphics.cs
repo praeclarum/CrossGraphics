@@ -71,6 +71,7 @@ namespace CrossGraphics.Metal
 		public MetalGraphics (IMTLRenderCommandEncoder renderEncoder, float viewWidth, float viewHeight, MetalGraphicsBuffers buffers)
 		{
 			_renderEncoder = renderEncoder ?? throw new ArgumentNullException (nameof(renderEncoder));
+			_renderEncoder.SetCullMode (MTLCullMode.None);
 			_buffers = buffers ?? throw new ArgumentNullException (nameof(buffers));
 			// View is (0,0) to (viewWidth, viewHeight)
 			// Viewport is (-1,-1) to (1,1)
@@ -1046,7 +1047,7 @@ fragment float4 fragmentShader(
 				mask += strokeArc(sample);
 				break;
 			case 8: // FillPolygon
-				mask += fillRect(sample);
+				mask += 1.0;
 				break;
 			case 13: // DrawString
 				mask += drawString(sample, sdf0);
