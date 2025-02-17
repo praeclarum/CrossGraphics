@@ -393,8 +393,8 @@ public class AcceptanceTests
                 Title = $"HLine_O{yoff:F2}_L{w:F2}",
                 Draw = args => {
                     args.Graphics.SetRgba(0, 0, 128, 255);
-                    var n = 4;
-                    var y = args.Height / 2 - n * w * 2;
+                    var n = 7;
+                    var y = args.Height / 2 - n * w * 6;
                     for (var i = 0; i < n; i++) {
 	                    args.Graphics.DrawLine(20, y + yoff, args.Width-20, y, w*(i + 1));
 	                    y += 4 * w * (i + 1);
@@ -407,8 +407,8 @@ public class AcceptanceTests
 				Title = $"VLine_O{xoff:F2}_L{w:F2}",
 				Draw = args => {
 					args.Graphics.SetRgba(0, 0, 128, 255);
-					var n = 4;
-					var x = args.Width / 2 - n * w * 2;
+					var n = 7;
+					var x = args.Width / 2 - n * w * 6;
 					for (var i = 0; i < n; i++) {
 	                    args.Graphics.DrawLine(x + xoff, 20, x, args.Height-20, w*(i + 1));
 	                    x += 4 * w * (i + 1);
