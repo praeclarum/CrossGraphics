@@ -386,6 +386,34 @@ public class AcceptanceTests
         );
     }
 
+    public void Lines()
+    {
+        Drawing MakeHs(float yoff, float w) {
+            return new Drawing {
+                Title = $"HLine_O{yoff:F2}_L{w:F2}",
+                Draw = args => {
+                    args.Graphics.SetRgba(0, 0, 128, 255);
+                    var n = 4;
+                    var y = args.Height / 2 - n * w * 2;
+                    for (var i = 0; i < n; i++) {
+	                    args.Graphics.DrawLine(20, y + yoff, args.Width-20, y, w*(i + 1));
+	                    y += 4 * w * (i + 1);
+                    }
+                }
+            };
+        }
+	    Accept("Lines",
+            MakeHs(0.00f, 0.25f),
+            MakeHs(0.00f, 0.50f),
+            MakeHs(0.00f, 0.75f),
+            MakeHs(0.00f, 1.00f),
+            MakeHs(0.50f, 0.25f),
+            MakeHs(0.50f, 0.50f),
+            MakeHs(0.50f, 0.75f),
+            MakeHs(0.50f, 1.00f)
+        );
+    }
+
     public void Rects()
     {
         Drawing Make(float width, float height, float w) {

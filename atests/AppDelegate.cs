@@ -66,6 +66,7 @@ public class AppDelegate : UIApplicationDelegate {
 		Console.WriteLine ("Running tests...");
 		var tests = new AcceptanceTests ();
 		tests.Arcs ();
+		tests.Lines ();
 		tests.Ovals ();
 		tests.Rects ();
 		tests.RoundedRects ();
