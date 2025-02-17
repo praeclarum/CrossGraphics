@@ -298,15 +298,15 @@ namespace CrossGraphics.Metal
 			}
 			var w2 = w / 2;
 			var bbv = new Vector4 (sx, sy, ex, ey);
-			var args = new Vector4 (w, 0, 0, 0);
-			var ox = dx / len * w2;
-			var oy = dy / len * w2;
+			var args = new Vector4 (sx, sy, 0, w);
+			var ox = dx / len * w2 * 4.0f;
+			var oy = dy / len * w2 * 4.0f;
 			var nx = oy;
 			var ny = -ox;
-			var v0 = buffer.AddVertex (sx - ox - nx, sy - oy - ny, 0, 0, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
-			var v1 = buffer.AddVertex (sx - ox  + nx, sy - oy + ny, 1, 0, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
-			var v2 = buffer.AddVertex (ex + ox + nx, ey + oy + ny, 1, 1, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
-			var v3 = buffer.AddVertex (ex + ox - nx, ey + oy - ny, 0, 1, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
+			var v0 = buffer.AddVertex (sx - ox - nx, sy - oy - ny, ex, ey, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
+			var v1 = buffer.AddVertex (sx - ox  + nx, sy - oy + ny, ex, ey, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
+			var v2 = buffer.AddVertex (ex + ox + nx, ey + oy + ny, ex, ey, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
+			var v3 = buffer.AddVertex (ex + ox - nx, ey + oy - ny, ex, ey, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
 			buffer.AddTriangle (v0, v1, v2);
 			buffer.AddTriangle (v2, v3, v0);
 		}
@@ -693,9 +693,9 @@ float drawString(ColorInOut in, texture2d<float> sdf)
 float drawLine(ColorInOut in)
 {
 	float2 p3 = in.modelPosition;
-	float2 p1 = in.bb.xy;
-	float2 p2 = in.bb.zw;
-	float w = in.args.x;
+	float2 p1 = in.args.xy;
+	float2 p2 = in.texCoord;
+	float w = in.args.w;
 	float w2 = w / 2.0;
 	float2 d21 = p2 - p1;
 	float denom = dot(d21, d21);
@@ -704,17 +704,17 @@ float drawLine(ColorInOut in)
 	}
 	float2 d31 = p3 - p1;
 	float t = dot(d31, d21) / denom;
+	float dist = 0.0f;
 	if (t < 0) {
-		float dist = length(p3 - p1);
-		return dist < w2 ? 1.0 : 0.0;
+		dist = length(p3 - p1);
 	}
 	else if (t > 1) {
-		float dist = length(p3 - p2);
-		return dist < w2 ? 1.0 : 0.0;
+		dist = length(p3 - p2);
 	}
 	else {
-		return 1.0;
+		dist = length(p3 - (p1 + t * d21));
 	}
+	return dist < w2 ? 1.0 : 0.0;
 }
 
 float fillArc(ColorInOut in)

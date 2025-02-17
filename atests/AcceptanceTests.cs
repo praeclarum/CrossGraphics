@@ -402,6 +402,20 @@ public class AcceptanceTests
                 }
             };
         }
+        Drawing MakeVs(float xoff, float w) {
+			return new Drawing {
+				Title = $"VLine_O{xoff:F2}_L{w:F2}",
+				Draw = args => {
+					args.Graphics.SetRgba(0, 0, 128, 255);
+					var n = 4;
+					var x = args.Width / 2 - n * w * 2;
+					for (var i = 0; i < n; i++) {
+	                    args.Graphics.DrawLine(x + xoff, 20, x, args.Height-20, w*(i + 1));
+	                    x += 4 * w * (i + 1);
+					}
+				}
+			};
+		}	
 	    Accept("Lines",
             MakeHs(0.00f, 0.25f),
             MakeHs(0.00f, 0.50f),
@@ -410,7 +424,15 @@ public class AcceptanceTests
             MakeHs(0.50f, 0.25f),
             MakeHs(0.50f, 0.50f),
             MakeHs(0.50f, 0.75f),
-            MakeHs(0.50f, 1.00f)
+            MakeHs(0.50f, 1.00f),
+            MakeVs(0.00f, 0.25f),
+            MakeVs(0.00f, 0.50f),
+            MakeVs(0.00f, 0.75f),
+            MakeVs(0.00f, 1.00f),
+            MakeVs(0.50f, 0.25f),
+            MakeVs(0.50f, 0.50f),
+            MakeVs(0.50f, 0.75f),
+            MakeVs(0.50f, 1.00f)
         );
     }
 
