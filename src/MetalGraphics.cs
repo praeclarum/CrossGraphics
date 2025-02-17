@@ -755,6 +755,54 @@ float calculateThickLineAABBIntersectionArea(
 	return intersectionSize.x * intersectionSize.y;
 }
 
+float calculateRoundedThickLineAABBIntersectionArea(
+    float2 p1,           // Start point of line segment
+    float2 p2,           // End point of line segment
+    float width,         // Width of the line
+    float2 boxMin,       // Min corner of AABB
+    float2 boxMax        // Max corner of AABB
+) {
+    // 1. Transform line segment to have p1 at origin and be aligned with x-axis
+    float2 dir = p2 - p1;
+    float lineLength = length(dir);
+    float2 unit_dir = dir / lineLength;
+    
+    // 2. Transform corners to line space
+    float2x2 inv_rotation = float2x2(unit_dir.x, -unit_dir.y, unit_dir.y, unit_dir.x);
+	float2 corner0 = inv_rotation * (boxMin - p1);
+	float2 corner1 = inv_rotation * (float2(boxMax.x, boxMin.y) - p1);
+	float2 corner2 = inv_rotation * (boxMax - p1);
+	float2 corner3 = inv_rotation * (float2(boxMin.x, boxMax.y) - p1);
+	
+	// 3. Calculate the bounding box of the transformed box
+	float2 boxBBMin = min(min(min(corner0, corner1), corner2), corner3);
+	float2 boxBBMax = max(max(max(corner0, corner1), corner2), corner3);
+	
+	// 4. Calculate the bounding box of the line
+	float half_width = width * 0.5;
+    float2 line_bounds_min = float2(-half_width, -half_width);
+    float2 line_bounds_max = float2(lineLength + half_width, half_width);
+	
+	// 4. Calculate the intersection of the two bounding boxes
+	float2 intersectionMin = max(boxBBMin, line_bounds_min);
+	float2 intersectionMax = min(boxBBMax, line_bounds_max);
+
+	// 4a. Handle rounded ends
+	if (intersectionMax.x < 0 || intersectionMin.x > lineLength) {
+		float x = (intersectionMin.x + intersectionMax.x) * 0.5;
+		float dx = x < 0 ? -x : x - lineLength;
+		float r = half_width;
+		float end_half_width = sqrt(r * r - dx * dx); 
+		intersectionMin = max(intersectionMin, float2(-half_width, -end_half_width));
+		intersectionMax = min(intersectionMax, float2(lineLength + half_width, end_half_width));
+	}
+
+	// 5. Calculate the area of the intersection
+	float2 intersectionSize = max(intersectionMax - intersectionMin, float2(0, 0));
+
+	return intersectionSize.x * intersectionSize.y;
+}
+
 float drawAALine(ColorInOut in, float2 dpdx, float2 dpdy)
 {
 	float2 p3 = in.modelPosition;
@@ -765,7 +813,7 @@ float drawAALine(ColorInOut in, float2 dpdx, float2 dpdy)
 	float2 p1 = in.args.xy;
 	float2 p2 = in.texCoord;
 	float w = in.args.w;
-	float intersectArea = calculateThickLineAABBIntersectionArea(p1, p2, w, pixelMin, pixelMax);
+	float intersectArea = calculateRoundedThickLineAABBIntersectionArea(p1, p2, w, pixelMin, pixelMax);
 	return intersectArea / pixelArea;
 }
 

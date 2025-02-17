@@ -33,6 +33,13 @@ Drawing commands include:
 * **Images** using `DrawImage`
 * **Text** using `DrawString` and the associated font functions
 
+## Development
+
+* **Run Acceptance Tests**
+
+```bash
+dotnet run --project atests/CrossGraphicsAcceptanceTests.csproj -- $(pwd)
+```
 
 ## License
 
