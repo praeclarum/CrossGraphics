@@ -717,6 +717,33 @@ float drawLine(ColorInOut in)
 	return dist < w2 ? 1.0 : 0.0;
 }
 
+float drawAALine(ColorInOut in, float2 dpdx, float2 dpdy)
+{
+	float2 p3 = in.modelPosition;
+	float2 p1 = in.args.xy;
+	float2 p2 = in.texCoord;
+	float w = in.args.w;
+	float w2 = w / 2.0;
+	float2 d21 = p2 - p1;
+	float denom = dot(d21, d21);
+	if (denom < 1e-6) {
+		return 0.0;
+	}
+	float2 d31 = p3 - p1;
+	float t = dot(d31, d21) / denom;
+	float dist = 0.0f;
+	if (t < 0) {
+		dist = length(p3 - p1);
+	}
+	else if (t > 1) {
+		dist = length(p3 - p2);
+	}
+	else {
+		dist = length(p3 - (p1 + t * d21));
+	}
+	return dist < w2 ? 1.0 : 0.0;
+}
+
 float fillArc(ColorInOut in)
 {
 	float2 p = in.modelPosition;
@@ -843,49 +870,54 @@ fragment float4 fragmentShader(
     float2 dy = dfdy(in.modelPosition);
     
     float mask = 0.0;
-	for (int i = 0; i < 4; i++) {
-        float2 offset = aaOffsets4[i].x * dx + aaOffsets4[i].y * dy;
-        float2 samplePos = in.modelPosition + offset;
-        
-        ColorInOut sample = in;
-        sample.modelPosition = samplePos;
-		switch (op) {
-		case 0: // FillRect
-			mask += fillRect(sample);
-			break;
-		case 2: // FillRoundedRect
-			mask += fillRoundedRect(sample);
-			break;
-		case 3: // StrokeRoundedRect
-			mask += strokeRoundedRect(sample);
-			break;
-		case 4: // FillOval
-			mask += fillOval(sample);
-			break;
-		case 5: // StrokeOval
-			mask += strokeOval(sample);
-			break;
-		case 6: // FillArc
-			mask += fillArc(sample);
-			break;
-		case 7: // StrokeArc
-			mask += strokeArc(sample);
-			break;
-		case 8: // FillPolygon
-			mask += fillRect(sample);
-			break;
-		case 13: // DrawString
-			mask += drawString(sample, sdf0);
-			break;
-		case 14: // DrawLine
-			mask += drawLine(sample);
-			break;
-		default:
-			mask += strokeRect(sample);
-			break;
-		}
+	if (false && op == 14) {
+		mask = drawAALine(in, dx, dy);
 	}
-	mask = clamp(sqrt(mask / 4.0), 0.0, 1.0);
+	else {
+		for (int i = 0; i < 4; i++) {
+	        float2 offset = aaOffsets4[i].x * dx + aaOffsets4[i].y * dy;
+	        float2 samplePos = in.modelPosition + offset;
+	        
+	        ColorInOut sample = in;
+	        sample.modelPosition = samplePos;
+			switch (op) {
+			case 0: // FillRect
+				mask += fillRect(sample);
+				break;
+			case 2: // FillRoundedRect
+				mask += fillRoundedRect(sample);
+				break;
+			case 3: // StrokeRoundedRect
+				mask += strokeRoundedRect(sample);
+				break;
+			case 4: // FillOval
+				mask += fillOval(sample);
+				break;
+			case 5: // StrokeOval
+				mask += strokeOval(sample);
+				break;
+			case 6: // FillArc
+				mask += fillArc(sample);
+				break;
+			case 7: // StrokeArc
+				mask += strokeArc(sample);
+				break;
+			case 8: // FillPolygon
+				mask += fillRect(sample);
+				break;
+			case 13: // DrawString
+				mask += drawString(sample, sdf0);
+				break;
+			case 14: // DrawLine
+				mask += drawLine(sample);
+				break;
+			default:
+				mask += strokeRect(sample);
+				break;
+			}
+		}
+		mask = clamp(sqrt(mask / 4.0), 0.0, 1.0);
+	}
 	if (mask < 0.004) {
 		discard_fragment();
 	}
