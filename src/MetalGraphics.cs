@@ -959,8 +959,7 @@ fragment float4 fragmentShader(
 		float rightArea = calculateThickLineAABBIntersectionArea(float2(bbMax.x, bbMin.y - w2), float2(bbMax.x, bbMax.y + w2), w, pixelMin, pixelMax);
 		float topArea = calculateThickLineAABBIntersectionArea(float2(bbMin.x - w2, bbMax.y), float2(bbMax.x + w2, bbMax.y), w, pixelMin, pixelMax);
 		float bottomArea = calculateThickLineAABBIntersectionArea(float2(bbMin.x - w2, bbMin.y), float2(bbMax.x + w2, bbMin.y), w, pixelMin, pixelMax);
-		//float intersectArea = max(max(max(leftArea, rightArea), topArea), bottomArea);
-		float intersectArea = leftArea + rightArea + topArea + bottomArea;
+		float intersectArea = max(max(max(leftArea, rightArea), topArea), bottomArea);
 		mask = intersectArea / pixelArea;
 	}
 	else if (op == 14) { // DrawLine
