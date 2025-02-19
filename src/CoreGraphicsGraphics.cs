@@ -57,7 +57,7 @@ namespace CrossGraphics.CoreGraphics
 	public class UIKitGraphics : CrossGraphics.CoreGraphics.CoreGraphicsGraphics
 	{
 		public UIKitGraphics (bool highQuality)
-			: base (UIGraphics.GetCurrentContext (), highQuality)
+			: base (UIGraphics.GetCurrentContext () ?? throw new InvalidOperationException ("No current context"), highQuality)
 		{
 		}
 	}
