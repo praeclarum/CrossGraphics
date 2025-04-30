@@ -748,12 +748,12 @@ namespace CrossGraphics
 
 	public static class PointEx
 	{
-		#if __UNIFIED__
+#if __MACOS__ || __IOS__ || __MACCATALYST__
 		public static PointF ToPointF (this global::CoreGraphics.CGPoint r)
 		{
 			return new PointF ((float)r.X, (float)r.Y);
 		}
-		#endif
+#endif
 
 		public static System.Drawing.Point GetCenter (this System.Drawing.Rectangle r)
 		{
@@ -774,12 +774,12 @@ namespace CrossGraphics
 		{
 			return new RectangleF (r.X, r.Y, r.Width, r.Height);
 		}
-		#if __UNIFIED__
+#if __MACOS__ || __IOS__ || __MACCATALYST__
 		public static RectangleF ToRectangleF (this global::CoreGraphics.CGRect r)
 		{
 			return new RectangleF ((float)r.X, (float)r.Y, (float)r.Width, (float)r.Height);
 		}
-		#endif
+#endif
 
 		public static List<RectangleF> GetIntersections (this List<RectangleF> boxes, RectangleF box)
 		{
