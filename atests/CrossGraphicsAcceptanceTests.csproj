@@ -6,6 +6,7 @@
     <ImplicitUsings>true</ImplicitUsings>
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
     <UseInterpreter>false</UseInterpreter>
+    <NoWarn>$(NoWarn);XCODE_26_0_PREVIEW</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\src\CrossGraphics.csproj" />
