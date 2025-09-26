@@ -9,7 +9,10 @@ on:
 jobs:
   build:
 
-    runs-on: macos-26
+    runs-on: macos-26-arm64
+
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
 
     steps:
     - uses: actions/checkout@v4
@@ -30,10 +33,14 @@ jobs:
         global-json-file: global.json
     - name: Restore Workloads
       run: sudo dotnet workload restore
+    - name: Restore Packages
+      run: |
+        dotnet nuget locals http-cache --clear
+        dotnet restore
     - name: Build Library
-      run: dotnet build -c Release src/CrossGraphics.csproj
+      run: dotnet build -c Release --no-restore src/CrossGraphics.csproj
     - name: Build Test
-      run: dotnet build -c Release tests/CrossGraphicsTests.csproj
+      run: dotnet build -c Release --no-restore tests/CrossGraphicsTests.csproj
     - name: Test
       run: dotnet test -c Release --no-build tests/CrossGraphicsTests.csproj
     - name: Acceptance Test
