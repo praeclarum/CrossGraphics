@@ -34,9 +34,7 @@ jobs:
     - name: Restore Workloads
       run: sudo dotnet workload restore
     - name: Restore Packages
-      run: |
-        dotnet nuget locals http-cache --clear
-        dotnet restore
+      run: dotnet restore -p:NuGetAudit=false
     - name: Build Library
       run: dotnet build -c Release --no-restore src/CrossGraphics.csproj
     - name: Build Test
