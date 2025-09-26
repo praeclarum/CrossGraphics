@@ -25,13 +25,15 @@ jobs:
       with:
         xcode-version: 26.0
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         global-json-file: global.json
     - name: Restore Workloads
       run: sudo dotnet workload restore
     - name: Restore Packages
-      run: dotnet restore
+      run: |
+        dotnet nuget locals http-cache --clear
+        dotnet restore
     - name: Build Library
       run: dotnet build -c Release --no-restore src/CrossGraphics.csproj
     - name: Build Test
