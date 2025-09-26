@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.1;net9.0-ios;net9.0-macos;net9.0-maccatalyst;net9.0-android</TargetFrameworks>
+        <TargetFrameworks>netstandard2.1;net9.0-ios26.0;net9.0-macos26.0;net9.0-maccatalyst26.0;net9.0-android</TargetFrameworks>
         <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
 
         <Version>1.0.0</Version>
@@ -16,6 +16,7 @@
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <NoWarn>$(NoWarn);XCODE_26_0_PREVIEW</NoWarn>
         <LangVersion>12.0</LangVersion>
         <Nullable>disable</Nullable>
         <EnableDefaultItems>false</EnableDefaultItems>
