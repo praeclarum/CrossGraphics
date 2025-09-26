@@ -42,7 +42,7 @@ jobs:
     - name: Test
       run: dotnet test -c Release --no-build tests/CrossGraphicsTests.csproj
     - name: Acceptance Test
-      run: dotnet run -c Release --project atests/CrossGraphicsAcceptanceTests.csproj -- $(pwd)
+      run: dotnet run -c Release -p:NuGetAudit=false --project atests/CrossGraphicsAcceptanceTests.csproj -- $(pwd)
     - name: Package
       if: github.event_name == 'push'
       run: dotnet pack -c Release --no-build -o ./artifacts src/CrossGraphics.csproj
