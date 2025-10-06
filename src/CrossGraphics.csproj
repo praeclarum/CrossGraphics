@@ -16,7 +16,7 @@
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <NoWarn>$(NoWarn);XCODE_26_0_PREVIEW</NoWarn>
+        <NoWarn>$(NoWarn);NU1900;XCODE_26_0_PREVIEW</NoWarn>
         <LangVersion>12.0</LangVersion>
         <Nullable>disable</Nullable>
         <EnableDefaultItems>false</EnableDefaultItems>
