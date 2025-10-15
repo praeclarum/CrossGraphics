@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010-2012 Frank A. Krueger
+// Copyright (c) 2010-2025 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -30,7 +32,7 @@ namespace CrossGraphics
 {
 	public interface ICanvas
 	{
-		CanvasContent Content { get; set; }
+		CanvasContent? Content { get; set; }
 	}
 
 	public class DrawEventArgs : EventArgs
@@ -79,14 +81,11 @@ namespace CrossGraphics
     {
         public RectangleF Frame = new RectangleF(0, 0, 320, 480);
 
-		public event EventHandler NeedsDisplay;
+		public event EventHandler? NeedsDisplay;
 
 		public virtual void SetNeedsDisplay ()
 		{
-			var nd = NeedsDisplay;
-			if (nd != null) {
-				nd (this, EventArgs.Empty);
-			}
+			NeedsDisplay?.Invoke(this, EventArgs.Empty);
 		}
 
 		public bool DrawBackground { get; set; }
@@ -117,14 +116,11 @@ namespace CrossGraphics
         {
         }
 
-		public event PropertyChangedEventHandler PropertyChanged;
+		public event PropertyChangedEventHandler? PropertyChanged;
 
 		protected virtual void OnPropertyChanged (string propertyName)
 		{
-			var ev = PropertyChanged;
-			if (ev != null) {
-				ev (this, new PropertyChangedEventArgs (propertyName));
-			}
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs (propertyName));
 		}
 	}
 
@@ -168,12 +164,12 @@ namespace CrossGraphics
 	}
 	
 	public class Button {
-		public Font Font;
-		public string Title;
+		public required Font Font;
+		public required string Title;
 		public System.Drawing.RectangleF Frame;
 		public bool Checked;
-		public object Tag;
-		public event EventHandler Click;
+		public object? Tag;
+		public event EventHandler? Click;
 		
 		public float PaddingTop = 0;
 		public float PaddingBottom = 0;
@@ -185,9 +181,7 @@ namespace CrossGraphics
 		InteractionState istate = InteractionState.None;
 		
 		public void Draw (IGraphics g) {
-			if (Font != null) {
-				g.SetFont (Font);
-			}
+			g.SetFont (Font);
 			g.SetColor (Colors.Gray);
 			var border = Frame;
 			border.Y += PaddingTop;
@@ -222,10 +216,7 @@ namespace CrossGraphics
 		{
 			if (istate == InteractionState.Pressed) {
 				istate = InteractionState.None;
-				var c = Click;
-				if (c != null) {
-					c (this, EventArgs.Empty);
-				}
+				Click?.Invoke (this, EventArgs.Empty);
 			}
 		}
 	}

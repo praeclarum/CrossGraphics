@@ -37,11 +37,26 @@ namespace CrossGraphics.CoreGraphics
 {
 	public class CoreGraphicsCanvas : ICanvas
 	{
-		public CanvasContent Content { get; set; } = new CanvasContent ();
+		private CanvasContent? _content;
 
-		public CoreGraphicsCanvas ()
+		public CanvasContent? Content {
+			get => _content;
+			set
+			{
+				if (ReferenceEquals (_content, value))
+					return;
+				if (_content is {} oldContent)
+					oldContent.NeedsDisplay -= HandleNeedsDisplay;
+				_content = value;
+				if (_content is {} newContent)
+					newContent.NeedsDisplay += HandleNeedsDisplay;
+				Invalidate ();
+			}
+		}
+
+		void HandleNeedsDisplay (object? sender, EventArgs e)
 		{
-			Content.NeedsDisplay += (s, e) => Invalidate ();
+			Invalidate ();
 		}
 
 		public void Invalidate ()

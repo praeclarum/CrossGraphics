@@ -53,7 +53,7 @@ namespace CrossGraphics.Maui
 
 		public CanvasContent? Content
 		{
-			get => (CanvasContent?) this.GetValue(ContentProperty);
+			get => this.GetValue(ContentProperty) as CanvasContent;
 			set => this.SetValue(ContentProperty, value);
 		}
 
