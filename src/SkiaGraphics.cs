@@ -341,7 +341,7 @@ namespace CrossGraphics.Skia
 		void SetFontOnPaints ()
 		{
 			var f = _paints.Font;
-			if (f == null || f != _font) {
+			if (f is null || f != _font) {
 				f = _font;
 				_paints.Font = f;
 				ApplyFontToPaint (f, _paints.Fill);

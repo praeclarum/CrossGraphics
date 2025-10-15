@@ -377,7 +377,7 @@ namespace CrossGraphics.CoreGraphics
 				return;
 
 			var f = _lastFont;
-			if (f == null)
+			if (f is null)
 				return;
 			var fsize = f.Size;
 
@@ -440,7 +440,7 @@ namespace CrossGraphics.CoreGraphics
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			if (_lastFont == null)
+			if (_lastFont is null)
 				return;
 			var fm = GetFontMetrics ();
 			var xx = x;
@@ -458,7 +458,7 @@ namespace CrossGraphics.CoreGraphics
 		public IFontMetrics GetFontMetrics ()
 		{
 			var f = _lastFont;
-			if (f == null)
+			if (f is null)
 				throw new InvalidOperationException ("Cannot call GetFontMetrics before calling SetFont.");
 			var name = GetFontName (f);
 			if (name == DefaultFontName || name == DefaultBoldFontName) {
@@ -505,12 +505,12 @@ namespace CrossGraphics.CoreGraphics
 		public void RestoreState ()
 		{
 			_c.RestoreState ();
-			if (_lastFont != null) {
+			if (_lastFont is not null) {
 				SelectFont (_lastFont);
 			}
 		}
 
-		public IImage ImageFromFile (string filename)
+		public IImage? ImageFromFile (string filename)
 		{
 #if MONOMAC
 			var img = new NSImage ("Images/" + filename);

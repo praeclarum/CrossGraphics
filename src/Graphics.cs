@@ -85,7 +85,7 @@ namespace CrossGraphics
 
 		IFontMetrics GetFontMetrics();
 
-		IImage ImageFromFile(string path);
+		IImage? ImageFromFile(string path);
 	}
 
 	public enum LineBreakMode {
@@ -278,11 +278,11 @@ namespace CrossGraphics
 			return FontFamily.GetHashCode () + Options.GetHashCode () * 2 + Size.GetHashCode () * 3;
 		}
 
-		public static bool operator == (Font a, Font b)
+		public static bool operator == (Font a, Font? b)
 		{
 			return a.Equals (b);
 		}
-		public static bool operator != (Font a, Font b)
+		public static bool operator != (Font a, Font? b)
 		{
 			return !a.Equals (b);
 		}
