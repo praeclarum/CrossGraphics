@@ -292,7 +292,7 @@ namespace CrossGraphics.CoreGraphics
 
 		public void SetFont (Font f)
 		{
-			if (f != null && f != _lastFont) {
+			if (f is not null && !f.Equals (_lastFont)) {
 				_lastFont = f;
 				SelectFont (f);
 			}

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010-2012 Frank A. Krueger
+// Copyright (c) 2010-2025 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -218,7 +220,7 @@ namespace CrossGraphics
 
 	public class Font
 	{
-		readonly static ConcurrentDictionary<FontRef, Font> _fonts = new ConcurrentDictionary<FontRef, Font> ();
+		readonly static ConcurrentDictionary<FontRef, Font> _fonts = new ();
 
 		public string FontFamily { get; }
 		
@@ -226,9 +228,9 @@ namespace CrossGraphics
 
 		public int Size { get; }
 
-		public IFontMetrics Tag { get; set; }
-		public IFontMetrics AndroidTag { get; set; }
-		public IFontMetrics SkiaTag { get; set; }
+		public IFontMetrics? Tag { get; set; }
+		public IFontMetrics? AndroidTag { get; set; }
+		public IFontMetrics? SkiaTag { get; set; }
 
 		public bool IsBold => (Options & FontOptions.Bold) != 0;
 
@@ -244,8 +246,7 @@ namespace CrossGraphics
 		public static Font Get (string fontFamily, FontOptions options, int size)
 		{
 			var key = new FontRef (fontFamily, options, size);
-            Font font;
-			if (!_fonts.TryGetValue (key, out font)) {
+			if (!_fonts.TryGetValue (key, out var font)) {
 				font = new Font (fontFamily, options, size);
 				_fonts.TryAdd (key, font);
 			}
@@ -262,6 +263,28 @@ namespace CrossGraphics
 		public override string ToString()
 		{
 			return string.Format ("[Font: FontFamily={0}, Options={1}, Size={2}, Tag={3}]", FontFamily, Options, Size, Tag);
+		}
+
+		public override bool Equals (object? obj)
+		{
+			if (obj is Font o) {
+				return o.FontFamily == FontFamily && o.Options == Options && o.Size == Size;
+			}
+			return false;
+		}
+
+		public override int GetHashCode ()
+		{
+			return FontFamily.GetHashCode () + Options.GetHashCode () * 2 + Size.GetHashCode () * 3;
+		}
+
+		public static bool operator == (Font a, Font b)
+		{
+			return a.Equals (b);
+		}
+		public static bool operator != (Font a, Font b)
+		{
+			return !a.Equals (b);
 		}
 	}
 
@@ -287,8 +310,8 @@ namespace CrossGraphics
 	public class Color
 	{
 		public readonly int Red, Green, Blue, Alpha;
-		public object Tag;
-		public object SkiaTag;
+		public object? Tag;
+		public object? SkiaTag;
 
 		public float RedValue {
 			get { return Red / 255.0f; }
@@ -329,14 +352,14 @@ namespace CrossGraphics
 			return new Color (255 - Red, 255 - Green, 255 - Blue, Alpha);
 		}
 
-		public static bool AreEqual(Color a, Color b)
+		public static bool AreEqual(Color? a, Color? b)
 		{
-			if (a == null && b == null)
-				return true;
-			if (a == null && b != null)
+			if (a is null) {
+				return b is null;
+			}
+			if (b is null) {
 				return false;
-			if (a != null && b == null)
-				return false;
+			}
 			return (a.Red == b.Red && a.Green == b.Green && a.Blue == b.Blue && a.Alpha == b.Alpha);
 		}
 
@@ -353,10 +376,11 @@ namespace CrossGraphics
 			return new Color (Red, Green, Blue, aa);
 		}
 
-        public override bool Equals (object obj)
+        public override bool Equals (object? obj)
         {
-            var o = obj as Color;
-            return (o != null) && (o.Red == Red) && (o.Green == Green) && (o.Blue == Blue) && (o.Alpha == Alpha);
+            if (obj is Color o)
+				return (o.Red == Red) && (o.Green == Green) && (o.Blue == Blue) && (o.Alpha == Alpha);
+	        return false;
         }
 
         public override int GetHashCode ()
@@ -468,7 +492,7 @@ namespace CrossGraphics
 			return new Color (Red, Green, Blue, aa);
 		}
 
-		public override bool Equals (object obj)
+		public override bool Equals (object? obj)
 		{
 			if (obj is ValueColor o) {
 				return (o.Red == Red) && (o.Green == Green) && (o.Blue == Blue) && (o.Alpha == Alpha);
@@ -640,8 +664,8 @@ namespace CrossGraphics
 	{
 		public readonly List<PointF> Points;
 
-		public object Tag;
-		public object SkiaTag;
+		public object? Tag;
+		public object? SkiaTag;
 
 		public int Version { get; set; }
 
