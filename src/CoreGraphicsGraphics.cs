@@ -89,7 +89,7 @@ namespace CrossGraphics.CoreGraphics
 
 		public CoreGraphicsGraphics (CGContext c, bool highQuality, bool flipText = false)
 		{
-			if (c == null)
+			if (c is null)
 				throw new ArgumentNullException (nameof (c));
 
 			_c = c;

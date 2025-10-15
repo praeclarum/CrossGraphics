@@ -294,7 +294,7 @@ namespace CrossGraphics
 				return b is not null;
 			}
 			if (b is null) {
-				return false;
+				return true;
 			}
 			return b.FontFamily != a.FontFamily || b.Options != a.Options || b.Size != a.Size;
 		}
