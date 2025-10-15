@@ -278,13 +278,25 @@ namespace CrossGraphics
 			return FontFamily.GetHashCode () + Options.GetHashCode () * 2 + Size.GetHashCode () * 3;
 		}
 
-		public static bool operator == (Font a, Font? b)
+		public static bool operator == (Font? a, Font? b)
 		{
-			return a.Equals (b);
+			if (a is null) {
+				return b is null;
+			}
+			if (b is null) {
+				return false;
+			}
+			return b.FontFamily == a.FontFamily && b.Options == a.Options && b.Size == a.Size;
 		}
-		public static bool operator != (Font a, Font? b)
+		public static bool operator != (Font? a, Font? b)
 		{
-			return !a.Equals (b);
+			if (a is null) {
+				return b is not null;
+			}
+			if (b is null) {
+				return false;
+			}
+			return b.FontFamily != a.FontFamily || b.Options != a.Options || b.Size != a.Size;
 		}
 	}
 

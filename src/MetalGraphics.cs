@@ -324,7 +324,7 @@ namespace CrossGraphics.Metal
 
 		public void DrawString (string s, float x, float y, float width, float height, LineBreakMode lineBreak, TextAlignment align)
 		{
-			if (_currentFont == null)
+			if (_currentFont is null)
 				return;
 			var fm = GetFontMetrics ();
 			var xx = x;
