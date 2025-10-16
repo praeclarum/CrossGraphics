@@ -50,8 +50,9 @@
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" OverrideVersion="$(MauiVersion)" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
         <PackageReference Include="System.Numerics.Vectors" />
+        <PackageReference Include="Required" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
@@ -64,6 +65,7 @@
         <PackageReference Include="SkiaSharp.Views" />
         <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
         <PackageReference Include="Xamarin.Legacy.OpenTK" />
+        <PackageReference Include="Required" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">

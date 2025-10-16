@@ -22,6 +22,7 @@
     <PackageVersion Include="NUnit3TestAdapter" Version="4.2.1" />
     <PackageVersion Include="NUnit.Analyzers" Version="3.6.1" />
     <PackageVersion Include="Praeclarum.Utilities" Version="0.2.43" />
+    <PackageVersion Include="Required" Version="1.0.0" />
     <PackageVersion Include="SkiaSharp" Version="2.88.8" />
     <PackageVersion Include="SkiaSharp.Views" Version="2.88.8" />
     <PackageVersion Include="SkiaSharp.Views.Maui.Controls" Version="2.88.8" />
