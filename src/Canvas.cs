@@ -164,8 +164,8 @@ namespace CrossGraphics
 	}
 	
 	public class Button {
-		public required Font Font;
-		public required string Title;
+		public Font Font = Font.SystemFontOfSize (16);
+		public string Title = "";
 		public System.Drawing.RectangleF Frame;
 		public bool Checked;
 		public object? Tag;
