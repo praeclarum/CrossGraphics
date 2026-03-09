@@ -17,13 +17,10 @@
 
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <NoWarn>$(NoWarn);NU1900</NoWarn>
-        <LangVersion>12.0</LangVersion>
+        <LangVersion>14.0</LangVersion>
         <Nullable>disable</Nullable>
         <EnableDefaultItems>false</EnableDefaultItems>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
-        <UseMaui>true</UseMaui>
-        <SingleProject>true</SingleProject>
 
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">12.2</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
@@ -46,8 +43,6 @@
         <None Include="..\README.md" Pack="true" PackagePath="\" />
 
         <PackageReference Include="SkiaSharp" />
-        <PackageReference Include="Microsoft.Maui.Controls" OverrideVersion="$(MauiVersion)" />
-		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" OverrideVersion="$(MauiVersion)" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
@@ -59,10 +54,7 @@
         <Compile Include="AndroidGraphicsCanvas.cs" />
         <Compile Include="AndroidShapeStore.cs" />
         <Compile Include="OpenGLGraphics.cs" />
-        <Compile Include="MauiCanvas.cs" />
-        <Compile Include="MauiSkiaCanvas.cs" />
         <PackageReference Include="SkiaSharp.Views" />
-        <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
         <PackageReference Include="Xamarin.Legacy.OpenTK" />
         <PackageReference Include="Required" PrivateAssets="all" />
     </ItemGroup>
@@ -72,10 +64,7 @@
         <Compile Include="CoreGraphicsGraphics.cs" />
         <Compile Include="MetalCanvas.cs" />
         <Compile Include="MetalGraphics.cs" />
-        <Compile Include="MauiCanvas.cs" />
-        <Compile Include="MauiSkiaCanvas.cs" />
         <PackageReference Include="SkiaSharp.Views" />
-        <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">
@@ -84,10 +73,7 @@
         <Compile Include="MetalCanvas.cs" />
         <Compile Include="MetalGraphics.cs" />
         <Compile Include="SceneKitGraphics.cs" />
-        <Compile Include="MauiCanvas.cs" />
-        <Compile Include="MauiSkiaCanvas.cs" />
         <PackageReference Include="SkiaSharp.Views" />
-        <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
     </ItemGroup>
 
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
@@ -95,9 +81,6 @@
         <Compile Include="CoreGraphicsGraphics.cs" />
         <Compile Include="MetalCanvas.cs" />
         <Compile Include="MetalGraphics.cs" />
-        <Compile Include="MauiCanvas.cs" />
-        <Compile Include="MauiSkiaCanvas.cs" />
         <PackageReference Include="SkiaSharp.Views" />
-        <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
     </ItemGroup>
 </Project>
