@@ -60,10 +60,12 @@
 		<PackageReference Include="Microsoft.Maui.Controls" OverrideVersion="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" OverrideVersion="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+		<PackageReference Include="SkiaSharp.Views.Maui.Controls" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\src\CrossGraphics.csproj" />
+	  <ProjectReference Include="..\..\maui\CrossGraphics.Maui.csproj" />
 	</ItemGroup>
 
 </Project>
