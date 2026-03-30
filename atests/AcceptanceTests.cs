@@ -293,12 +293,14 @@ public class AcceptanceTests
                     rowHasPending = true;
                     Console.WriteLine($"PENDING: {filename}");
                     var irender = filename.EndsWith (".svg") ? "smooth" : "crisp-edges";
-                    var acceptedRelPath = "../accepted/" + filename;
                     var hasAccepted = File.Exists(acceptedFile);
-                    rowWriter.Write($"<td style=\"max-width:{width}\">");
-                    if (hasAccepted)
-                        rowWriter.Write($"<img src=\"{acceptedRelPath}\" alt=\"accepted\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" style=\"border:2px solid green\" />");
-                    rowWriter.Write($"<img src=\"{filename}\" alt=\"pending\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" style=\"border:2px solid red\" />");
+                    rowWriter.Write($"<td style=\"max-width:{width};white-space:nowrap\">");
+                    if (hasAccepted) {
+                        var acceptedCopy = "accepted_" + filename;
+                        File.Copy(acceptedFile, Path.Combine(PendingPath, acceptedCopy), overwrite: true);
+                        rowWriter.Write($"<img src=\"{acceptedCopy}\" alt=\"accepted\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" style=\"border:2px solid green;display:inline-block\" />&nbsp;");
+                    }
+                    rowWriter.Write($"<img src=\"{filename}\" alt=\"pending\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" style=\"border:2px solid red;display:inline-block\" />");
                     rowWriter.Write($"</td>");
                 }
             }
