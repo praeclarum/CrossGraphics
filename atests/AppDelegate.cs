@@ -55,19 +55,26 @@ public class AppDelegate : UIApplicationDelegate {
 		// make the window visible
 		Window.MakeKeyAndVisible ();
 
-		RunTests ().ContinueWith (_ => {
-			Environment.Exit (0);
+		RunTests ().ContinueWith (t => {
+			Environment.Exit (t.Result);
 		});
 
 		return true;
 	}
 
-	async Task RunTests ()
+	async Task<int> RunTests ()
 	{
 		await Task.Delay (1);
-		Console.WriteLine ("Running tests...");
-		var tests = new AcceptanceTests ();
-		tests.Run ();
+		try {
+			Console.WriteLine ("Running tests...");
+			var tests = new AcceptanceTests ();
+			tests.Run ();
+			Console.WriteLine ("Finished running tests.");
+			return 0;
+		} catch (Exception ex) {
+			Console.WriteLine ($"Error running tests: {ex}");
+			return 1;
+		}
 	}
 }
 #endif

@@ -19,9 +19,13 @@ public class AcceptanceTests
     static readonly string PendingPath = Path.Combine(OutputPath, "PendingTests");
     static string GetOutputPath ()
     {
-	    var dir = Environment.GetCommandLineArgs ()[^1];
+        var args = Environment.GetCommandLineArgs ();
+	    var dir = Path.GetFullPath(Environment.GetCommandLineArgs ()[^1]);
 	    if (Path.GetFileName (dir) != "CrossGraphics") {
 		    dir = Path.GetTempPath ();
+            Console.WriteLine ($"Output directory: {dir}");
+            Console.WriteLine ($"To specify a different output directory, add the path to the end of the command line arguments.");
+            Console.WriteLine ($"Arguments: {string.Join (" ", args)}");
 	    }
 	    return dir;
     }
@@ -51,7 +55,7 @@ public class AcceptanceTests
     abstract class Platform {
         public abstract string Name { get; }
         public abstract (IGraphics, object?) BeginDrawing(int width, int height);
-        public abstract string SaveDrawing(IGraphics graphics, object context, string dir, string name);
+        public abstract string SaveDrawing(IGraphics graphics, object? context, string dir, string name);
     }
 
     class SvgPlatform : Platform
@@ -64,7 +68,7 @@ public class AcceptanceTests
             g.BeginDrawing();
             return (g, w);
         }
-        public override string SaveDrawing(IGraphics graphics, object context, string dir, string name)
+        public override string SaveDrawing(IGraphics graphics, object? context, string dir, string name)
         {
             var fullName = name + ".svg";
             if (graphics is SvgGraphics svgGraphics && context is StringWriter writer)
@@ -87,7 +91,7 @@ public class AcceptanceTests
             var g = new CrossGraphics.CoreGraphics.CoreGraphicsGraphics(cgContext, highQuality: true, flipText: false);
             return (g, cgContext);
         }
-        public override string SaveDrawing(IGraphics graphics, object context, string dir, string name)
+        public override string SaveDrawing(IGraphics graphics, object? context, string dir, string name)
         {
             var fullName = name + ".png";
             var url = Foundation.NSUrl.FromFilename (Path.Combine (dir, fullName));
@@ -112,7 +116,7 @@ public class AcceptanceTests
             var g = new CrossGraphics.CoreGraphics.CoreGraphicsGraphics(cgContext, highQuality: true, flipText: true);
             return (g, cgContext);
         }
-        public override string SaveDrawing(IGraphics graphics, object context, string dir, string name)
+        public override string SaveDrawing(IGraphics graphics, object? context, string dir, string name)
         {
             var fullName = name + ".png";
             var url = Foundation.NSUrl.FromFilename (Path.Combine (dir, fullName));
@@ -138,7 +142,7 @@ public class AcceptanceTests
 		    var graphics = new CrossGraphics.CoreGraphics.UIKitGraphics (highQuality: true);
 		    return (graphics, null);
 	    }
-	    public override string SaveDrawing (IGraphics graphics, object context, string dir, string name)
+	    public override string SaveDrawing (IGraphics graphics, object? context, string dir, string name)
 	    {
             #pragma warning disable CA1416, CA1422 // Validate platform compatibility
 		    var uiImage = UIGraphics.GetImageFromCurrentImageContext ();
@@ -161,7 +165,7 @@ public class AcceptanceTests
 			return (graphics, bitmap);
 		}
 
-		public override string SaveDrawing (IGraphics graphics, object context, string dir, string name)
+		public override string SaveDrawing (IGraphics graphics, object? context, string dir, string name)
 		{
 			var fullName = name + ".png";
 			if (graphics is CrossGraphics.Skia.SkiaGraphics sg && context is SkiaSharp.SKBitmap bitmap) {
@@ -208,7 +212,7 @@ public class AcceptanceTests
 			return (g, new RenderContext (commandBuffer, renderEncoder, texture));
 		}
 
-		public override string SaveDrawing (IGraphics graphics, object context, string dir, string name)
+		public override string SaveDrawing (IGraphics graphics, object? context, string dir, string name)
 		{
 			var fullName = name + ".png";
 			if (graphics is CrossGraphics.Metal.MetalGraphics g && context is RenderContext rc) {
@@ -274,7 +278,7 @@ public class AcceptanceTests
             foreach (var platform in Platforms) {
                 var (graphics, context) = platform.BeginDrawing(width, height);
                 drawing.Draw(new DrawArgs(graphics, width, height));
-                var filename = platform.SaveDrawing(graphics, context ?? throw new InvalidOperationException("Context is null"), PendingPath, name + "_" + drawing.Title + "_" + platform.Name);
+                var filename = platform.SaveDrawing(graphics, context, PendingPath, name + "_" + drawing.Title + "_" + platform.Name);
                 var irender = filename.EndsWith (".svg") ? "smooth" : "crisp-edges";
                 w.Write($"<td style=\"max-wdith:{width}\"><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" /></td>");
             }
@@ -324,7 +328,9 @@ public class AcceptanceTests
 	    w.WriteLine("</body></html>");
 	    var pendingHTML = w.ToString();
 	    string outFileName = "index.html";
-	    File.WriteAllText(Path.Combine(PendingPath, outFileName), pendingHTML);
+        var indexPath = Path.Combine(PendingPath, outFileName);
+	    File.WriteAllText(indexPath, pendingHTML);
+        Console.WriteLine($"Tests completed. Open {indexPath} to view results.");
     }
 
     string Arcs()
