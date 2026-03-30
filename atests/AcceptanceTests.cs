@@ -291,6 +291,7 @@ public class AcceptanceTests
                     rowWriter.Write($"<td style=\"max-wdith:{width}\">&#x2705;</td>");
                 } else {
                     rowHasPending = true;
+                    Console.WriteLine($"PENDING: {filename}");
                     var irender = filename.EndsWith (".svg") ? "smooth" : "crisp-edges";
                     rowWriter.Write($"<td style=\"max-wdith:{width}\"><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" /></td>");
                 }

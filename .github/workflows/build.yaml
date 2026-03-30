@@ -48,6 +48,12 @@ jobs:
       run: |
         dotnet build atests/CrossGraphicsAcceptanceTests.csproj
         ./atests/bin/Debug/net10.0-maccatalyst/maccatalyst-arm64/CrossGraphicsAcceptanceTests.app/Contents/MacOS/CrossGraphicsAcceptanceTests $(pwd)
+    - name: Upload Pending Results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: PendingResults
+        path: ./pending/
     - name: Package
       if: github.event_name == 'push'
       run: |
