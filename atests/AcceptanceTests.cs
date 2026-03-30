@@ -271,7 +271,7 @@ public class AcceptanceTests
         w.Write($"<tr><th>Drawing</th>");
         foreach (var platform in Platforms)
         {
-	        w.Write ($"<th style=\"max-wdith:{width}\">{platform.Name}</th>");
+	        w.Write ($"<th style=\"max-width:{width}\">{platform.Name}</th>");
         }
         w.WriteLine($"</tr>");
 
@@ -288,12 +288,18 @@ public class AcceptanceTests
                 var acceptedFile = Path.Combine(AcceptedPath, filename);
                 if (Compare.FilesMatch(pendingFile, acceptedFile)) {
                     File.Delete(pendingFile);
-                    rowWriter.Write($"<td style=\"max-wdith:{width}\">&#x2705;</td>");
+                    rowWriter.Write($"<td style=\"max-width:{width}\">&#x2705;</td>");
                 } else {
                     rowHasPending = true;
                     Console.WriteLine($"PENDING: {filename}");
                     var irender = filename.EndsWith (".svg") ? "smooth" : "crisp-edges";
-                    rowWriter.Write($"<td style=\"max-wdith:{width}\"><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" /></td>");
+                    var acceptedRelPath = "../accepted/" + filename;
+                    var hasAccepted = File.Exists(acceptedFile);
+                    rowWriter.Write($"<td style=\"max-width:{width}\">");
+                    if (hasAccepted)
+                        rowWriter.Write($"<img src=\"{acceptedRelPath}\" alt=\"accepted\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" style=\"border:2px solid green\" />");
+                    rowWriter.Write($"<img src=\"{filename}\" alt=\"pending\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" style=\"border:2px solid red\" />");
+                    rowWriter.Write($"</td>");
                 }
             }
             rowWriter.WriteLine("</tr>");
