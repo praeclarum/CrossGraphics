@@ -68,9 +68,9 @@ public class AppDelegate : UIApplicationDelegate {
 		try {
 			Console.WriteLine ("Running tests...");
 			var tests = new AcceptanceTests ();
-			tests.Run ();
+			var result = tests.Run ();
 			Console.WriteLine ("Finished running tests.");
-			return 0;
+			return result;
 		} catch (Exception ex) {
 			Console.WriteLine ($"Error running tests: {ex}");
 			return 1;

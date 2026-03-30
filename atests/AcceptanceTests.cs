@@ -15,8 +15,8 @@ namespace CrossGraphicsTests;
 public class AcceptanceTests
 {
     static readonly string OutputPath = GetOutputPath ();
-    static readonly string AcceptedPath = Path.Combine(OutputPath, "AcceptedTests");
-    static readonly string PendingPath = Path.Combine(OutputPath, "PendingTests");
+    static readonly string AcceptedPath = Path.Combine(OutputPath, "accepted");
+    static readonly string PendingPath = Path.Combine(OutputPath, "pending");
     static string GetOutputPath ()
     {
         var args = Environment.GetCommandLineArgs ();
@@ -257,7 +257,9 @@ public class AcceptanceTests
         #endif
     };
 
-    string Accept(string name, params Drawing[] drawings)
+    int _pendingCount;
+
+    string? Accept(string name, params Drawing[] drawings)
     {
         var width = 100;
         var height = 100;
@@ -272,24 +274,43 @@ public class AcceptanceTests
 	        w.Write ($"<th style=\"max-wdith:{width}\">{platform.Name}</th>");
         }
         w.WriteLine($"</tr>");
-        
+
+        var hasPending = false;
         foreach (var drawing in drawings) {
-            w.Write($"<tr><th>{drawing.Title}</th>");
+            var rowWriter = new StringWriter();
+            var rowHasPending = false;
+            rowWriter.Write($"<tr><th>{drawing.Title}</th>");
             foreach (var platform in Platforms) {
                 var (graphics, context) = platform.BeginDrawing(width, height);
                 drawing.Draw(new DrawArgs(graphics, width, height));
                 var filename = platform.SaveDrawing(graphics, context, PendingPath, name + "_" + drawing.Title + "_" + platform.Name);
-                var irender = filename.EndsWith (".svg") ? "smooth" : "crisp-edges";
-                w.Write($"<td style=\"max-wdith:{width}\"><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" /></td>");
+                var pendingFile = Path.Combine(PendingPath, filename);
+                var acceptedFile = Path.Combine(AcceptedPath, filename);
+                if (Compare.FilesMatch(pendingFile, acceptedFile)) {
+                    File.Delete(pendingFile);
+                    rowWriter.Write($"<td style=\"max-wdith:{width}\">&#x2705;</td>");
+                } else {
+                    rowHasPending = true;
+                    var irender = filename.EndsWith (".svg") ? "smooth" : "crisp-edges";
+                    rowWriter.Write($"<td style=\"max-wdith:{width}\"><img src=\"{filename}\" alt=\"{drawing.Title} on {platform.Name}\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" /></td>");
+                }
             }
-            w.WriteLine("</tr>");
+            rowWriter.WriteLine("</tr>");
+            if (rowHasPending) {
+                hasPending = true;
+                w.Write(rowWriter.ToString());
+            }
         }
     
         w.WriteLine("</table>");
         w.WriteLine("</body></html>");
-        var pendingHTML = w.ToString();
+
+        if (!hasPending)
+            return null;
+
+        _pendingCount++;
         string outFileName = name + ".html";
-        File.WriteAllText(Path.Combine(PendingPath, outFileName), pendingHTML);
+        File.WriteAllText(Path.Combine(PendingPath, outFileName), w.ToString());
         return outFileName;
     }
 
@@ -306,9 +327,10 @@ public class AcceptanceTests
 	    w.WriteLine($"</head><body>");
     }
 
-    public void Run ()
+    public int Run ()
     {
-	    var pages = new string[] {
+	    _pendingCount = 0;
+	    var pages = new string?[] {
 		    Arcs (),
 		    Lines (),
 		    Ovals (),
@@ -317,11 +339,16 @@ public class AcceptanceTests
 		    RoundedRects (),
 		    Text ()
 	    };
+	    var pendingPages = pages.Where (p => p is not null).ToArray ();
+	    if (pendingPages.Length == 0) {
+		    Console.WriteLine ("All tests accepted.");
+		    return 0;
+	    }
 	    var w = new StringWriter();
 	    WriteHeader("Cross Graphics Tests", w);
-	    w.WriteLine($"<h1>CrossGraphics Tests</h1>");
+	    w.WriteLine($"<h1>CrossGraphics Tests ({_pendingCount} pending)</h1>");
 	    w.WriteLine($"<ul>");
-	    foreach (var p in pages) {
+	    foreach (var p in pendingPages) {
 			w.WriteLine($"<li><a href=\"{p}\">{p}</li>");
 	    }
 	    w.WriteLine($"</ul>");
@@ -330,10 +357,11 @@ public class AcceptanceTests
 	    string outFileName = "index.html";
         var indexPath = Path.Combine(PendingPath, outFileName);
 	    File.WriteAllText(indexPath, pendingHTML);
-        Console.WriteLine($"Tests completed. Open {indexPath} to view results.");
+        Console.WriteLine($"Tests completed with {_pendingCount} pending. Open {indexPath} to view results.");
+        return 2;
     }
 
-    string Arcs()
+    string? Arcs()
     {
         Drawing Make(float startAngle, float endAngle, float w=5) {
             return new Drawing {
@@ -409,7 +437,7 @@ public class AcceptanceTests
         );
     }
 
-    string Ovals()
+    string? Ovals()
     {
         Drawing Make(float width, float height, float w) {
             return new Drawing {
@@ -449,7 +477,7 @@ public class AcceptanceTests
         );
     }
 
-    string Lines()
+    string? Lines()
     {
         Drawing MakeHs(float yoff, float w) {
             return new Drawing {
@@ -499,7 +527,7 @@ public class AcceptanceTests
         );
     }
 
-    string Polygons()
+    string? Polygons()
     {
 	    Drawing Make(float alpha, float w) {
 		    return new Drawing {
@@ -534,7 +562,7 @@ public class AcceptanceTests
 	    );
     }
 
-    string Rects()
+    string? Rects()
     {
         Drawing Make(float width, float height, float w) {
             return new Drawing {
@@ -578,7 +606,7 @@ public class AcceptanceTests
         );
     }
 
-    string RoundedRects()
+    string? RoundedRects()
     {
         Drawing Make(float width, float height, float r, float w) {
             return new Drawing {
@@ -622,7 +650,7 @@ public class AcceptanceTests
         );
     }
 
-    string Text()
+    string? Text()
     {
 	    string singleLine = "A single line of text.";
         Drawing MakeRect(string s, string? fontFamily, int fontSize, LineBreakMode lineBreakMode, TextAlignment align) {

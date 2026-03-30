@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg viewBox="0 0 100 100" preserveAspectRatio="xMinYMin meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<line x1="19" y1="20" x2="18.5" y2="80" stroke="#000080" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" fill="none" />
+<line x1="22" y1="20" x2="21.5" y2="80" stroke="#000080" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" fill="none" />
+<line x1="28" y1="20" x2="27.5" y2="80" stroke="#000080" stroke-opacity="1" stroke-width="2.25" stroke-linecap="round" fill="none" />
+<line x1="37" y1="20" x2="36.5" y2="80" stroke="#000080" stroke-opacity="1" stroke-width="3" stroke-linecap="round" fill="none" />
+<line x1="49" y1="20" x2="48.5" y2="80" stroke="#000080" stroke-opacity="1" stroke-width="3.75" stroke-linecap="round" fill="none" />
+<line x1="64" y1="20" x2="63.5" y2="80" stroke="#000080" stroke-opacity="1" stroke-width="4.5" stroke-linecap="round" fill="none" />
+<line x1="82" y1="20" x2="81.5" y2="80" stroke="#000080" stroke-opacity="1" stroke-width="5.25" stroke-linecap="round" fill="none" />
+</svg>

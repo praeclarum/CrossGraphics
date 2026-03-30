@@ -35,10 +35,10 @@ Drawing commands include:
 
 ## Development
 
-* **Run Acceptance Tests**
+* **Run Acceptance Tests on macOS**
 
 ```bash
-dotnet run --project atests/CrossGraphicsAcceptanceTests.csproj -- $(pwd)
+dotnet build atests/CrossGraphicsAcceptanceTests.csproj && ./atests/bin/Debug/net10.0-maccatalyst/maccatalyst-arm64/CrossGraphicsAcceptanceTests.app/Contents/MacOS/CrossGraphicsAcceptanceTests $(pwd)
 ```
 
 ## License

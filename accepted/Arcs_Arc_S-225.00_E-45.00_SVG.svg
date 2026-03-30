@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg viewBox="0 0 100 100" preserveAspectRatio="xMinYMin meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<path d="M 13.357867 35.857864 A 20 20 0 1 0 41.642136 64.142136" stroke="#000080" stroke-opacity="1" stroke-width="5" stroke-linecap="round" fill="none" fill-opacity="0" />
+<path d="M 58.35787 35.857864 A 20 20 0 0 0 86.642136 64.142136" stroke="none" stroke-opacity="0" stroke-width="0" stroke-linecap="round" fill="#000080" fill-opacity="1" />
+</svg>
