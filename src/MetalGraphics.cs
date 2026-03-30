@@ -469,10 +469,10 @@ namespace CrossGraphics.Metal
 			pipelineDescriptor.ColorAttachments[0] = new MTLRenderPipelineColorAttachmentDescriptor {
 				PixelFormat = DefaultPixelFormat,
 				BlendingEnabled = true,
-				SourceRgbBlendFactor = MTLBlendFactor.SourceAlpha,
+				SourceRgbBlendFactor = MTLBlendFactor.One,
 				DestinationRgbBlendFactor = MTLBlendFactor.OneMinusSourceAlpha,
 				RgbBlendOperation = MTLBlendOperation.Add,
-				SourceAlphaBlendFactor = MTLBlendFactor.SourceAlpha,
+				SourceAlphaBlendFactor = MTLBlendFactor.One,
 				DestinationAlphaBlendFactor = MTLBlendFactor.OneMinusSourceAlpha,
 				AlphaBlendOperation = MTLBlendOperation.Add,
 			};

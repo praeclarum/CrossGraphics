@@ -194,7 +194,7 @@ public class AcceptanceTests
 		public override (IGraphics, object?) BeginDrawing (int width, int height)
 		{
 			var renderPassDescriptor = new Metal.MTLRenderPassDescriptor ();
-			var tdesc = Metal.MTLTextureDescriptor.CreateTexture2DDescriptor (MTLPixelFormat.RGBA8Unorm, (UIntPtr)width,
+			var tdesc = Metal.MTLTextureDescriptor.CreateTexture2DDescriptor (CrossGraphics.Metal.MetalGraphics.DefaultPixelFormat, (UIntPtr)width,
 				(UIntPtr)height, mipmapped: false);
 			tdesc.Usage = Metal.MTLTextureUsage.RenderTarget;
 			var texture = _device.CreateTexture (tdesc)!;
