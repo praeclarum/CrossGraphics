@@ -67,7 +67,13 @@ static class Compare
         var acceptedBytes = new byte[totalBytes];
         Marshal.Copy(pendingCtx.Data, pendingBytes, 0, totalBytes);
         Marshal.Copy(acceptedCtx.Data, acceptedBytes, 0, totalBytes);
-        return pendingBytes.AsSpan().SequenceEqual(acceptedBytes);
+
+        const int tolerance = 2; // per-component tolerance for GPU rendering differences
+        for (int i = 0; i < totalBytes; i++) {
+            if (Math.Abs(pendingBytes[i] - acceptedBytes[i]) > tolerance)
+                return false;
+        }
+        return true;
     }
     #else
     static bool PngFilesMatch(string pendingPath, string acceptedPath)
