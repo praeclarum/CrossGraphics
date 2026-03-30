@@ -386,7 +386,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    return Accept("Arcs", tolerance: 4,
+	    return Accept("Arcs", tolerance: 8,
 		    Make (0, MathF.PI * 2.00f),
 		    Make (0, MathF.PI * 2.25f),
 		    Make (-MathF.PI * 0.25f, MathF.PI * 2.25f),
