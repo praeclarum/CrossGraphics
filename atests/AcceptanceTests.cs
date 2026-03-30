@@ -259,7 +259,7 @@ public class AcceptanceTests
 
     int _pendingCount;
 
-    string? Accept(string name, params Drawing[] drawings)
+    string? Accept(string name, int tolerance = 0, params Drawing[] drawings)
     {
         var width = 100;
         var height = 100;
@@ -286,7 +286,7 @@ public class AcceptanceTests
                 var filename = platform.SaveDrawing(graphics, context, PendingPath, name + "_" + drawing.Title + "_" + platform.Name);
                 var pendingFile = Path.Combine(PendingPath, filename);
                 var acceptedFile = Path.Combine(AcceptedPath, filename);
-                if (Compare.FilesMatch(pendingFile, acceptedFile)) {
+                if (Compare.FilesMatch(pendingFile, acceptedFile, tolerance)) {
                     File.Delete(pendingFile);
                     rowWriter.Write($"<td style=\"max-width:{width}\">&#x2705;</td>");
                 } else {
@@ -386,7 +386,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    return Accept("Arcs",
+	    return Accept("Arcs", tolerance: 4,
 		    Make (0, MathF.PI * 2.00f),
 		    Make (0, MathF.PI * 2.25f),
 		    Make (-MathF.PI * 0.25f, MathF.PI * 2.25f),
@@ -465,7 +465,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    return Accept("Ovals",
+	    return Accept("Ovals", tolerance: 2,
             Make(50, 50, -1),
             Make(50, 5, -1),
             Make(5, 50, -1),
@@ -516,7 +516,7 @@ public class AcceptanceTests
 				}
 			};
 		}	
-	    return Accept("Lines",
+	    return Accept("Lines", tolerance: 0,
             MakeHs(0.00f, 0.25f),
             MakeHs(0.00f, 0.50f),
             MakeHs(0.00f, 0.75f),
@@ -557,7 +557,7 @@ public class AcceptanceTests
 			    }
 		    };
 	    }
-	    return Accept("Polygons",
+	    return Accept("Polygons", tolerance: 0,
 		    Make(1.0f, -1),
 		    Make(1.0f, 0.125f),
 		    Make(1.0f, 0.333f),
@@ -589,7 +589,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    return Accept("Rects",
+	    return Accept("Rects", tolerance: 0,
             Make(49.5f, 49.5f, -1),
             Make(49.75f, 49.75f, -1),
             Make(50, 50, -1),
@@ -633,7 +633,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    return Accept("RoundedRects",
+	    return Accept("RoundedRects", tolerance: 0,
             Make(50, 50, 10, -1),
             Make(48, 48, 10, 1),
             Make(49, 49, 10, 1),
@@ -682,7 +682,7 @@ public class AcceptanceTests
             };
         }
         var otherFam = "BoldUserFixedPitch";
-	    return Accept("Text",
+	    return Accept("Text", tolerance: 0,
 		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Left),
 		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Center),
 		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Right),

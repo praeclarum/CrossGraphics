@@ -15,7 +15,7 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Update Versions
       env:
         VERSION_PREFIX: '1.4'
@@ -50,7 +50,7 @@ jobs:
         ./atests/bin/Debug/net10.0-maccatalyst/maccatalyst-arm64/CrossGraphicsAcceptanceTests.app/Contents/MacOS/CrossGraphicsAcceptanceTests $(pwd)
     - name: Upload Pending Results
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: PendingResults
         path: ./pending/
@@ -61,7 +61,7 @@ jobs:
           dotnet pack -c Release --no-build -o ./artifacts maui/CrossGraphics.Maui.csproj
     - name: Upload Package
       if: github.event_name == 'push'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: CrossGraphicsPackages
         path: ./artifacts/*

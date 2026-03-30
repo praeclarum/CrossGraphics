@@ -4,7 +4,7 @@ namespace CrossGraphicsTests;
 
 static class Compare
 {
-    public static bool FilesMatch(string pendingPath, string acceptedPath)
+    public static bool FilesMatch(string pendingPath, string acceptedPath, int tolerance = 0)
     {
         if (!File.Exists(acceptedPath))
             return false;
@@ -13,7 +13,7 @@ static class Compare
             return SvgFilesMatch(pendingPath, acceptedPath);
 
         if (pendingPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
-            return PngFilesMatch(pendingPath, acceptedPath);
+            return PngFilesMatch(pendingPath, acceptedPath, tolerance);
 
         return false;
     }
@@ -26,7 +26,7 @@ static class Compare
     }
 
     #if __MACOS__ || __IOS__ || __MACCATALYST__
-    static bool PngFilesMatch(string pendingPath, string acceptedPath)
+    static bool PngFilesMatch(string pendingPath, string acceptedPath, int tolerance)
     {
         var pendingUrl = Foundation.NSUrl.FromFilename(pendingPath);
         var acceptedUrl = Foundation.NSUrl.FromFilename(acceptedPath);
@@ -38,8 +38,12 @@ static class Compare
         if (pendingSource is null || acceptedSource is null)
             return false;
 
-        using var pendingImage = pendingSource.CreateImage(0, null);
-        using var acceptedImage = acceptedSource.CreateImage(0, null);
+        var imageOptions = new ImageIO.CGImageOptions {
+            ShouldCache = false,
+            ShouldAllowFloat = true,
+        };
+        using var pendingImage = pendingSource.CreateImage(0, imageOptions);
+        using var acceptedImage = acceptedSource.CreateImage(0, imageOptions);
         if (pendingImage is null || acceptedImage is null)
             return false;
 
@@ -68,7 +72,8 @@ static class Compare
         Marshal.Copy(pendingCtx.Data, pendingBytes, 0, totalBytes);
         Marshal.Copy(acceptedCtx.Data, acceptedBytes, 0, totalBytes);
 
-        const int tolerance = 2; // per-component tolerance for GPU rendering differences
+        if (tolerance <= 0)
+            return pendingBytes.AsSpan().SequenceEqual(acceptedBytes);
         for (int i = 0; i < totalBytes; i++) {
             if (Math.Abs(pendingBytes[i] - acceptedBytes[i]) > tolerance)
                 return false;
@@ -76,7 +81,7 @@ static class Compare
         return true;
     }
     #else
-    static bool PngFilesMatch(string pendingPath, string acceptedPath)
+    static bool PngFilesMatch(string pendingPath, string acceptedPath, int tolerance)
     {
         var pending = File.ReadAllBytes(pendingPath);
         var accepted = File.ReadAllBytes(acceptedPath);
