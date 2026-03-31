@@ -55,6 +55,14 @@ namespace CrossGraphics.Metal
 
 		readonly List<Matrix4x4> _stateStack = new List<Matrix4x4> (8);
 
+		struct LineSegment
+		{
+			public float SX, SY, EX, EY, W;
+		}
+		readonly List<LineSegment> _lineAccumulator = new List<LineSegment> (32);
+		bool _linesBegun = false;
+		bool _linesRounded = false;
+
 		readonly MetalGraphicsBuffers _buffers;
 		readonly IMTLRenderCommandEncoder _renderEncoder;
 		static readonly Lazy<IMTLRenderPipelineState?> _pipeline;
@@ -291,10 +299,69 @@ namespace CrossGraphics.Metal
 
 		public void BeginLines (bool rounded)
 		{
-			// TODO: Implement
+			_linesBegun = true;
+			_linesRounded = rounded;
+			_lineAccumulator.Clear ();
 		}
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
+		{
+			if (_linesBegun) {
+				_lineAccumulator.Add (new LineSegment { SX = sx, SY = sy, EX = ex, EY = ey, W = w });
+				return;
+			}
+			EmitStandaloneLine (sx, sy, ex, ey, w);
+		}
+
+		public void EndLines ()
+		{
+			if (!_linesBegun)
+				return;
+			_linesBegun = false;
+			var segs = _lineAccumulator;
+			var n = segs.Count;
+			if (n == 0)
+				return;
+			if (n == 1) {
+				EmitStandaloneLine (segs[0].SX, segs[0].SY, segs[0].EX, segs[0].EY, segs[0].W);
+				return;
+			}
+			// Write segments to the segment buffer and emit a single quad
+			var segStart = _buffers.PolylineSegmentCount;
+			float maxW = 0;
+			float minX = float.MaxValue, minY = float.MaxValue;
+			float maxX = float.MinValue, maxY = float.MinValue;
+			for (var i = 0; i < n; i++) {
+				var seg = segs[i];
+				_buffers.AddPolylineSegment (seg.SX, seg.SY, seg.EX, seg.EY);
+				if (seg.W > maxW) maxW = seg.W;
+				if (seg.SX < minX) minX = seg.SX;
+				if (seg.SY < minY) minY = seg.SY;
+				if (seg.EX < minX) minX = seg.EX;
+				if (seg.EY < minY) minY = seg.EY;
+				if (seg.SX > maxX) maxX = seg.SX;
+				if (seg.SY > maxY) maxY = seg.SY;
+				if (seg.EX > maxX) maxX = seg.EX;
+				if (seg.EY > maxY) maxY = seg.EY;
+			}
+			var pad = maxW / 2 + 2.0f;
+			minX -= pad; minY -= pad;
+			maxX += pad; maxY += pad;
+			// Emit one quad covering the entire polyline bounding box
+			// args.x = segment start index, args.y = segment count, args.z = 0, args.w = line width
+			// bb is unused (set to zero)
+			var buffer = _buffers.GetPrimitivesBuffer (numVertices: 4, numIndices: 6);
+			var bbv = Vector4.Zero;
+			var args = new Vector4 (segStart, n, 0, maxW);
+			var v0 = buffer.AddVertex (minX, minY, 0, 0, _currentColor, bb: bbv, args: args, op: DrawOp.DrawPolyline);
+			var v1 = buffer.AddVertex (maxX, minY, 0, 0, _currentColor, bb: bbv, args: args, op: DrawOp.DrawPolyline);
+			var v2 = buffer.AddVertex (maxX, maxY, 0, 0, _currentColor, bb: bbv, args: args, op: DrawOp.DrawPolyline);
+			var v3 = buffer.AddVertex (minX, maxY, 0, 0, _currentColor, bb: bbv, args: args, op: DrawOp.DrawPolyline);
+			buffer.AddTriangle (v0, v1, v2);
+			buffer.AddTriangle (v2, v3, v0);
+		}
+
+		void EmitStandaloneLine (float sx, float sy, float ex, float ey, float w)
 		{
 			var buffer = _buffers.GetPrimitivesBuffer(numVertices: 4, numIndices: 6);
 			var dx = ex - sx;
@@ -316,11 +383,6 @@ namespace CrossGraphics.Metal
 			var v3 = buffer.AddVertex (ex + ox - nx, ey + oy - ny, ex, ey, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
 			buffer.AddTriangle (v0, v1, v2);
 			buffer.AddTriangle (v2, v3, v0);
-		}
-
-		public void EndLines ()
-		{
-			// TODO: Implement
 		}
 
 		public void DrawImage (IImage img, float x, float y, float width, float height)
@@ -424,6 +486,11 @@ namespace CrossGraphics.Metal
 						continue;
 					}
 					_renderEncoder.SetFragmentTexture (texture, index: (nuint)textureIndex);
+				}
+
+				// Bind polyline segment buffer for fragment shader
+				if (_buffers.PolylineSegmentBuffer is {} segBuf) {
+					_renderEncoder.SetFragmentBuffer (segBuf, offset: 0, index: 0);
 				}
 
 				foreach (var buffer in _buffers.Primitives) {
@@ -532,6 +599,7 @@ namespace CrossGraphics.Metal
 			DrawImage = 12,
 			DrawString = 13,
 			DrawLine = 14,
+			DrawPolyline = 15,
 		}
 
 		const string MetalCode = @"
@@ -722,6 +790,13 @@ float drawLine(ColorInOut in)
 		dist = length(p3 - (p1 + t * d21));
 	}
 	return dist < w2 ? 1.0 : 0.0;
+}
+
+// SDF for a capsule (line segment with rounded ends)
+float sdCapsule(float2 p, float2 a, float2 b, float r) {
+	float2 pa = p - a, ba = b - a;
+	float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+	return length(pa - ba * h) - r;
 }
 
 float calculateThickLineAABBIntersectionArea(
@@ -978,9 +1053,15 @@ constant float2 aaOffsets16[16] = {
 	float2(0.25, 0.25) + float2(0.125, 0.125),
 };
 
+// Polyline segment buffer: each float4 is (sx, sy, ex, ey)
+struct PolylineSegmentData {
+	float4 segments[1]; // variable length, indexed by offset
+};
+
 fragment float4 fragmentShader(
 	ColorInOut in [[stage_in]],
-	texture2d<float> sdf0 [[ texture(0) ]])
+	texture2d<float> sdf0 [[ texture(0) ]],
+	constant PolylineSegmentData *polylineSegments [[ buffer(0) ]])
 {
 	uint op = in.op;
 	// Calculate derivatives for supersampling
@@ -1053,6 +1134,18 @@ fragment float4 fragmentShader(
 		float w = in.args.w;
 		float intersectArea = calculateRoundedThickLineAABBIntersectionArea(p1, p2, w, pixelMin, pixelMax);
 		mask = intersectArea / pixelArea;
+	}
+	else if (op == 15) { // DrawPolyline — evaluate entire polyline as one shape
+		uint segStart = uint(in.args.x);
+		uint segCount = uint(in.args.y);
+		float w = in.args.w;
+		float maxCoverage = 0.0;
+		for (uint i = 0; i < segCount; i++) {
+			float4 seg = polylineSegments->segments[segStart + i];
+			float area = calculateRoundedThickLineAABBIntersectionArea(seg.xy, seg.zw, w, pixelMin, pixelMax);
+			maxCoverage = max(maxCoverage, area);
+		}
+		mask = maxCoverage / pixelArea;
 	}
 	else if (op == 2) { // FillRoundedRect
 		float2 center = (in.bb.xy + in.bb.zw) / 2;
@@ -1562,6 +1655,14 @@ fragment float4 fragmentShader(
 		readonly IntPtr _uniformsBufferPointer;
 		public IMTLBuffer? Uniforms => _uniformsBuffer;
 
+		// Polyline segment buffer: stores float4 (sx, sy, ex, ey) per segment
+		const int MaxPolylineSegments = 0x4000;
+		readonly IMTLBuffer? _polylineSegmentBuffer;
+		readonly IntPtr _polylineSegmentBufferPointer;
+		int _polylineSegmentCount = 0;
+		public IMTLBuffer? PolylineSegmentBuffer => _polylineSegmentBuffer;
+		public int PolylineSegmentCount => _polylineSegmentCount;
+
 		readonly Dictionary<string, Dictionary<int, CTStringAttributes>> _cachedStringAttributes = new ();
 
 		int _frame = 0;
@@ -1573,6 +1674,8 @@ fragment float4 fragmentShader(
 			_sdfTextures = new List<MetalSdfTexture> { new MetalSdfTexture (Device, textureIndex: 0) };
 			_uniformsBuffer = Device.CreateBuffer ((nuint)(MetalGraphics.UniformsByteSize), MTLResourceOptions.CpuCacheModeWriteCombined);
 			_uniformsBufferPointer = _uniformsBuffer?.Contents ?? IntPtr.Zero;
+			_polylineSegmentBuffer = Device.CreateBuffer ((nuint)(MaxPolylineSegments * 4 * sizeof (float)), MTLResourceOptions.CpuCacheModeWriteCombined);
+			_polylineSegmentBufferPointer = _polylineSegmentBuffer?.Contents ?? IntPtr.Zero;
 		}
 
 		public void Reset ()
@@ -1581,7 +1684,25 @@ fragment float4 fragmentShader(
 				b.Reset ();
 			}
 			_currentPrimitiveBufferIndex = 0;
+			_polylineSegmentCount = 0;
 			_frame++;
+		}
+
+		public void AddPolylineSegment (float sx, float sy, float ex, float ey)
+		{
+			if (_polylineSegmentCount >= MaxPolylineSegments)
+				return;
+			if (_polylineSegmentBufferPointer != IntPtr.Zero) {
+				unsafe {
+					var p = (float*)_polylineSegmentBufferPointer;
+					p += _polylineSegmentCount * 4;
+					p[0] = sx;
+					p[1] = sy;
+					p[2] = ex;
+					p[3] = ey;
+				}
+			}
+			_polylineSegmentCount++;
 		}
 
 		public MetalPrimitivesBuffer GetPrimitivesBuffer (int numVertices, int numIndices)
