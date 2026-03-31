@@ -75,8 +75,11 @@ static class Compare
         if (tolerance <= 0)
             return pendingBytes.AsSpan().SequenceEqual(acceptedBytes);
         for (int i = 0; i < totalBytes; i++) {
-            if (Math.Abs(pendingBytes[i] - acceptedBytes[i]) > tolerance)
+            var error = Math.Abs(pendingBytes[i] - acceptedBytes[i]);
+            if (error > tolerance) {
+                Console.WriteLine($"{pendingPath}: Pixel {i / 4} channel {i % 4}: pending={pendingBytes[i]} accepted={acceptedBytes[i]} error={error}");
                 return false;
+            }
         }
         return true;
     }

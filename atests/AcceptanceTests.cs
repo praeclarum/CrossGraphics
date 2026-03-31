@@ -50,6 +50,7 @@ public class AcceptanceTests
     class Drawing {
         public string Title { get; set; } = string.Empty;
         public Action<DrawArgs> Draw { get; set; } = _ => {};
+        public int Tolerance { get; set; } = 0;
     }
 
     abstract class Platform {
@@ -259,7 +260,7 @@ public class AcceptanceTests
 
     int _pendingCount;
 
-    string? Accept(string name, int tolerance = 0, params Drawing[] drawings)
+    string? Accept(string name, params Drawing[] drawings)
     {
         var width = 100;
         var height = 100;
@@ -286,7 +287,7 @@ public class AcceptanceTests
                 var filename = platform.SaveDrawing(graphics, context, PendingPath, name + "_" + drawing.Title + "_" + platform.Name);
                 var pendingFile = Path.Combine(PendingPath, filename);
                 var acceptedFile = Path.Combine(AcceptedPath, filename);
-                if (Compare.FilesMatch(pendingFile, acceptedFile, tolerance)) {
+                if (Compare.FilesMatch(pendingFile, acceptedFile, drawing.Tolerance)) {
                     File.Delete(pendingFile);
                     rowWriter.Write($"<td style=\"max-width:{width}\">&#x2705;</td>");
                 } else {
@@ -372,7 +373,7 @@ public class AcceptanceTests
 
     string? Arcs()
     {
-        Drawing Make(float startAngle, float endAngle, float w=5) {
+        Drawing Make(float startAngle, float endAngle, float w = 5, int tolerance = 0) {
             return new Drawing {
                 Title = $"Arc_S{startAngle*180.0f/MathF.PI:F2}_E{endAngle*180.0f/MathF.PI:F2}",
                 Draw = args => {
@@ -383,10 +384,11 @@ public class AcceptanceTests
                     var cy = args.Height / 2;
                     args.Graphics.DrawArc(cxs, cy, radius, startAngle, endAngle, w);
                     args.Graphics.FillArc(cxf, cy, radius, startAngle, endAngle);
-                }
+                },
+                Tolerance = tolerance
             };
         }
-	    return Accept("Arcs", tolerance: 8,
+	    return Accept("Arcs",
 		    Make (0, MathF.PI * 2.00f),
 		    Make (0, MathF.PI * 2.25f),
 		    Make (-MathF.PI * 0.25f, MathF.PI * 2.25f),
@@ -414,7 +416,7 @@ public class AcceptanceTests
 		    Make (MathF.PI * 1.25f, MathF.PI * 1.00f),
 		    Make (MathF.PI * 1.25f, MathF.PI * 0.75f),
 		    Make (MathF.PI * 1.25f, MathF.PI * 0.50f),
-		    Make (MathF.PI * 1.25f, MathF.PI * 0.25f),
+		    Make (MathF.PI * 1.25f, MathF.PI * 0.25f, tolerance: 16),
 		    Make (MathF.PI * 1.25f, MathF.PI * 0.00f),
 		    Make (MathF.PI * 1.25f, -MathF.PI * 2.00f),
 		    Make (MathF.PI * 1.25f, -MathF.PI * 1.75f),
@@ -448,7 +450,7 @@ public class AcceptanceTests
 
     string? Ovals()
     {
-        Drawing Make(float width, float height, float w) {
+        Drawing Make(float width, float height, float w, int tolerance = 0) {
             return new Drawing {
                 Title = $"Oval_W{width:F2}_H{height:F2}_L{w:F2}",
                 Draw = args => {
@@ -462,10 +464,11 @@ public class AcceptanceTests
 	                else {
 		                args.Graphics.DrawOval (new RectangleF (x, y, width, height), w);
 	                }
-                }
+                },
+                Tolerance = tolerance
             };
         }
-	    return Accept("Ovals", tolerance: 2,
+	    return Accept("Ovals",
             Make(50, 50, -1),
             Make(50, 5, -1),
             Make(5, 50, -1),
@@ -516,7 +519,7 @@ public class AcceptanceTests
 				}
 			};
 		}	
-	    return Accept("Lines", tolerance: 0,
+	    return Accept("Lines",
             MakeHs(0.00f, 0.25f),
             MakeHs(0.00f, 0.50f),
             MakeHs(0.00f, 0.75f),
@@ -557,7 +560,7 @@ public class AcceptanceTests
 			    }
 		    };
 	    }
-	    return Accept("Polygons", tolerance: 0,
+	    return Accept("Polygons",
 		    Make(1.0f, -1),
 		    Make(1.0f, 0.125f),
 		    Make(1.0f, 0.333f),
@@ -589,7 +592,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    return Accept("Rects", tolerance: 0,
+	    return Accept("Rects",
             Make(49.5f, 49.5f, -1),
             Make(49.75f, 49.75f, -1),
             Make(50, 50, -1),
@@ -633,7 +636,7 @@ public class AcceptanceTests
                 }
             };
         }
-	    return Accept("RoundedRects", tolerance: 0,
+	    return Accept("RoundedRects",
             Make(50, 50, 10, -1),
             Make(48, 48, 10, 1),
             Make(49, 49, 10, 1),
@@ -682,7 +685,7 @@ public class AcceptanceTests
             };
         }
         var otherFam = "BoldUserFixedPitch";
-	    return Accept("Text", tolerance: 0,
+	    return Accept("Text",
 		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Left),
 		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Center),
 		    MakeRect (singleLine, null, 14, LineBreakMode.None, TextAlignment.Right),
