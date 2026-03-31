@@ -53,6 +53,8 @@ namespace CrossGraphics.Metal
 		//}
 		//readonly List<State> _states = new List<State> () { new State () { ModelToView = Matrix4x4.Identity } };
 
+		readonly List<Matrix4x4> _stateStack = new List<Matrix4x4> (8);
+
 		readonly MetalGraphicsBuffers _buffers;
 		readonly IMTLRenderCommandEncoder _renderEncoder;
 		static readonly Lazy<IMTLRenderPipelineState?> _pipeline;
@@ -111,7 +113,7 @@ namespace CrossGraphics.Metal
 
 		public void SaveState ()
 		{
-			//_states.Add(_states[^1]);
+			_stateStack.Add (_modelToView);
 		}
 
 		public void SetClippingRect (float x, float y, float width, float height)
@@ -130,10 +132,10 @@ namespace CrossGraphics.Metal
 
 		public void RestoreState ()
 		{
-			//if (_states.Count > 1)
-			//{
-			//	_states.RemoveAt(_states.Count - 1);
-			//}
+			if (_stateStack.Count > 0) {
+				_modelToView = _stateStack[^1];
+				_stateStack.RemoveAt (_stateStack.Count - 1);
+			}
 		}
 
 		public IImage? ImageFromFile (string path)
@@ -150,10 +152,10 @@ namespace CrossGraphics.Metal
 				var top = y;
 				var bottom = y + height;
 				var r = w / 2;
-				var minX = Math.Min (left, right) - r;
-				var minY = Math.Min (top, bottom) - r;
-				var maxX = Math.Max (left, right) + r;
-				var maxY = Math.Max (top, bottom) + r;
+				var minX = MathF.Min (left, right) - r;
+				var minY = MathF.Min (top, bottom) - r;
+				var maxX = MathF.Max (left, right) + r;
+				var maxY = MathF.Max (top, bottom) + r;
 				return new BoundingBox { MinX = minX, MinY = minY, MaxX = maxX, MaxY = maxY };
 			}
 
@@ -233,7 +235,7 @@ namespace CrossGraphics.Metal
 
 		float ArcPad(float radius)
 		{
-			return 3;
+			return MathF.Max (3, radius * 0.5f + 1.5f);
 		}
 
 		public void FillOval (float x, float y, float width, float height)
@@ -263,8 +265,10 @@ namespace CrossGraphics.Metal
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
-			var isCircle = Math.Abs(PositiveAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
-			if (isCircle) {
+			var sweep = PositiveAngle (endAngle - startAngle);
+			if (MathF.Abs (sweep) < 1.0e-6f)
+				return;
+			if (MathF.Abs (sweep) >= MathF.PI * 2.0f - 1.0e-6f) {
 				FillOval (cx - radius, cy - radius, radius * 2, radius * 2);
 				return;
 			}
@@ -274,8 +278,10 @@ namespace CrossGraphics.Metal
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
-			var isCircle = Math.Abs(PositiveAngle (endAngle - startAngle)) >= MathF.PI * 2.0f - 1.0e-6f;
-			if (isCircle) {
+			var sweep = PositiveAngle (endAngle - startAngle);
+			if (MathF.Abs (sweep) < 1.0e-6f)
+				return;
+			if (MathF.Abs (sweep) >= MathF.PI * 2.0f - 1.0e-6f) {
 				DrawOval (cx - radius, cy - radius, radius * 2, radius * 2, w);
 				return;
 			}
@@ -300,8 +306,8 @@ namespace CrossGraphics.Metal
 			var w2 = w / 2;
 			var bbv = new Vector4 (sx, sy, ex, ey);
 			var args = new Vector4 (sx, sy, 0, w);
-			var ox = dx / len * w2 * 4.0f;
-			var oy = dy / len * w2 * 4.0f;
+			var ox = dx / len * (w2 + 1.5f);
+			var oy = dy / len * (w2 + 1.5f);
 			var nx = oy;
 			var ny = -ox;
 			var v0 = buffer.AddVertex (sx - ox - nx, sy - oy - ny, ex, ey, _currentColor, bb: bbv, args: args, op: DrawOp.DrawLine);
@@ -825,6 +831,37 @@ float calculateOvalAABBIntersectionArea(float2 center, float2 radius, float2 pix
 	return intersectionSize.x * intersectionSize.y;
 }
 
+// Signed distance to a rounded rectangle centered at origin.
+// halfSize = half of (width, height), r = corner radius (clamped to min half-dimension)
+float sdRoundedBox(float2 p, float2 halfSize, float r) {
+	r = min(r, min(halfSize.x, halfSize.y));
+	float2 q = abs(p) - halfSize + float2(r, r);
+	return min(max(q.x, q.y), 0.0) + length(max(q, float2(0.0))) - r;
+}
+
+// Signed distance to an arc (pie slice) boundary.
+// p relative to center, radius = circle radius, startAngle/endAngle in radians.
+// Returns distance to the arc region boundary (negative inside, positive outside).
+float sdFilledArc(float2 p, float radius, float startAngle, float endAngle) {
+	// Distance to circle
+	float dCircle = length(p) - radius;
+
+	// Compute chord endpoints and half-plane distance
+	float2 startNorm = float2(cos(startAngle), -sin(startAngle));
+	float2 endNorm = float2(cos(endAngle), -sin(endAngle));
+	float2 p1 = startNorm * radius;
+	float2 p2 = endNorm * radius;
+	float cdx = (p2.x - p1.x);
+	float cdy = (p2.y - p1.y);
+	float chordLen = sqrt(cdx * cdx + cdy * cdy);
+	if (chordLen < 1e-6) return 1e6;
+	// Signed distance to chord line (positive on the fill side)
+	float dChord = (cdx * (p.y - p1.y) - cdy * (p.x - p1.x)) / chordLen;
+
+	// Inside the arc = inside circle AND on positive side of chord
+	return max(dCircle, -dChord);
+}
+
 float fillArc(ColorInOut in)
 {
 	float2 p = in.modelPosition;
@@ -981,7 +1018,7 @@ fragment float4 fragmentShader(
 		float rightArea = calculateThickLineAABBIntersectionArea(float2(bbMax.x, bbMin.y - w2), float2(bbMax.x, bbMax.y + w2), w, pixelMin, pixelMax);
 		float topArea = calculateThickLineAABBIntersectionArea(float2(bbMin.x - w2, bbMax.y), float2(bbMax.x + w2, bbMax.y), w, pixelMin, pixelMax);
 		float bottomArea = calculateThickLineAABBIntersectionArea(float2(bbMin.x - w2, bbMin.y), float2(bbMax.x + w2, bbMin.y), w, pixelMin, pixelMax);
-		float intersectArea = max(max(max(leftArea, rightArea), topArea), bottomArea);
+		float intersectArea = min(leftArea + rightArea + topArea + bottomArea, pixelArea);
 		mask = intersectArea / pixelArea;
 	}
 	else if (op == 4) { // FillOval
@@ -1016,6 +1053,64 @@ fragment float4 fragmentShader(
 		float w = in.args.w;
 		float intersectArea = calculateRoundedThickLineAABBIntersectionArea(p1, p2, w, pixelMin, pixelMax);
 		mask = intersectArea / pixelArea;
+	}
+	else if (op == 2) { // FillRoundedRect
+		float2 center = (in.bb.xy + in.bb.zw) / 2;
+		float r = in.args.y;
+		float width = in.args.z;
+		float height = in.args.w;
+		float2 halfSize = float2(width / 2, height / 2);
+		float d = sdRoundedBox(p3 - center, halfSize, r);
+		float pixelSize = length(dx + dy) * 0.5;
+		mask = 1.0 - smoothstep(-pixelSize * 0.5, pixelSize * 0.5, d);
+	}
+	else if (op == 3) { // StrokeRoundedRect
+		float2 center = (in.bb.xy + in.bb.zw) / 2;
+		float w = in.args.x;
+		float r = in.args.y;
+		float width = in.args.z;
+		float height = in.args.w;
+		float2 halfSize = float2(width / 2, height / 2);
+		float d = abs(sdRoundedBox(p3 - center, halfSize, r)) - w / 2;
+		float pixelSize = length(dx + dy) * 0.5;
+		mask = 1.0 - smoothstep(-pixelSize * 0.5, pixelSize * 0.5, d);
+	}
+	else if (op == 6) { // FillArc
+		float2 center = (in.bb.xy + in.bb.zw) / 2;
+		float startAngle = in.args.y;
+		float endAngle = in.args.z;
+		float radius = in.args.w;
+		float d = sdFilledArc(p3 - center, radius, startAngle, endAngle);
+		float pixelSize = length(dx + dy) * 0.5;
+		mask = 1.0 - smoothstep(-pixelSize * 0.5, pixelSize * 0.5, d);
+	}
+	else if (op == 7) { // StrokeArc
+		float2 center = (in.bb.xy + in.bb.zw) / 2;
+		float w = in.args.x;
+		float startAngle = in.args.y;
+		float endAngle = in.args.z;
+		float radius = in.args.w;
+		// Distance to circular arc ring
+		float2 pc = p3 - center;
+		float dist = length(pc);
+		float dCircle = abs(dist - radius) - w / 2;
+		// Angular containment using same logic as strokeArc
+		float2 startNorm = float2(cos(startAngle), -sin(startAngle));
+		float2 endNorm = float2(cos(endAngle), -sin(endAngle));
+		float sa = -atan2(startNorm.y, startNorm.x);
+		float ea = -atan2(endNorm.y, endNorm.x);
+		if (ea < sa) { ea += 2.0 * 3.14159265359; }
+		float angle = -atan2(pc.y, pc.x);
+		if (angle < sa) { angle += 2.0 * 3.14159265359; }
+		bool inAngle = (angle >= sa && angle <= ea);
+		// Distance to end caps
+		float2 startPoint = startNorm * radius;
+		float2 endPoint = endNorm * radius;
+		float dStartCap = length(pc - startPoint) - w / 2;
+		float dEndCap = length(pc - endPoint) - w / 2;
+		float d = inAngle ? dCircle : min(dStartCap, dEndCap);
+		float pixelSize = length(dx + dy) * 0.5;
+		mask = 1.0 - smoothstep(-pixelSize * 0.5, pixelSize * 0.5, d);
 	}
 	else {
 		for (int i = 0; i < 4; i++) {
@@ -1089,9 +1184,9 @@ fragment float4 fragmentShader(
 		public MetalPrimitivesBuffer (IMTLDevice device)
 		{
 			Device = device;
-			VertexBuffer = Device.CreateBuffer ((nuint)(MaxVertices * MetalGraphics.VertexByteSize), MTLResourceOptions.CpuCacheModeDefault);
+			VertexBuffer = Device.CreateBuffer ((nuint)(MaxVertices * MetalGraphics.VertexByteSize), MTLResourceOptions.CpuCacheModeWriteCombined);
 			_vertexBufferPointer = VertexBuffer?.Contents ?? IntPtr.Zero;
-			IndexBuffer = Device.CreateBuffer ((nuint)(MaxIndices * sizeof (ushort)), MTLResourceOptions.CpuCacheModeDefault);
+			IndexBuffer = Device.CreateBuffer ((nuint)(MaxIndices * sizeof (ushort)), MTLResourceOptions.CpuCacheModeWriteCombined);
 			_indexBufferPointer = IndexBuffer?.Contents ?? IntPtr.Zero;
 		}
 		public void Reset ()
@@ -1476,7 +1571,7 @@ fragment float4 fragmentShader(
 			Device = device;
 			_primitiveBuffers = new List<MetalPrimitivesBuffer> { new MetalPrimitivesBuffer (Device) };
 			_sdfTextures = new List<MetalSdfTexture> { new MetalSdfTexture (Device, textureIndex: 0) };
-			_uniformsBuffer = Device.CreateBuffer ((nuint)(MetalGraphics.UniformsByteSize), MTLResourceOptions.CpuCacheModeDefault);
+			_uniformsBuffer = Device.CreateBuffer ((nuint)(MetalGraphics.UniformsByteSize), MTLResourceOptions.CpuCacheModeWriteCombined);
 			_uniformsBufferPointer = _uniformsBuffer?.Contents ?? IntPtr.Zero;
 		}
 
@@ -1530,11 +1625,18 @@ fragment float4 fragmentShader(
 			return null;
 		}
 
+		readonly List<SdfKey> _sdfRemovalList = new ();
+
 		void FreePastFrameSdfTextureRegions ()
 		{
-			var vals = _sdfValues.ToArray ();
-			foreach (var (key, region) in vals) {
+			_sdfRemovalList.Clear ();
+			foreach (var (key, region) in _sdfValues) {
 				if (region.LastUsedFrame < _frame - 2) {
+					_sdfRemovalList.Add (key);
+				}
+			}
+			foreach (var key in _sdfRemovalList) {
+				if (_sdfValues.TryGetValue (key, out var region)) {
 					SdfTextures[region.TextureIndex].Dealloc (region.AllocatedRect);
 					_sdfValues.Remove (key);
 				}
