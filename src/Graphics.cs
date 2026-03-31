@@ -232,6 +232,9 @@ namespace CrossGraphics
 		public IFontMetrics? AndroidTag { get; set; }
 		public IFontMetrics? SkiaTag { get; set; }
 
+		private IFontMetrics? _nullTag;
+		public IFontMetrics NullTag => _nullTag ??= new NullGraphicsFontMetrics (Size, isBold: IsBold, isMonospace: IsMonospace);
+
 		public bool IsBold => (Options & FontOptions.Bold) != 0;
 
 		public bool IsMonospace => FontFamily == "Monospace";

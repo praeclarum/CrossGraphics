@@ -53,13 +53,6 @@ namespace CrossGraphics.Metal
 		//}
 		//readonly List<State> _states = new List<State> () { new State () { ModelToView = Matrix4x4.Identity } };
 
-		readonly List<Matrix4x4> _stateStack = new List<Matrix4x4> (8);
-
-		struct LineSegment
-		{
-			public float SX, SY, EX, EY, W;
-		}
-		readonly List<LineSegment> _lineAccumulator = new List<LineSegment> (32);
 		bool _linesBegun = false;
 		bool _linesRounded = false;
 
@@ -94,7 +87,7 @@ namespace CrossGraphics.Metal
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			return new NullGraphicsFontMetrics (_currentFont.Size, isBold: _currentFont.IsBold, isMonospace: _currentFont.IsMonospace);
+			return _currentFont.NullTag;
 		}
 
 		public void SetFont (Font? f)
@@ -121,7 +114,7 @@ namespace CrossGraphics.Metal
 
 		public void SaveState ()
 		{
-			_stateStack.Add (_modelToView);
+			_buffers.StateStack.Add (_modelToView);
 		}
 
 		public void SetClippingRect (float x, float y, float width, float height)
@@ -140,9 +133,10 @@ namespace CrossGraphics.Metal
 
 		public void RestoreState ()
 		{
-			if (_stateStack.Count > 0) {
-				_modelToView = _stateStack[^1];
-				_stateStack.RemoveAt (_stateStack.Count - 1);
+			var stateStack = _buffers.StateStack;
+			if (stateStack.Count > 0) {
+				_modelToView = stateStack[^1];
+				stateStack.RemoveAt (stateStack.Count - 1);
 			}
 		}
 
@@ -301,13 +295,13 @@ namespace CrossGraphics.Metal
 		{
 			_linesBegun = true;
 			_linesRounded = rounded;
-			_lineAccumulator.Clear ();
+			_buffers.LineAccumulator.Clear ();
 		}
 
 		public void DrawLine (float sx, float sy, float ex, float ey, float w)
 		{
 			if (_linesBegun) {
-				_lineAccumulator.Add (new LineSegment { SX = sx, SY = sy, EX = ex, EY = ey, W = w });
+				_buffers.LineAccumulator.Add (new MetalGraphicsBuffers.LineSegment { SX = sx, SY = sy, EX = ex, EY = ey, W = w });
 				return;
 			}
 			EmitStandaloneLine (sx, sy, ex, ey, w);
@@ -318,7 +312,7 @@ namespace CrossGraphics.Metal
 			if (!_linesBegun)
 				return;
 			_linesBegun = false;
-			var segs = _lineAccumulator;
+			var segs = _buffers.LineAccumulator;
 			var n = segs.Count;
 			if (n == 0)
 				return;
@@ -1663,6 +1657,16 @@ fragment float4 fragmentShader(
 		public IMTLBuffer? PolylineSegmentBuffer => _polylineSegmentBuffer;
 		public int PolylineSegmentCount => _polylineSegmentCount;
 
+		readonly List<Matrix4x4> _stateStack = new List<Matrix4x4> (8);
+		public List<Matrix4x4> StateStack => _stateStack;
+
+		public struct LineSegment
+		{
+			public float SX, SY, EX, EY, W;
+		}
+		readonly List<LineSegment> _lineAccumulator = new List<LineSegment> (32);
+		public List<LineSegment> LineAccumulator => _lineAccumulator;
+
 		readonly Dictionary<string, Dictionary<int, CTStringAttributes>> _cachedStringAttributes = new ();
 
 		int _frame = 0;
@@ -1685,6 +1689,8 @@ fragment float4 fragmentShader(
 			}
 			_currentPrimitiveBufferIndex = 0;
 			_polylineSegmentCount = 0;
+			_stateStack.Clear ();
+			_lineAccumulator.Clear ();
 			_frame++;
 		}
 
