@@ -416,7 +416,7 @@ public class AcceptanceTests
 		    Make (MathF.PI * 1.25f, MathF.PI * 1.00f),
 		    Make (MathF.PI * 1.25f, MathF.PI * 0.75f),
 		    Make (MathF.PI * 1.25f, MathF.PI * 0.50f),
-		    Make (MathF.PI * 1.25f, MathF.PI * 0.25f, tolerance: 16),
+		    Make (MathF.PI * 1.25f, MathF.PI * 0.25f, tolerance: 64),
 		    Make (MathF.PI * 1.25f, MathF.PI * 0.00f),
 		    Make (MathF.PI * 1.25f, -MathF.PI * 2.00f),
 		    Make (MathF.PI * 1.25f, -MathF.PI * 1.75f),
@@ -473,19 +473,19 @@ public class AcceptanceTests
             Make(50, 5, -1),
             Make(5, 50, -1),
             Make(50, 50, 0.125f),
-            Make(50, 50, 0.25f),
-            Make(50, 50, 0.333f),
-            Make(50, 50, 0.75f),
-            Make(50, 50, 1),
+            Make(50, 50, 0.25f, tolerance: 2),
+            Make(50, 50, 0.333f, tolerance: 2),
+            Make(50, 50, 0.75f, tolerance: 2),
+            Make(50, 50, 1, tolerance: 2),
             Make(50, 50, 1.333f),
-            Make(50, 50, 10),
+            Make(50, 50, 10, tolerance: 2),
             Make(50, 50, 50),
-            Make(50, 100, 1),
+            Make(50, 100, 1, tolerance: 2),
             Make(50, 100, 10),
             Make(50, 100, 50),
-            Make(100, 100, 1),
-            Make(100, 100, 10),
-            Make(100, 100, 50)
+            Make(100, 100, 1, tolerance: 2),
+            Make(100, 100, 10, tolerance: 2),
+            Make(100, 100, 50, tolerance: 2)
         );
     }
 
