@@ -75,6 +75,7 @@ namespace CrossGraphics
 		None = 0,
 		Command = 0x01,
 		Shift = 0x02,
+		Alt = 0x04,
 	}
 
     public class CanvasContent : INotifyPropertyChanged
