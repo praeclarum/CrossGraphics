@@ -17,7 +17,7 @@ namespace CrossGraphics.Maui
 		float renderedCanvasFromLayoutScale = 1.0f;
 
 		CanvasContent? content = null;
-		CanvasContent? ICanvas.Content {
+		public CanvasContent? Content {
 			get => content;
 			set {
 				content = value;
