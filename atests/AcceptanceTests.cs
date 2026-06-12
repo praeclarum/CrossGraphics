@@ -219,7 +219,7 @@ public class AcceptanceTests
 				rc.CommandBuffer.Commit ();
 				rc.CommandBuffer.WaitUntilCompleted ();
 				var cs = CoreGraphics.CGColorSpace.CreateDeviceRGB ();
-				var bitmapFlags = CrossGraphics.Metal.MetalGraphics.DefaultPixelFormat == MTLPixelFormat.BGRA8Unorm
+				var bitmapFlags = CrossGraphics.Metal.MetalGraphics.DefaultPixelFormat == Metal.MTLPixelFormat.BGRA8Unorm
 					? CoreGraphics.CGBitmapFlags.PremultipliedFirst | CoreGraphics.CGBitmapFlags.ByteOrder32Little
 					: CoreGraphics.CGBitmapFlags.PremultipliedLast;
 				var bitmap = new CoreGraphics.CGBitmapContext (null, (IntPtr)rc.Texture.Width, (IntPtr)rc.Texture.Height, (IntPtr)8, (IntPtr)(4*rc.Texture.Width), cs, bitmapFlags);
