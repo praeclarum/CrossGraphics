@@ -4,6 +4,7 @@ using System;
 
 using CrossGraphics.Skia;
 
+using Microsoft.Maui.Controls;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 
@@ -11,6 +12,8 @@ namespace CrossGraphics.Maui
 {
 	public class MauiSkiaCanvas : SKCanvasView, ICanvas
 	{
+		public static readonly BindableProperty DrawsContinuouslyProperty = BindableProperty.Create(nameof (DrawsContinuously), typeof (bool), typeof (MauiSkiaCanvas), false);
+
 		float renderedCanvasFromLayoutScale = 1.0f;
 
 		CanvasContent? content = null;
@@ -19,6 +22,15 @@ namespace CrossGraphics.Maui
 			set {
 				content = value;
 				InvalidateSurface ();
+			}
+		}
+
+		public bool DrawsContinuously {
+			get => (bool)this.GetValue (DrawsContinuouslyProperty);
+			set
+			{
+				this.SetValue (DrawsContinuouslyProperty, value);
+				OnDrawsContinuouslyChanged ();
 			}
 		}
 
@@ -89,6 +101,35 @@ namespace CrossGraphics.Maui
 					co.Draw (g);
 				}
 				Draw?.Invoke (this, new DrawEventArgs (g, frame));
+			}
+		}
+		private Microsoft.Maui.Dispatching.IDispatcherTimer? _drawTimer;
+		private bool _drawsContinuouslyRunning;
+
+		void OnDrawsContinuouslyChanged ()
+		{
+			if (DrawsContinuously) {
+				if (_drawsContinuouslyRunning)
+					return;
+
+				var timer = Dispatcher?.CreateTimer ();
+				if (timer is null)
+					return;
+
+				timer.Interval = TimeSpan.FromMilliseconds (16);
+				timer.IsRepeating = true;
+				timer.Tick += (_, _) => InvalidateSurface ();
+				timer.Start ();
+
+				_drawTimer = timer;
+				_drawsContinuouslyRunning = true;
+			}
+			else {
+				if (_drawTimer is {} timer) {
+					timer.Stop ();
+				}
+				_drawTimer = null;
+				_drawsContinuouslyRunning = false;
 			}
 		}
 	}

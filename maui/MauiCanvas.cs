@@ -18,6 +18,19 @@ using Size = Microsoft.Maui.Graphics.Size;
 
 namespace CrossGraphics.Maui
 {
+#if WINDOWS
+	public class MauiCanvas : MauiSkiaCanvas
+	{
+	}
+
+	public static class AppHostBuilderExtensions
+	{
+		public static MauiAppBuilder UseCrossGraphics (this MauiAppBuilder builder)
+		{
+			return builder;
+		}
+	}
+#else
 	public interface IMauiCanvas : IView, ICanvas
 	{
 		// SKSize CanvasSize { get; }
@@ -439,4 +452,5 @@ namespace CrossGraphics.Maui
 		{
 		}
 	}
+#endif
 }

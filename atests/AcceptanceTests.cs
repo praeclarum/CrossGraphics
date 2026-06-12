@@ -1,10 +1,6 @@
 using System.Drawing;
 
-using CoreGraphics;
-
 using CrossGraphics;
-
-using Metal;
 
 using LineBreakMode = CrossGraphics.LineBreakMode;
 using PointF = System.Drawing.PointF;

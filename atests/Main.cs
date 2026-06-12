@@ -4,4 +4,8 @@ using atests;
 // NSApplication.Init ();
 // NSApplication.Main (args);
 
+#if __IOS__ || __MACCATALYST__
 UIApplication.Main (args, null, typeof (AppDelegate));
+#else
+System.Console.WriteLine ("Acceptance tests running on unsupported platform.");
+#endif
