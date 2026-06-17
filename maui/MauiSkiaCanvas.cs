@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 
 using CrossGraphics.Skia;
 
@@ -15,6 +16,7 @@ namespace CrossGraphics.Maui
 		public static readonly BindableProperty DrawsContinuouslyProperty = BindableProperty.Create(nameof (DrawsContinuously), typeof (bool), typeof (MauiSkiaCanvas), false);
 
 		float renderedCanvasFromLayoutScale = 1.0f;
+		readonly Dictionary<IntPtr, CanvasTouch> activeTouches = new ();
 
 		CanvasContent? content = null;
 		public CanvasContent? Content {
@@ -54,35 +56,64 @@ namespace CrossGraphics.Maui
 
 		CanvasTouch GetCanvasTouch (SKTouchEventArgs e)
 		{
+			var handle = new IntPtr (e.Id);
+			var location = new System.Drawing.PointF (e.Location.X / renderedCanvasFromLayoutScale, e.Location.Y / renderedCanvasFromLayoutScale);
+			var now = DateTime.UtcNow;
+			if (activeTouches.TryGetValue (handle, out var previous)) {
+				previous.CanvasPreviousLocation = previous.CanvasLocation;
+				previous.SuperCanvasPreviousLocation = previous.SuperCanvasLocation;
+				previous.PreviousTime = previous.Time;
+				previous.CanvasLocation = location;
+				previous.SuperCanvasLocation = location;
+				previous.Time = now;
+				return previous;
+			}
+
 			return new CanvasTouch {
-				Handle = new IntPtr (e.Id),
-				CanvasLocation = new System.Drawing.PointF (e.Location.X, e.Location.Y),
+				Handle = handle,
+				CanvasLocation = location,
+				CanvasPreviousLocation = location,
+				SuperCanvasLocation = location,
+				SuperCanvasPreviousLocation = location,
+				Time = now,
+				PreviousTime = now,
 			};
 		}
 
 		private void RenderView_Touch (object? sender, SKTouchEventArgs e)
 		{
-			Console.WriteLine ($"{e.ActionType}");
 			switch (e.ActionType) {
 				case SKTouchAction.Entered:
 					break;
 				case SKTouchAction.Exited:
 					break;
 				case SKTouchAction.WheelChanged:
+					OnWheelChanged (e);
 					break;
 				case SKTouchAction.Pressed:
-					content?.TouchesBegan (new[] { GetCanvasTouch (e) }, CanvasKeys.None);
+					var pressedTouch = GetCanvasTouch (e);
+					activeTouches[pressedTouch.Handle] = pressedTouch;
+					content?.TouchesBegan (new[] { pressedTouch }, CanvasKeys.None);
 					break;
 				case SKTouchAction.Moved:
 					content?.TouchesMoved (new[] { GetCanvasTouch (e) });
 					break;
 				case SKTouchAction.Released:
-					content?.TouchesEnded (new[] { GetCanvasTouch (e) });
+					var releasedTouch = GetCanvasTouch (e);
+					activeTouches.Remove (releasedTouch.Handle);
+					content?.TouchesEnded (new[] { releasedTouch });
 					break;
 				case SKTouchAction.Cancelled:
-					content?.TouchesCancelled (new[] { GetCanvasTouch (e) });
+					var cancelledTouch = GetCanvasTouch (e);
+					activeTouches.Remove (cancelledTouch.Handle);
+					content?.TouchesCancelled (new[] { cancelledTouch });
 					break;
 			}
+			e.Handled = true;
+		}
+
+		protected virtual void OnWheelChanged (SKTouchEventArgs e)
+		{
 		}
 
 		void RenderView_PaintSurface (object? sender, SKPaintSurfaceEventArgs e)
