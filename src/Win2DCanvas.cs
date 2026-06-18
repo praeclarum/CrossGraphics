@@ -97,16 +97,22 @@ namespace CrossGraphics.Win2D
             Unloaded += HandleUnloaded;
             Loaded += HandleLoaded;
 			SizeChanged += Win2DCanvas_SizeChanged;
-        }
+
+			KeyDown += OnKeyDownHandler;
+			KeyUp += OnKeyUpHandler;
+		}
 
 		async void Win2DCanvas_SizeChanged (object sender, SizeChangedEventArgs e)
 		{
-			if (Content != null && (Math.Abs (lastUpdateWidth - ActualWidth) > 0.5 || Math.Abs (lastUpdateHeight - ActualHeight) > 0.5)) {
+			if (Content is not null && (Math.Abs (lastUpdateWidth - ActualWidth) > 0.5 || Math.Abs (lastUpdateHeight - ActualHeight) > 0.5)) {
 				lastUpdateWidth = ActualWidth;
 				lastUpdateHeight = ActualHeight;
-				await Dispatcher.RunAsync (Windows.UI.Core.CoreDispatcherPriority.Normal, delegate {
-					Content?.SetNeedsDisplay ();
-				});
+				if (Dispatcher is { } dispatcher) {
+					await dispatcher.RunAsync (Windows.UI.Core.CoreDispatcherPriority.Normal, delegate
+					{
+						Content?.SetNeedsDisplay ();
+					});
+				}
 			}
 		}
 
@@ -123,9 +129,14 @@ namespace CrossGraphics.Win2D
             Stop();
         }
 
+		public void SetNeedsDisplay ()
+		{
+			canvasControl.Invalidate (); 
+		}
+
 		void OnNeedsDisplay (object sender, EventArgs e)
 		{
-			canvasControl.Invalidate ();
+			SetNeedsDisplay ();
 		}
 
         bool _touchEnabled = false;
@@ -349,7 +360,21 @@ namespace CrossGraphics.Win2D
 			public bool IsMoving;
 		}
 
-        void SilverlightGraphicsCanvas_PointerPressed(DispatcherTimerTickEventArgs sender, PointerRoutedEventArgs e)
+		readonly HashSet<Windows.System.VirtualKey> _pressedKeys = new HashSet<Windows.System.VirtualKey> ();
+
+		void OnKeyDownHandler (object sender, KeyRoutedEventArgs e)
+		{
+			System.Diagnostics.Debug.WriteLine ($"KeyDown: {e.Key}");
+			_pressedKeys.Add (e.Key);
+		}
+
+		void OnKeyUpHandler (object sender, KeyRoutedEventArgs e)
+		{
+			System.Diagnostics.Debug.WriteLine ($"KeyUp: {e.Key}");
+			_pressedKeys.Remove (e.Key);
+		}
+
+		void SilverlightGraphicsCanvas_PointerPressed(DispatcherTimerTickEventArgs sender, PointerRoutedEventArgs e)
 		{
 			var handle = new IntPtr(e.Pointer.PointerId);
 			//Debug.WriteLine (string.Format ("{0} PRESSED {1}", DateTime.Now, handle));
@@ -396,15 +421,12 @@ namespace CrossGraphics.Win2D
 
 			if (Content != null) {
 				var keys = CanvasKeys.None;
-				var ctrl = Windows.UI.Core.CoreWindow.GetForCurrentThread ().GetKeyState (Windows.System.VirtualKey.Control);
-				var shift = Windows.UI.Core.CoreWindow.GetForCurrentThread ().GetKeyState (Windows.System.VirtualKey.Shift);
-				if ((ctrl & Windows.UI.Core.CoreVirtualKeyStates.Down) != 0) {
+				if (_pressedKeys.Contains(Windows.System.VirtualKey.Control)) {
 					keys = keys | CanvasKeys.Command;
 				}
-				if ((shift & Windows.UI.Core.CoreVirtualKeyStates.Down) != 0) {
+				if (_pressedKeys.Contains (Windows.System.VirtualKey.Shift)) {
 					keys = keys | CanvasKeys.Shift;
 				}
-
 				Content.TouchesBegan(new[] { touch }, keys);
 			}
 		}
