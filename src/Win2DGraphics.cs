@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010-2019 Frank A. Krueger
+// Copyright (c) 2010-2026 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -232,8 +232,18 @@ namespace CrossGraphics.Win2D
 			return null;
 		}
 
+		struct State
+		{
+			public Matrix3x2 Transform;
+		}
+		readonly List<State> _states = new List<State>();
+
 		public void SaveState ()
 		{
+			var s = new State {
+				Transform = _c.Transform
+			};
+			_states.Add (s);
 		}
 
 		public void SetClippingRect (float x, float y, float width, float height)
@@ -242,14 +252,21 @@ namespace CrossGraphics.Win2D
 
 		public void Translate (float dx, float dy)
 		{
+			_c.Transform = Matrix3x2.CreateTranslation(dx, dy) * _c.Transform;
 		}
 
 		public void Scale (float sx, float sy)
 		{
+			_c.Transform = Matrix3x2.CreateScale (sx, sy) * _c.Transform;
 		}
 
 		public void RestoreState ()
 		{
+			if (_states.Count > 0) {
+				var s = _states[_states.Count - 1];
+				_states.RemoveAt (_states.Count - 1);
+				_c.Transform = s.Transform;
+			}
 		}
 	}
 
