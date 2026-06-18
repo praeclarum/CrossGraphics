@@ -32,6 +32,8 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 
         <DefineConstants Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">MONOMAC</DefineConstants>
+
+        <Win2DWarnNoPlatform>false</Win2DWarnNoPlatform>
     </PropertyGroup>
 
     <ItemGroup>
@@ -83,5 +85,11 @@
         <Compile Include="MetalCanvas.cs" />
         <Compile Include="MetalGraphics.cs" />
         <PackageReference Include="SkiaSharp.Views" />
+    </ItemGroup>
+
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+        <Compile Include="Win2DGraphics.cs" />
+        <Compile Include="Win2DCanvas.cs" />
+        <PackageReference Include="Microsoft.Graphics.Win2D" />
     </ItemGroup>
 </Project>

@@ -33,7 +33,7 @@ namespace CrossGraphics.Win2D
 {
 	public class Win2DGraphics : IGraphics
 	{
-		CanvasDrawingSession _c;
+		readonly CanvasDrawingSession _c;
 		Font _font;
 		Color activeColor;
 		Windows.UI.Color wcolor;
@@ -68,6 +68,12 @@ namespace CrossGraphics.Win2D
 		{
 			activeColor = c;
 			wcolor = c.ToWindowsColor ();
+		}
+
+		public void SetRgba (byte r, byte g, byte b, byte a)
+		{
+			activeColor = null;
+			wcolor = Windows.UI.Color.FromArgb (a, r, g, b);
 		}
 
 		CanvasGeometry GetPolyPath (Polygon poly, CanvasFigureFill fill)
@@ -197,12 +203,12 @@ namespace CrossGraphics.Win2D
 
 		public IFontMetrics GetFontMetrics ()
 		{
-			return GetFontInfo (_font).FontMetrics;
+			return GetWin2DFontMetrics (_font);
 		}
 
-		static Win2DFontInfo GetFontInfo (Font f)
+		static Win2DFontMetrics GetWin2DFontMetrics (Font f)
 		{
-			var fi = f.Tag as Win2DFontInfo;
+			var fi = f.Tag as Win2DFontMetrics;
 			if (fi == null) {
 				var name = "Helvetica";
 				if (f.FontFamily == "Monospace") {
@@ -216,7 +222,7 @@ namespace CrossGraphics.Win2D
 #endif
 				}
 
-				fi = new Win2DFontInfo ();
+				fi = new Win2DFontMetrics (size: f.Size, isBold: f.IsBold);
 				f.Tag = fi;
 			}
 			return fi;
@@ -245,11 +251,6 @@ namespace CrossGraphics.Win2D
 		public void RestoreState ()
 		{
 		}
-	}
-
-	class Win2DFontInfo
-	{
-		public Win2DFontMetrics FontMetrics;
 	}
 
 	public class Win2DImage : IImage

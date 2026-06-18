@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010-2019 Frank A. Krueger
+// Copyright (c) 2010-2026 Frank A. Krueger
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,12 +24,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Media;
-using Windows.UI.Xaml.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Input;
 using DispatcherTimerTickEventArgs = System.Object;
-using NativeColors = Windows.UI.Colors;
+using NativeColors = Microsoft.UI.Colors;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using CrossGraphics.Win2D;
 
@@ -39,7 +39,7 @@ namespace CrossGraphics
     {
         const int NativePointsPerInch = 160;
 
-		CanvasControl canvasControl;
+		readonly CanvasControl canvasControl;
 
         int _fps = 20;
         readonly DispatcherTimer _drawTimer;
@@ -142,7 +142,7 @@ namespace CrossGraphics
                 _activeTouches.Clear();
 
                 if (_touchEnabled) {
-#if NETFX_CORE
+#if WINDOWS
 					PointerPressed += SilverlightGraphicsCanvas_PointerPressed;
 					PointerMoved += SilverlightGraphicsCanvas_PointerMoved;
 					PointerReleased += SilverlightGraphicsCanvas_PointerReleased;
@@ -163,7 +163,7 @@ namespace CrossGraphics
 #endif
                 }
                 else {
-#if NETFX_CORE
+#if WINDOWS
 					PointerPressed -= SilverlightGraphicsCanvas_PointerPressed;
 					PointerMoved -= SilverlightGraphicsCanvas_PointerMoved;
 					PointerReleased -= SilverlightGraphicsCanvas_PointerReleased;
@@ -338,9 +338,9 @@ namespace CrossGraphics
 
 		const float DoubleClickMinDistance = 20;
 
-#if NETFX_CORE
+#if WINDOWS
 
-		PointF ToPointF(Windows.UI.Input.PointerPoint pt)
+		PointF ToPointF (Microsoft.UI.Input.PointerPoint pt)
 		{
 			return new PointF((float)pt.Position.X, (float)pt.Position.Y);
 		}
@@ -366,8 +366,11 @@ namespace CrossGraphics
 			if (_lastDownTime.ContainsKey(handle) &&
 				_lastBeganPosition.ContainsKey(handle)) {
 				var dt = now - _lastDownTime[handle];
+				var lastPos = _lastBeganPosition[handle];
+				var dx = pos.X - lastPos.X;
+				var dy = pos.Y - lastPos.Y;
 
-				if (dt.TotalSeconds < 0.5 && pos.DistanceTo(_lastBeganPosition[handle]) < DoubleClickMinDistance) {
+				if (dt.TotalSeconds < 0.5 && MathF.Sqrt(dx*dx + dy*dy) < DoubleClickMinDistance) {
 					tapCount++;
 				}
 			}
