@@ -31,9 +31,8 @@ using Microsoft.UI.Xaml.Input;
 using DispatcherTimerTickEventArgs = System.Object;
 using NativeColors = Microsoft.UI.Colors;
 using Microsoft.Graphics.Canvas.UI.Xaml;
-using CrossGraphics.Win2D;
 
-namespace CrossGraphics
+namespace CrossGraphics.Win2D
 {
     public class Win2DCanvas : Grid, ICanvas
     {
