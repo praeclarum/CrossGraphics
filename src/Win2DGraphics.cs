@@ -42,6 +42,10 @@ namespace CrossGraphics.Win2D
 		CanvasPathBuilder _linesPath = null;
 		int _linesCount = 0;
 		float _lineWidth = 1;
+		static readonly CanvasStrokeStyle ArcStrokeStyle = new CanvasStrokeStyle {
+			StartCap = CanvasCapStyle.Round,
+			EndCap = CanvasCapStyle.Round,
+		};
 
 		public CanvasDrawingSession Canvas { get { return _c; } }
 
@@ -137,14 +141,85 @@ namespace CrossGraphics.Win2D
 			_c.DrawEllipse (new Vector2 (x + width / 2, y + height / 2), width / 2, height / 2, wcolor, w);
 		}
 
-		const float RadiansToDegrees = (float)(180 / Math.PI);
+		/// <summary>
+		/// Match the existing backends' full-circle detection, including over-full sweeps.
+		/// </summary>
+		static float PositiveAngle (float a)
+		{
+			var twoPi = MathF.PI * 2.0f;
+			var na = a % twoPi;
+			if (na < 0) {
+				a += twoPi;
+			}
+			return a;
+		}
+
+		static float NormalizeAngle (float a)
+		{
+			var twoPi = MathF.PI * 2.0f;
+			var na = a % twoPi;
+			if (na < 0) {
+				na += twoPi;
+			}
+			return na;
+		}
 
 		public void FillArc (float cx, float cy, float radius, float startAngle, float endAngle)
 		{
+			using (var g = CreateArcGeometry (cx, cy, radius, startAngle, endAngle, CanvasFigureLoop.Closed)) {
+				if (g is not null) {
+					_c.FillGeometry (g, wcolor);
+				}
+			}
 		}
 
 		public void DrawArc (float cx, float cy, float radius, float startAngle, float endAngle, float w)
 		{
+			if (float.IsNaN (w) || w <= 0) {
+				return;
+			}
+			using (var g = CreateArcGeometry (cx, cy, radius, startAngle, endAngle, CanvasFigureLoop.Open)) {
+				if (g is not null) {
+					_c.DrawGeometry (g, wcolor, w, ArcStrokeStyle);
+				}
+			}
+		}
+
+		CanvasGeometry CreateArcGeometry (float cx, float cy, float radius, float startAngle, float endAngle, CanvasFigureLoop figureLoop)
+		{
+			if (float.IsNaN (cx) || float.IsNaN (cy) || float.IsNaN (radius) || float.IsNaN (startAngle) || float.IsNaN (endAngle) || radius <= 0) {
+				return null;
+			}
+
+			var sweep = PositiveAngle (endAngle - startAngle);
+			if (MathF.Abs (sweep) < 1.0e-6f) {
+				return null;
+			}
+			if (MathF.Abs (sweep) >= MathF.PI * 2.0f - 1.0e-6f) {
+				return CanvasGeometry.CreateEllipse (_c, cx, cy, radius, radius);
+			}
+
+			var startPoint = new Vector2 (
+				cx + radius * MathF.Cos (startAngle),
+				cy - radius * MathF.Sin (startAngle));
+			var endPoint = new Vector2 (
+				cx + radius * MathF.Cos (endAngle),
+				cy - radius * MathF.Sin (endAngle));
+			var dx = endPoint.X - startPoint.X;
+			var dy = endPoint.Y - startPoint.Y;
+			if (dx * dx + dy * dy < 1.0e-12f) {
+				return null;
+			}
+
+			var normalizedSweep = NormalizeAngle (endAngle - startAngle);
+			var arcSize = normalizedSweep > MathF.PI ? CanvasArcSize.Large : CanvasArcSize.Small;
+
+			using (var p = new CanvasPathBuilder (_c)) {
+				p.BeginFigure (startPoint, CanvasFigureFill.Default);
+				p.AddArc (endPoint, radius, radius, 0, CanvasSweepDirection.CounterClockwise, arcSize);
+				p.EndFigure (figureLoop);
+				return CanvasGeometry.CreatePath (p);
+			}
 		}
 
 		public void BeginLines (bool rounded)
@@ -305,4 +380,3 @@ namespace CrossGraphics.Win2D
 			Windows.UI.Color.FromArgb ((byte)c.Alpha, (byte)c.Red, (byte)c.Green, (byte)c.Blue);
 	}
 }
-
