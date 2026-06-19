@@ -148,8 +148,9 @@ namespace CrossGraphics.Win2D
 
 		public void BeginLines (bool rounded)
 		{
-			if (_linesPath != null) {
+			if (_linesPath is null) {
 				_linesPath = new CanvasPathBuilder (_c);
+				_linesPath.SetSegmentOptions (rounded ? CanvasFigureSegmentOptions.ForceRoundLineJoin : CanvasFigureSegmentOptions.None);
 				_linesCount = 0;
 				_lineWidth = 1;
 			}
@@ -172,7 +173,8 @@ namespace CrossGraphics.Win2D
 
 		public void EndLines ()
 		{
-			if (_linesPath != null) {
+			if (_linesPath is not null) {
+				_linesPath.EndFigure (CanvasFigureLoop.Open);
 				using (var g = CanvasGeometry.CreatePath (_linesPath)) {
 					_c.DrawGeometry (g, wcolor, _lineWidth);
 				}
