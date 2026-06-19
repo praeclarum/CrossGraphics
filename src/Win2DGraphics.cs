@@ -279,7 +279,9 @@ namespace CrossGraphics.Win2D
 
 			var fm = GetWin2DFontMetrics (_font);
 
-			_c.DrawText (s, x, y, wcolor, fm.Format);
+			var fy = y - fm.Height * 0.2f;
+
+			_c.DrawText (s, x, fy, wcolor, fm.Format);
 		}
 
 		public IFontMetrics GetFontMetrics ()
