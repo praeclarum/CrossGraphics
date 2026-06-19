@@ -231,6 +231,7 @@ namespace CrossGraphics
 		public IFontMetrics? Tag { get; set; }
 		public IFontMetrics? AndroidTag { get; set; }
 		public IFontMetrics? SkiaTag { get; set; }
+		public IFontMetrics? Win2DTag { get; set; }
 
 		private IFontMetrics? _nullTag;
 		public IFontMetrics NullTag => _nullTag ??= new NullGraphicsFontMetrics (Size, isBold: IsBold, isMonospace: IsMonospace);

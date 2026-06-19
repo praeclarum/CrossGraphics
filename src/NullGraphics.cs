@@ -179,6 +179,9 @@ namespace CrossGraphics
 
 		public int Descent => 0;
 
+		public bool IsBold => isBold;
+		public bool IsMonospace => _isMonospace;
+
 		public int StringWidth (string text, int startIndex, int length)
 		{
 			if (string.IsNullOrEmpty (text))

@@ -28,6 +28,7 @@ using NativePoint = System.Numerics.Vector2;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Brushes;
 using Microsoft.Graphics.Canvas.Geometry;
+using Microsoft.Graphics.Canvas.Text;
 
 namespace CrossGraphics.Win2D
 {
@@ -200,7 +201,9 @@ namespace CrossGraphics.Win2D
 		{
 			if (string.IsNullOrWhiteSpace (s)) return;
 
-			_c.DrawText (s, x, y, wcolor);
+			var fm = GetWin2DFontMetrics (_font);
+
+			_c.DrawText (s, x, y, wcolor, fm.Format);
 		}
 
 		public IFontMetrics GetFontMetrics ()
@@ -210,7 +213,7 @@ namespace CrossGraphics.Win2D
 
 		static Win2DFontMetrics GetWin2DFontMetrics (Font f)
 		{
-			var fi = f.Tag as Win2DFontMetrics;
+			var fi = f.Win2DTag as Win2DFontMetrics;
 			if (fi == null) {
 				var name = "Helvetica";
 				if (f.FontFamily == "Monospace") {
@@ -224,8 +227,8 @@ namespace CrossGraphics.Win2D
 #endif
 				}
 
-				fi = new Win2DFontMetrics (size: f.Size, isBold: f.IsBold);
-				f.Tag = fi;
+				fi = new Win2DFontMetrics (name: name, size: f.Size, isBold: f.IsBold);
+				f.Win2DTag = fi;
 			}
 			return fi;
 		}
@@ -278,7 +281,20 @@ namespace CrossGraphics.Win2D
 
 	public class Win2DFontMetrics : NullGraphicsFontMetrics
 	{
-		public Win2DFontMetrics (int size, bool isBold = false) : base (size, isBold)
+		CanvasTextFormat _format;
+		public CanvasTextFormat Format {
+			get
+			{
+				if (_format is not null) return _format;
+				var f = new CanvasTextFormat () {
+					FontSize = Height,
+					FontWeight = new Windows.UI.Text.FontWeight (IsBold ? (ushort)700 : (ushort)400),
+				};
+				_format = f;
+				return f;
+			}
+		}
+		public Win2DFontMetrics (string name, int size, bool isBold = false) : base (size, isBold)
 		{
 		}
 	}
