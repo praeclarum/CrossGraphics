@@ -67,6 +67,8 @@ namespace CrossGraphics.Win2D
 		readonly Stopwatch _throttleStopwatch = Stopwatch.StartNew ();
 		bool _isLoaded;
 
+		float _drawWidth;
+		float _drawHeight;
 		double lastUpdateWidth = -1, lastUpdateHeight = -1;
 
 		bool _continuous = true;
@@ -112,9 +114,14 @@ namespace CrossGraphics.Win2D
 
 		async void Win2DCanvas_SizeChanged (object sender, SizeChangedEventArgs e)
 		{
-			if (Content is not null && (Math.Abs (lastUpdateWidth - ActualWidth) > 0.5 || Math.Abs (lastUpdateHeight - ActualHeight) > 0.5)) {
-				lastUpdateWidth = ActualWidth;
-				lastUpdateHeight = ActualHeight;
+			var width = e.NewSize.Width;
+			var height = e.NewSize.Height;
+			_drawWidth = (float)width;
+			_drawHeight = (float)height;
+
+			if (Content is not null && (Math.Abs (lastUpdateWidth - width) > 0.5 || Math.Abs (lastUpdateHeight - height) > 0.5)) {
+				lastUpdateWidth = width;
+				lastUpdateHeight = height;
 				if (Dispatcher is { } dispatcher) {
 					await dispatcher.RunAsync (Windows.UI.Core.CoreDispatcherPriority.Normal, delegate
 					{
@@ -128,6 +135,8 @@ namespace CrossGraphics.Win2D
         {
             //Debug.WriteLine("LOADED {0}", Delegate);
             TouchEnabled = true;
+			_drawWidth = (float)ActualWidth;
+			_drawHeight = (float)ActualHeight;
 			_isLoaded = true;
 			UpdateRenderingMode ();
         }
@@ -216,7 +225,9 @@ namespace CrossGraphics.Win2D
 			var del = Content;
 			if (del is null) return 0;
 
-            var good = ActualWidth > 0 && ActualHeight > 0;
+			var width = _drawWidth;
+			var height = _drawHeight;
+            var good = width > 0 && height > 0;
             if (!good) return 0;
 
 			var _graphics = new Win2DGraphics (drawingSession);
@@ -228,7 +239,7 @@ namespace CrossGraphics.Win2D
 			//
 			// Draw
 			//
-			var fr = new RectangleF (0, 0, (float)ActualWidth, (float)ActualHeight);
+			var fr = new RectangleF (0, 0, width, height);
 			del.Frame = fr;
 			try {
 				del.Draw (_graphics);
