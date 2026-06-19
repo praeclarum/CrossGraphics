@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -42,32 +44,17 @@ namespace CrossGraphics.Win2D
 {
     public class Win2DCanvas : Grid, ICanvas
     {
-        const int NativePointsPerInch = 160;
-
-		CanvasControl canvasControl;
-		CanvasAnimatedControl animatedCanvasControl;
+		CanvasControl? canvasControl;
+		CanvasAnimatedControl? animatedCanvasControl;
 
         int _fps = 30;
 
         const double CpuUtilization = 0.25;
-		int _minFps = 4;
-		public int MinFps {
-			get => _minFps;
-			set {
-				_minFps = Math.Max (1, value);
-				if (_maxFps < _minFps)
-					_maxFps = _minFps;
-				_fps = ClampUpdateFreq (_fps);
-				ApplyFrameRate ();
-			}
-		}
 		int _maxFps = 30;
 		public int MaxFps {
 			get => _maxFps;
 			set {
 				_maxFps = Math.Max (1, value);
-				if (_minFps > _maxFps)
-					_minFps = _maxFps;
 				_fps = ClampUpdateFreq (_fps);
 				ApplyFrameRate ();
 			}
@@ -93,8 +80,8 @@ namespace CrossGraphics.Win2D
 			}
 		}
 
-		CanvasContent content;
-		public CanvasContent Content
+		CanvasContent? content;
+		public CanvasContent? Content
 		{
 			get
 			{
@@ -166,7 +153,7 @@ namespace CrossGraphics.Win2D
 			}
 		}
 
-		void OnNeedsDisplay (object sender, EventArgs e)
+		void OnNeedsDisplay (object? sender, EventArgs e)
 		{
 			SetNeedsDisplay ();
 		}
@@ -202,34 +189,11 @@ namespace CrossGraphics.Win2D
 
         #region Drawing
 
-        int _ppi = NativePointsPerInch;
-
-        public int PointsPerInch
-        {
-            get { return _ppi; }
-            set
-            {
-                if (_ppi == value || value <= 0) return;
-
-                _ppi = value;
-
-                var sc = _ppi / (double)NativePointsPerInch;
-                var scaleTx = new ScaleTransform() {
-                    ScaleX = sc,
-                    ScaleY = sc,
-                    CenterX = 0,
-                    CenterY = 0
-                };
-
-                RenderTransform = scaleTx;
-            }
-        }
-
         public void ResetGraphics()
         {
         }
 
-        public event EventHandler DrewFrame;
+        public event EventHandler? DrewFrame;
 
 		void Draw (CanvasControl sender, CanvasDrawEventArgs args)
 		{
@@ -265,10 +229,6 @@ namespace CrossGraphics.Win2D
 			// Draw
 			//
 			var fr = new RectangleF (0, 0, (float)ActualWidth, (float)ActualHeight);
-			if (_ppi != NativePointsPerInch) {
-				fr.Width /= _ppi / (float)NativePointsPerInch;
-				fr.Height /= _ppi / (float)NativePointsPerInch;
-			}
 			del.Frame = fr;
 			try {
 				del.Draw (_graphics);
@@ -391,7 +351,7 @@ namespace CrossGraphics.Win2D
 
         int ClampUpdateFreq(int fps)
         {
-            return Math.Min(MaxFps, Math.Max(MinFps, fps));
+            return Math.Min(MaxFps, Math.Max(1, fps));
         }
 
         #endregion
