@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 
+using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
@@ -43,23 +44,54 @@ namespace CrossGraphics.Win2D
     {
         const int NativePointsPerInch = 160;
 
-		readonly CanvasControl canvasControl;
+		CanvasControl canvasControl;
+		CanvasAnimatedControl animatedCanvasControl;
 
-        int _fps = 20;
-        readonly DispatcherTimer _drawTimer;
+        int _fps = 30;
 
         const double CpuUtilization = 0.25;
-        public int MinFps { get; set; }
-        public int MaxFps { get; set; }
+		int _minFps = 4;
+		public int MinFps {
+			get => _minFps;
+			set {
+				_minFps = Math.Max (1, value);
+				if (_maxFps < _minFps)
+					_maxFps = _minFps;
+				_fps = ClampUpdateFreq (_fps);
+				ApplyFrameRate ();
+			}
+		}
+		int _maxFps = 30;
+		public int MaxFps {
+			get => _maxFps;
+			set {
+				_maxFps = Math.Max (1, value);
+				if (_minFps > _maxFps)
+					_minFps = _maxFps;
+				_fps = ClampUpdateFreq (_fps);
+				ApplyFrameRate ();
+			}
+		}
         static readonly TimeSpan ThrottleInterval = TimeSpan.FromSeconds(1.0);
 
         double _drawTime;
         int _drawCount;
-        DateTime _lastThrottleTime = DateTime.Now;
+		readonly Stopwatch _drawStopwatch = new Stopwatch ();
+		readonly Stopwatch _throttleStopwatch = Stopwatch.StartNew ();
+		bool _isLoaded;
 
 		double lastUpdateWidth = -1, lastUpdateHeight = -1;
 
-		public bool Continuous { get; set; }
+		bool _continuous = true;
+		public bool Continuous {
+			get => _continuous;
+			set {
+				if (_continuous == value)
+					return;
+				_continuous = value;
+				UpdateRenderingMode ();
+			}
+		}
 
 		CanvasContent content;
 		public CanvasContent Content
@@ -86,19 +118,6 @@ namespace CrossGraphics.Win2D
         {
 			Background = new SolidColorBrush (NativeColors.Transparent);
 
-            MinFps = 4;
-            MaxFps = 30;
-			Continuous = true;
-
-            _drawTimer = new DispatcherTimer();
-            _drawTimer.Tick += DrawTick;
-
-			canvasControl = new CanvasControl ();
-			canvasControl.Draw += Draw;
-			SetRow (canvasControl, 0);
-			SetColumn (canvasControl, 0);
-			Children.Add (canvasControl);
-
             Unloaded += HandleUnloaded;
             Loaded += HandleLoaded;
 			SizeChanged += Win2DCanvas_SizeChanged;
@@ -122,18 +141,29 @@ namespace CrossGraphics.Win2D
         {
             //Debug.WriteLine("LOADED {0}", Delegate);
             TouchEnabled = true;
+			_isLoaded = true;
+			UpdateRenderingMode ();
         }
 
         void HandleUnloaded(object sender, RoutedEventArgs e)
         {
             //Debug.WriteLine("UNLOADED {0}", Delegate);
             TouchEnabled = false;
-            Stop();
+			_isLoaded = false;
+			DestroyDrawingControl ();
         }
 
 		public void SetNeedsDisplay ()
 		{
-			canvasControl.Invalidate (); 
+			if (!_isLoaded)
+				return;
+
+			if (Continuous) {
+				EnsureAnimatedCanvasControl ().Invalidate ();
+			}
+			else {
+				EnsureCanvasControl ().Invalidate (); 
+			}
 		}
 
 		void OnNeedsDisplay (object sender, EventArgs e)
@@ -195,50 +225,39 @@ namespace CrossGraphics.Win2D
             }
         }
 
-        public void Start()
-        {
-            _drawTimer.Interval = TimeSpan.FromSeconds(1.0 / _fps);
-
-            if (Continuous && !_drawTimer.IsEnabled) {
-                _drawTimer.Start();
-            }
-        }
-
-        public void Stop()
-        {
-            _drawTimer.Stop();
-        }
-
         public void ResetGraphics()
         {
-        }
-
-        bool _paused = false;
-        public bool Paused
-        {
-            get
-            {
-                return _paused;
-            }
-            set
-            {
-                if (_paused != value) {
-                    _paused = value;
-                    _lastThrottleTime = DateTime.Now;
-                }
-            }
         }
 
         public event EventHandler DrewFrame;
 
 		void Draw (CanvasControl sender, CanvasDrawEventArgs args)
 		{
+			DrawFrame (args.DrawingSession);
+		}
+
+		void DrawAnimated (ICanvasAnimatedControl sender, CanvasAnimatedDrawEventArgs args)
+		{
+			var elapsed = DrawFrame (args.DrawingSession);
+			if (elapsed <= 0)
+				return;
+
+			_drawTime += elapsed;
+			_drawCount++;
+			ThrottleContinuousRendering ();
+		}
+
+		double DrawFrame (CanvasDrawingSession drawingSession)
+		{
 			var del = Content;
-			if (del == null) return;
+			if (del is null) return 0;
 
-			var _graphics = new Win2DGraphics (args.DrawingSession);
+            var good = ActualWidth > 0 && ActualHeight > 0;
+            if (!good) return 0;
 
-			var startT = DateTime.Now;
+			var _graphics = new Win2DGraphics (drawingSession);
+
+			_drawStopwatch.Restart ();
 
 			_graphics.BeginEntity (del);
 
@@ -256,36 +275,20 @@ namespace CrossGraphics.Win2D
 			}
 			catch (Exception) {
 			}
+
+			_drawStopwatch.Stop ();
+			DrewFrame?.Invoke (this, EventArgs.Empty);
+			return _drawStopwatch.Elapsed.TotalSeconds;
 		}
 
-		void DrawTick(object sender, DispatcherTimerTickEventArgs e)
-        {
-			//
-			// Decide if we should draw
-			//
-            if (Paused) {
-                _drawCount = 0;
-                _drawTime = 0;
-                return;
-            }
-
-			var del = Content;
-			if (del == null) return;
-
-            var good = ActualWidth > 0 && ActualHeight > 0;
-            if (!good) return;
-
-			//
-			// Draw
-			//
-			canvasControl.Invalidate ();
-
+		void ThrottleContinuousRendering ()
+		{
             //
             // Throttle
             //
-            if (_drawCount > 2 && (DateTime.Now - _lastThrottleTime) >= ThrottleInterval) {
+            if (_drawCount > 2 && _throttleStopwatch.Elapsed >= ThrottleInterval) {
 
-                _lastThrottleTime = DateTime.Now;
+				_throttleStopwatch.Restart ();
 
                 var maxfps = 1.0 / (_drawTime / _drawCount);
                 _drawTime = 0;
@@ -295,18 +298,96 @@ namespace CrossGraphics.Win2D
 
                 if (Math.Abs(fps - _fps) > 1) {
                     _fps = fps;
-                    Start();
+                    ApplyFrameRate ();
                 }
             }
+		}
 
-            //
-            // Notify
-            //
-            var df = DrewFrame;
-            if (df != null) {
-                df(this, EventArgs.Empty);
-            }
-        }
+		void ApplyFrameRate ()
+		{
+			if (animatedCanvasControl is not null) {
+				animatedCanvasControl.TargetElapsedTime = TimeSpan.FromSeconds (1.0 / ClampUpdateFreq (_fps));
+			}
+		}
+
+		void UpdateRenderingMode ()
+		{
+			if (!_isLoaded)
+				return;
+
+			if (Continuous) {
+				DestroyCanvasControl ();
+				EnsureAnimatedCanvasControl ().Paused = false;
+			}
+			else {
+				DestroyAnimatedCanvasControl ();
+				EnsureCanvasControl ().Invalidate ();
+			}
+			if (!Continuous) {
+				_drawCount = 0;
+				_drawTime = 0;
+			}
+		}
+
+		CanvasControl EnsureCanvasControl ()
+		{
+			if (canvasControl is not null)
+				return canvasControl;
+
+			DestroyAnimatedCanvasControl ();
+
+			canvasControl = new CanvasControl ();
+			canvasControl.Draw += Draw;
+			SetRow (canvasControl, 0);
+			SetColumn (canvasControl, 0);
+			Children.Add (canvasControl);
+			return canvasControl;
+		}
+
+		CanvasAnimatedControl EnsureAnimatedCanvasControl ()
+		{
+			if (animatedCanvasControl is not null)
+				return animatedCanvasControl;
+
+			DestroyCanvasControl ();
+
+			animatedCanvasControl = new CanvasAnimatedControl ();
+			animatedCanvasControl.Draw += DrawAnimated;
+			SetRow (animatedCanvasControl, 0);
+			SetColumn (animatedCanvasControl, 0);
+			Children.Add (animatedCanvasControl);
+			ApplyFrameRate ();
+			return animatedCanvasControl;
+		}
+
+		void DestroyDrawingControl ()
+		{
+			DestroyCanvasControl ();
+			DestroyAnimatedCanvasControl ();
+		}
+
+		void DestroyCanvasControl ()
+		{
+			if (canvasControl is null)
+				return;
+
+			canvasControl.Draw -= Draw;
+			Children.Remove (canvasControl);
+			canvasControl.RemoveFromVisualTree ();
+			canvasControl = null;
+		}
+
+		void DestroyAnimatedCanvasControl ()
+		{
+			if (animatedCanvasControl is null)
+				return;
+
+			animatedCanvasControl.Paused = true;
+			animatedCanvasControl.Draw -= DrawAnimated;
+			Children.Remove (animatedCanvasControl);
+			animatedCanvasControl.RemoveFromVisualTree ();
+			animatedCanvasControl = null;
+		}
 
         int ClampUpdateFreq(int fps)
         {
