@@ -42,9 +42,10 @@ namespace CrossGraphics.Win2D
 		CanvasPathBuilder _linesPath = null;
 		int _linesCount = 0;
 		float _lineWidth = 1;
-		static readonly CanvasStrokeStyle ArcStrokeStyle = new CanvasStrokeStyle {
+		static readonly CanvasStrokeStyle strokeStyle = new CanvasStrokeStyle {
 			StartCap = CanvasCapStyle.Round,
 			EndCap = CanvasCapStyle.Round,
+			LineJoin = CanvasLineJoin.Round,
 		};
 
 		public CanvasDrawingSession Canvas { get { return _c; } }
@@ -107,7 +108,7 @@ namespace CrossGraphics.Win2D
 		public void DrawPolygon (Polygon poly, float w)
 		{
 			using (var g = GetPolyPath (poly, CanvasFigureFill.Default)) {
-				_c.DrawGeometry (g, wcolor, w);
+				_c.DrawGeometry (g, wcolor, w, strokeStyle);
 			}
 		}
 
@@ -180,7 +181,7 @@ namespace CrossGraphics.Win2D
 			}
 			using (var g = CreateArcGeometry (cx, cy, radius, startAngle, endAngle, CanvasFigureLoop.Open)) {
 				if (g is not null) {
-					_c.DrawGeometry (g, wcolor, w, ArcStrokeStyle);
+					_c.DrawGeometry (g, wcolor, w, strokeStyle);
 				}
 			}
 		}
@@ -243,7 +244,7 @@ namespace CrossGraphics.Win2D
 				_linesCount++;
 			}
 			else {
-				_c.DrawLine (sx, sy, ex, ey, wcolor, w);
+				_c.DrawLine (sx, sy, ex, ey, wcolor, w, strokeStyle);
 			}
 		}
 
@@ -252,7 +253,7 @@ namespace CrossGraphics.Win2D
 			if (_linesPath is not null) {
 				_linesPath.EndFigure (CanvasFigureLoop.Open);
 				using (var g = CanvasGeometry.CreatePath (_linesPath)) {
-					_c.DrawGeometry (g, wcolor, _lineWidth);
+					_c.DrawGeometry (g, wcolor, _lineWidth, strokeStyle);
 				}
 				_linesPath.Dispose ();
 				_linesPath = null;
