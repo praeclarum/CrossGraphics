@@ -147,6 +147,7 @@ namespace CrossGraphics.Win2D
             TouchEnabled = false;
 			_isLoaded = false;
 			DestroyDrawingControl ();
+			SizeChanged -= Win2DCanvas_SizeChanged;
         }
 
 		public void SetNeedsDisplay ()
@@ -343,8 +344,8 @@ namespace CrossGraphics.Win2D
 				return;
 
 			canvasControl.Draw -= Draw;
-			Children.Remove (canvasControl);
 			canvasControl.RemoveFromVisualTree ();
+			Children.Remove (canvasControl);
 			canvasControl = null;
 		}
 
@@ -355,8 +356,8 @@ namespace CrossGraphics.Win2D
 
 			animatedCanvasControl.Paused = true;
 			animatedCanvasControl.Draw -= DrawAnimated;
-			Children.Remove (animatedCanvasControl);
 			animatedCanvasControl.RemoveFromVisualTree ();
+			Children.Remove (animatedCanvasControl);
 			animatedCanvasControl = null;
 		}
 
