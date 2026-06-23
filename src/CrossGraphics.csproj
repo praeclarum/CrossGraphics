@@ -43,7 +43,7 @@
         <Compile Include="SkiaGraphics.cs" />
         <Compile Include="SvgGraphics.cs" />
         <Compile Include="WmfGraphics.cs" />
-        <None Include="..\README.md" Pack="true" PackagePath="\" />
+        <None Include="..\README.md" Pack="true" PackagePath="\" CopyToPublishDirectory="Never" />
 
         <PackageReference Include="SkiaSharp" />
     </ItemGroup>
@@ -91,5 +91,6 @@
         <Compile Include="Win2DGraphics.cs" />
         <Compile Include="Win2DCanvas.cs" />
         <PackageReference Include="Microsoft.Graphics.Win2D" />
+        <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />
     </ItemGroup>
 </Project>
