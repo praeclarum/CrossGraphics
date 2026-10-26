@@ -30,31 +30,9 @@ public class AppDelegate : NSApplicationDelegate {
 #elif __IOS__ || __MACCATALYST__
 [Register ("AppDelegate")]
 public class AppDelegate : UIApplicationDelegate {
-	public override UIWindow? Window {
-		get;
-		set;
-	}
-
 	public override bool FinishedLaunching (UIApplication application, NSDictionary? launchOptions)
 	{
-		// create a new window instance based on the screen size
-		#pragma warning disable CA1422 // Validate platform compatibility
-		Window = new UIWindow (UIScreen.MainScreen.Bounds);
-		#pragma warning restore CA1422 // Validate platform compatibility
-
-		// create a UIViewController with a single UILabel
-		var vc = new UIViewController ();
-		vc.View!.AddSubview (new UILabel (Window!.Frame) {
-			BackgroundColor = UIColor.SystemBackground,
-			TextAlignment = UITextAlignment.Center,
-			Text = "Hello, Mac Catalyst!",
-			AutoresizingMask = UIViewAutoresizing.All,
-		});
-		Window.RootViewController = vc;
-
-		// make the window visible
-		Window.MakeKeyAndVisible ();
-
+		// The window is created by SceneDelegate; the tests don't depend on it
 		RunTests ().ContinueWith (t => {
 			Environment.Exit (t.Result);
 		});
@@ -75,6 +53,37 @@ public class AppDelegate : UIApplicationDelegate {
 			Console.WriteLine ($"Error running tests: {ex}");
 			return 1;
 		}
+	}
+}
+
+[Register ("SceneDelegate")]
+public class SceneDelegate : UIResponder, IUIWindowSceneDelegate {
+	[Export ("window")]
+	public UIWindow? Window { get; set; }
+
+	[Export ("scene:willConnectToSession:options:")]
+	public void WillConnect (UIScene scene, UISceneSession session, UISceneConnectionOptions connectionOptions)
+	{
+		if (scene is not UIWindowScene windowScene)
+			return;
+
+		var window = new UIWindow (windowScene);
+
+		// create a UIViewController with a single UILabel
+		var vc = new UIViewController ();
+		if (vc.View is UIView view) {
+			view.AddSubview (new UILabel (view.Bounds) {
+				BackgroundColor = UIColor.SystemBackground,
+				TextAlignment = UITextAlignment.Center,
+				Text = "Hello, Mac Catalyst!",
+				AutoresizingMask = UIViewAutoresizing.All,
+			});
+		}
+		window.RootViewController = vc;
+
+		// make the window visible
+		window.MakeKeyAndVisible ();
+		Window = window;
 	}
 }
 #endif
