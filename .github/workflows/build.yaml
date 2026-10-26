@@ -33,7 +33,7 @@ jobs:
       with:
         global-json-file: global.json
     - name: Restore Workloads
-      run: sudo dotnet workload restore
+      run: dotnet workload restore CrossGraphics.sln
     - name: Restore Packages
       run: dotnet restore -p:NuGetAudit=false
     - name: Build Library
