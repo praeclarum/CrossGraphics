@@ -145,7 +145,7 @@ public class AcceptanceTests
 		    var uiImage = UIGraphics.GetImageFromCurrentImageContext ();
 		    UIGraphics.EndImageContext ();
 		    var fullName = name + ".png";
-		    uiImage.AsPNG ()?.Save (Path.Join (dir, fullName), atomically: true);
+		    uiImage?.AsPNG ()?.Save (Path.Join (dir, fullName), atomically: true);
             #pragma warning restore CA1416, CA1422 // Validate platform compatibility
 		    return fullName;
 	    }
