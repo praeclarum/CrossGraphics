@@ -264,11 +264,12 @@ public class AcceptanceTests
         var w = new StringWriter();
         WriteHeader(name, w);
         w.WriteLine($"<h1><a href=\"index.html\">CrossGraphics Tests</a> / {name}</h1>");
+        w.WriteLine($"<p><span class=\"accepted\">Green</span> is the accepted image, <span class=\"pending\">red</span> is the new pending image.</p>");
         w.WriteLine($"<table border=\"0\" cellspacing=\"8\">");
         w.Write($"<tr><th>Drawing</th>");
         foreach (var platform in Platforms)
         {
-	        w.Write ($"<th style=\"max-width:{width}\">{platform.Name}</th>");
+	        w.Write ($"<th>{platform.Name}</th>");
         }
         w.WriteLine($"</tr>");
 
@@ -283,21 +284,23 @@ public class AcceptanceTests
                 var filename = platform.SaveDrawing(graphics, context, PendingPath, name + "_" + drawing.Title + "_" + platform.Name);
                 var pendingFile = Path.Combine(PendingPath, filename);
                 var acceptedFile = Path.Combine(AcceptedPath, filename);
-                if (Compare.FilesMatch(pendingFile, acceptedFile, drawing.Tolerance)) {
+                if (Compare.FilesMatch(pendingFile, acceptedFile, drawing.Tolerance, out var mismatch)) {
                     File.Delete(pendingFile);
-                    rowWriter.Write($"<td style=\"max-width:{width}\">&#x2705;</td>");
+                    rowWriter.Write($"<td>&#x2705;</td>");
                 } else {
                     rowHasPending = true;
-                    Console.WriteLine($"PENDING: {filename}");
-                    var irender = filename.EndsWith (".svg") ? "smooth" : "crisp-edges";
+                    _pendingCount++;
+                    Console.WriteLine($"PENDING: {filename} ({mismatch})");
+                    var irender = filename.EndsWith (".svg") ? "auto" : "pixelated";
                     var hasAccepted = File.Exists(acceptedFile);
-                    rowWriter.Write($"<td style=\"max-width:{width};white-space:nowrap\">");
+                    rowWriter.Write($"<td class=\"compare\">");
                     if (hasAccepted) {
                         var acceptedCopy = "accepted_" + filename;
                         File.Copy(acceptedFile, Path.Combine(PendingPath, acceptedCopy), overwrite: true);
-                        rowWriter.Write($"<img src=\"{acceptedCopy}\" alt=\"accepted\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" style=\"border:2px solid green;display:inline-block\" />&nbsp;");
+                        rowWriter.Write($"<img src=\"{acceptedCopy}\" alt=\"accepted\" title=\"Accepted\" class=\"accepted\" width=\"{width}\" height=\"{height}\" style=\"image-rendering:{irender}\" />");
                     }
-                    rowWriter.Write($"<img src=\"{filename}\" alt=\"pending\" width=\"{width}\" height=\"{height}\" image-rendering=\"{irender}\" style=\"border:2px solid red;display:inline-block\" />");
+                    rowWriter.Write($"<img src=\"{filename}\" alt=\"pending\" title=\"Pending\" class=\"pending\" width=\"{width}\" height=\"{height}\" style=\"image-rendering:{irender}\" />");
+                    rowWriter.Write($"<div>{System.Net.WebUtility.HtmlEncode (mismatch)}</div>");
                     rowWriter.Write($"</td>");
                 }
             }
@@ -314,7 +317,6 @@ public class AcceptanceTests
         if (!hasPending)
             return null;
 
-        _pendingCount++;
         string outFileName = name + ".html";
         File.WriteAllText(Path.Combine(PendingPath, outFileName), w.ToString());
         return outFileName;
@@ -322,11 +324,19 @@ public class AcceptanceTests
 
     private static void WriteHeader(string title, StringWriter w)
     {
-	    w.WriteLine($"<html><head><title>{title}</title>");
+	    w.WriteLine($"<!DOCTYPE html>");
+	    w.WriteLine($"<html><head><meta charset=\"utf-8\"><title>{title}</title>");
 	    w.WriteLine($"<style>");
 	    w.WriteLine($"html {{ font-family: sans-serif; font-size: 12px; background-color: #333; color: #fff; }}");
 	    w.WriteLine($"table {{ font-size: 12px; }}");
-	    w.WriteLine($"img {{ background-color: #fff; }}");
+	    w.WriteLine($"td {{ text-align: center; vertical-align: middle; }}");
+	    w.WriteLine($"td.compare {{ white-space: nowrap; }}");
+	    w.WriteLine($"td.compare img {{ margin: 0 2px; }}");
+	    w.WriteLine($"img {{ background-color: #fff; vertical-align: middle; }}");
+	    w.WriteLine($"img.accepted {{ border: 2px solid green; }}");
+	    w.WriteLine($"img.pending {{ border: 2px solid red; }}");
+	    w.WriteLine($"span.accepted {{ color: #6c6; }}");
+	    w.WriteLine($"span.pending {{ color: #f66; }}");
 	    w.WriteLine($"a {{ color: #ccf; }}");
 	    w.WriteLine($"a:visited {{ color: #ccf; }}");
 	    w.WriteLine($"</style>");
@@ -336,6 +346,9 @@ public class AcceptanceTests
     public int Run ()
     {
 	    _pendingCount = 0;
+	    // Clear results from previous runs so stale pages and images don't linger
+	    foreach (var file in Directory.GetFiles (PendingPath))
+		    File.Delete (file);
 	    var pages = new string?[] {
 		    Arcs (),
 		    Lines (),
@@ -352,10 +365,10 @@ public class AcceptanceTests
 	    }
 	    var w = new StringWriter();
 	    WriteHeader("Cross Graphics Tests", w);
-	    w.WriteLine($"<h1>CrossGraphics Tests ({_pendingCount} pending)</h1>");
+	    w.WriteLine($"<h1>CrossGraphics Tests ({_pendingCount} pending images)</h1>");
 	    w.WriteLine($"<ul>");
 	    foreach (var p in pendingPages) {
-			w.WriteLine($"<li><a href=\"{p}\">{p}</li>");
+			w.WriteLine($"<li><a href=\"{p}\">{p}</a></li>");
 	    }
 	    w.WriteLine($"</ul>");
 	    w.WriteLine("</body></html>");
@@ -363,7 +376,7 @@ public class AcceptanceTests
 	    string outFileName = "index.html";
         var indexPath = Path.Combine(PendingPath, outFileName);
 	    File.WriteAllText(indexPath, pendingHTML);
-        Console.WriteLine($"Tests completed with {_pendingCount} pending. Open {indexPath} to view results.");
+        Console.WriteLine($"Tests completed with {_pendingCount} pending images on {pendingPages.Length} pages. Open {indexPath} to view results.");
         return 2;
     }
 

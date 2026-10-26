@@ -4,39 +4,45 @@ namespace CrossGraphicsTests;
 
 static class Compare
 {
-    public static bool FilesMatch(string pendingPath, string acceptedPath, int tolerance = 0)
+    public static bool FilesMatch(string pendingPath, string acceptedPath, int tolerance, out string? mismatch)
     {
-        if (!File.Exists(acceptedPath))
-            return false;
-
-        if (pendingPath.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
-            return SvgFilesMatch(pendingPath, acceptedPath);
-
-        if (pendingPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
-            return PngFilesMatch(pendingPath, acceptedPath, tolerance);
-
-        return false;
+        mismatch = GetMismatch(pendingPath, acceptedPath, tolerance);
+        return mismatch is null;
     }
 
-    static bool SvgFilesMatch(string pendingPath, string acceptedPath)
+    static string? GetMismatch(string pendingPath, string acceptedPath, int tolerance)
+    {
+        if (!File.Exists(acceptedPath))
+            return "No accepted image";
+
+        if (pendingPath.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+            return SvgMismatch(pendingPath, acceptedPath);
+
+        if (pendingPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            return PngMismatch(pendingPath, acceptedPath, tolerance);
+
+        return "Unsupported file type";
+    }
+
+    static string? SvgMismatch(string pendingPath, string acceptedPath)
     {
         var pending = File.ReadAllText(pendingPath);
         var accepted = File.ReadAllText(acceptedPath);
-        return string.Equals(pending, accepted, StringComparison.Ordinal);
+        return string.Equals(pending, accepted, StringComparison.Ordinal) ? null : "SVG text differs";
     }
 
     #if __MACOS__ || __IOS__ || __MACCATALYST__
-    static bool PngFilesMatch(string pendingPath, string acceptedPath, int tolerance)
+    static string? PngMismatch(string pendingPath, string acceptedPath, int tolerance)
     {
         var pendingUrl = Foundation.NSUrl.FromFilename(pendingPath);
         var acceptedUrl = Foundation.NSUrl.FromFilename(acceptedPath);
         if (pendingUrl is null || acceptedUrl is null)
-            return false;
+            return "Could not open image";
 
         using var pendingSource = ImageIO.CGImageSource.FromUrl(pendingUrl);
         using var acceptedSource = ImageIO.CGImageSource.FromUrl(acceptedUrl);
         if (pendingSource is null || acceptedSource is null)
-            return false;
+            return "Could not read image";
 
         var imageOptions = new ImageIO.CGImageOptions {
             ShouldCache = false,
@@ -45,12 +51,12 @@ static class Compare
         using var pendingImage = pendingSource.CreateImage(0, imageOptions);
         using var acceptedImage = acceptedSource.CreateImage(0, imageOptions);
         if (pendingImage is null || acceptedImage is null)
-            return false;
+            return "Could not decode image";
 
         var width = (int)pendingImage.Width;
         var height = (int)pendingImage.Height;
         if (width != (int)acceptedImage.Width || height != (int)acceptedImage.Height)
-            return false;
+            return $"Size {width}x{height}, accepted {acceptedImage.Width}x{acceptedImage.Height}";
 
         var bytesPerRow = width * 4;
         var totalBytes = bytesPerRow * height;
@@ -72,23 +78,27 @@ static class Compare
         Marshal.Copy(pendingCtx.Data, pendingBytes, 0, totalBytes);
         Marshal.Copy(acceptedCtx.Data, acceptedBytes, 0, totalBytes);
 
-        if (tolerance <= 0)
-            return pendingBytes.AsSpan().SequenceEqual(acceptedBytes);
-        for (int i = 0; i < totalBytes; i++) {
-            var error = Math.Abs(pendingBytes[i] - acceptedBytes[i]);
-            if (error > tolerance) {
-                Console.WriteLine($"{pendingPath}: Pixel {i / 4} channel {i % 4}: pending={pendingBytes[i]} accepted={acceptedBytes[i]} error={error}");
-                return false;
-            }
+        var differingPixels = 0;
+        var maxError = 0;
+        for (int i = 0; i < totalBytes; i += 4) {
+            var pixelError = 0;
+            for (int c = 0; c < 4; c++)
+                pixelError = Math.Max(pixelError, Math.Abs(pendingBytes[i + c] - acceptedBytes[i + c]));
+            if (pixelError > tolerance)
+                differingPixels++;
+            maxError = Math.Max(maxError, pixelError);
         }
-        return true;
+        if (differingPixels == 0)
+            return null;
+        var tolText = tolerance > 0 ? $" (tolerance {tolerance})" : "";
+        return $"{differingPixels} px differ, max error {maxError}{tolText}";
     }
     #else
-    static bool PngFilesMatch(string pendingPath, string acceptedPath, int tolerance)
+    static string? PngMismatch(string pendingPath, string acceptedPath, int tolerance)
     {
         var pending = File.ReadAllBytes(pendingPath);
         var accepted = File.ReadAllBytes(acceptedPath);
-        return pending.AsSpan().SequenceEqual(accepted);
+        return pending.AsSpan().SequenceEqual(accepted) ? null : "PNG bytes differ";
     }
     #endif
 }
